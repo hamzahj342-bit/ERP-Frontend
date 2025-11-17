@@ -40,6 +40,8 @@ import FP_SaleReturnForm from './Pages/FP_SaleReturnForm';
 import FP_InvoiceDetail from './Components/FP_InvoiceDetail';
 import Employees from './Pages/Emloyees';
 import EmployeesForm from './Components/EmployeesForm';
+import CreateAccount from './Pages/CreateAccount';
+import AccountList from './Pages/AccountList';
 
 
 const App = () => {
@@ -85,6 +87,8 @@ const App = () => {
         <Route path="/fp-salereturn-list" element={<ProtectedRoute> <FP_SaleReturnList /> </ProtectedRoute>} />
         <Route path="/fp-salereturn-form" element={<ProtectedRoute> <FP_SaleReturnForm /> </ProtectedRoute>} />
         <Route path="/fp-invoice-detail/:invoiceNo" element={<ProtectedRoute> <FP_InvoiceDetail /> </ProtectedRoute>} />
+        <Route path="/accounts" element={<ProtectedRoute> <AccountList /> </ProtectedRoute>} />
+        <Route path="/create-account" element={<ProtectedRoute> <CreateAccount /> </ProtectedRoute>} />
       </Routes>
     </Router>
   );

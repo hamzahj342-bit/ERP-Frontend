@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MdScience } from 'react-icons/md';
 import {
   FaBoxes, FaBoxOpen, FaChartLine, FaShoppingCart, FaCashRegister, FaUsers,
-  FaTruck, FaUndoAlt, FaCartPlus, FaExchangeAlt, FaCartArrowDown, FaFlask, FaStore, FaHistory
+  FaTruck, FaUndoAlt, FaCartPlus, FaExchangeAlt, FaCartArrowDown, FaFlask, FaStore, FaHistory,FaWallet,
 } from 'react-icons/fa';
 // import NavigationBar from './NavigationBar';
 import Footer from './Footer';
@@ -93,6 +93,7 @@ const Dashboard = () => {
     { title: "Sale Return", value: "Returned Materials", icon: <FaUndoAlt size={30} color="#9e9e9e" /> },
     { title: "Create Recipe", value: "And detail", icon: <FaFlask size={30} color="#673ab7" /> },
     { title: "Create Product", value: "with recipe", icon: <FaBoxOpen size={30} color="#4caf50" /> },
+    { title: "Accounts", value: "user-created", icon: <FaWallet size={30} color="#2196f3" /> },
   ];
 
   const allCardsRoute = {
@@ -112,7 +113,8 @@ const Dashboard = () => {
     "Shops Detail": "/shops",
     "Sale Return": "/rm-sale-return",
     "Create Recipe": "/recipe",
-    "Create Product": "/production"
+    "Create Product": "/production",
+    "Accounts": "/accounts"
   };
 
   const logOut = () => {
