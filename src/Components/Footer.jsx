@@ -1,0 +1,24 @@
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+import '../Footer.css';
+
+const Footer = () => {
+  const location = useLocation();
+
+  // Check if current path is dashboard
+  const isDashboard = location.pathname === '/dashboard';
+
+  return (
+    <footer className={`footer ${isDashboard ? 'footer-dashboard' : ''}`}>
+      <div className="footer-content">
+        <p>&copy; {new Date().getFullYear()} Your Company Name. All rights reserved.</p>
+        <div className="footer-links">
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;

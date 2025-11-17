@@ -1,0 +1,136 @@
+.rm-page{
+  font-family: 'Montserrat', sans-serif;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;;
+}
+.rm-card{
+  background-color: #ffffff;
+  color: #333;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  max-width: 1300px;   /* 🔥 Ye line add karo */
+  margin: 0 auto;    /* Center align */
+  width: 100%;         /* Responsive full width */
+}
+.rm-card h2{
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a73e8;
+  margin-bottom: 20px;
+}
+.rm-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr 0.4fr 0.3fr; /* last two now 0.5fr each */
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+.select-materials {
+  width: 45%;
+}
+.grand-total{
+  margin-bottom: 10px;
+}
+.add-more {
+  padding: 12px;
+  margin-bottom: 16px; 
+  border-radius: 8px;
+  border: none;
+  background-color: #1a73e8; 
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: #f5f5f5;
+}
+.del-btn{
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: none;
+  background-color: #e84545; 
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: #f5f5f5;
+}
+.add-more:hover {
+  background-color: #155ab6; 
+}
+.del-btn:hover {
+  background-color: #b71c1c; 
+}
+.add-sup-cust{
+  padding: 12px;
+  margin-bottom: 16px; 
+  border-radius: 8px;
+  border: none;
+  background-color: #1a73e8; 
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: #f5f5f5;
+  width: 30%;
+}
+.add-sup-cust:hover {
+  background-color: #155ab6; 
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+.save-btn {
+  padding: 12px;
+  margin-bottom: 16px; 
+  border-radius: 8px;
+  border: none;
+  background-color: #4caf50; 
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: #f5f5f5;
+}
+.save-btn:hover{
+  background-color: #43a047;
+}
+.add-more-recipe{
+  padding: 12px;
+  margin-bottom: 16px; 
+  border-radius: 8px;
+  border: none;
+  background-color: #1a73e8; 
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: #f5f5f5;
+  width: 100px;
+  margin-right: 9px;
+}
+.add-more-recipe:hover{
+  background-color: #155ab6; 
+}
+.del-btn-recipe{
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: none;
+  background-color: #e84545; 
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: #f5f5f5;
+  width: 60px;
+}

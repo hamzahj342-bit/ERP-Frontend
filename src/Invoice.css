@@ -1,0 +1,265 @@
+:root {
+    /* Custom Variables for easy color change */
+    --primary-color: #007bff; /* Dark Blue / Primary Accent */
+    --dark-color: #343a40;   /* Dark Gray / Header Background */
+    --text-muted: #6c757d;   /* Secondary Text */
+    --white: #fff;
+    --light-bg: #f8f9fa;     /* Light Gray Background */
+}
+
+/* --- Global Container and Box --- */
+.invoice-container {
+    padding: 30px;
+    background-color: var(--light-bg);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+}
+
+.invoice-box {
+    max-width: 900px;
+    width: 100%;
+    background: var(--white);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+/* 1. Header Style */
+.invoice-header {
+    background-color: var(--dark-color);
+    color: var(--white);
+    padding: 25px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.invoice-header .subtitle {
+    margin: 0;
+    font-size: 1.0rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+.invoice-header .id-number {
+    margin: 0;
+    font-size: larger;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+}
+.invoice-header .title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color); /* Primary accent for company name/title */
+}
+
+/* 2. Details Section Style */
+.invoice-details-section {
+    padding: 40px;
+    border-bottom: 1px solid var(--light-bg);
+}
+.details-row {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+.billed-to {
+    width: 45%;
+}
+.invoice-dates {
+    width: 45%;
+    display: flex;
+    justify-content: space-between;
+    text-align: right;
+}
+.billed-to .customer-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--dark-color);
+    margin-bottom: 5px;
+}
+.billed-to .customer-detail {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+}
+.label {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+.value {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--dark-color);
+}
+.date-item {
+    margin-left: 30px; /* Spacing between date and created by */
+}
+
+/* 3. Item Table Style */
+.item-table-section {
+    padding: 40px 40px 20px 40px;
+}
+.section-title {
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--light-bg);
+}
+.item-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.item-table th {
+    text-align: left;
+    padding: 12px 10px;
+    background-color: var(--light-bg);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--text-muted);
+}
+.item-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--light-bg);
+    font-size: 0.9rem;
+}
+.item-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.item-table .product-col { width: 40%; font-weight: 600; color: var(--dark-color); }
+.item-table .qty-col, .item-table .uom-col { width: 10%; text-align: right; }
+.item-table .price-col { width: 15%; color: var(--text-muted); }
+.item-table .amount-col { width: 25%; font-weight: 700; color: var(--dark-color); }
+
+.text-right { text-align: right !important; }
+
+/* 4. Footer and Total Style */
+.invoice-footer {
+    padding: 40px;
+    background-color: var(--light-bg);
+    border-top: 2px solid var(--white);
+    border-radius: 0 0 8px 8px;
+}
+.total-area {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 30px;
+}
+.total-box {
+    width: 100%;
+    max-width: 320px;
+    padding: 20px 25px;
+    color: var(--primary-color);
+    background-color: var(--dark-color); /* Primary Color for Emphasis */
+    border-radius: 5px;
+}
+.total-box .total-label {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+.total-box .total-value {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 600;
+    text-align: right;
+    color: rgba(255, 255, 255, 0.7);
+}
+.note-section {
+    border-top: 1px solid var(--text-muted);
+    padding-top: 20px;
+    text-align: center;
+}
+.note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+/* .back-button {
+    background: none;
+    border: none;
+    color: var(--dark-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+.back-button:hover {
+    color: var(--primary-color);
+} */
+ /* Grouping the buttons for side-by-side display */
+.action-buttons-group {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Space between buttons */
+}
+
+/* Styling for the new Download PDF button (Primary Color) */
+.download-pdf-button {
+    /* background-color: var(--primary-color); */
+    background-color: darkred;
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.download-pdf-button:hover {
+    background-color: rgb(186, 65, 65) /* Darker shade of primary on hover */
+}
+
+/* Adjusting the existing back-button to fit the group */
+.back-button {
+    /* Existing styles are fine, just ensuring it looks like a secondary action */
+    margin: 0; 
+    padding: 10px 20px;
+    text-decoration: none;
+    border: 1px solid var(--text-muted);
+    border-radius: 5px;
+    background: none;
+    color: var(--dark-color);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.back-button:hover {
+    background-color: var(--white);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .invoice-header, .invoice-details-section, .item-table-section, .invoice-footer {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    .details-row, .invoice-dates {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .billed-to, .invoice-dates {
+        width: 100%;
+    }
+    .invoice-dates {
+        margin-top: 20px;
+        text-align: left;
+    }
+    .date-item {
+        margin-left: 0;
+        margin-bottom: 10px;
+    }
+    .total-box {
+        max-width: 100%;
+    }
+}
