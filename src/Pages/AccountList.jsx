@@ -18,7 +18,7 @@ const AccountList = () => {
 
   // Fetch only user-created accounts
   const fetchAccounts = () => {
-    fetch("http://localhost:5000/api/create-accounts/user-created")
+    fetch("http://localhost:5000/api/accounts/user-created")
       .then(res => res.json())
       .then(data => setAccounts(data))
       .catch(err => console.error("Error fetching accounts:", err));
@@ -46,7 +46,7 @@ const AccountList = () => {
   const handleUpdate = (e) => {
     e.preventDefault();
 
-    fetch(`http://localhost:5000/api/create-accounts/${onUpdate.id}`, {
+    fetch(`http://localhost:5000/api/accounts/${onUpdate.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData)
@@ -72,7 +72,7 @@ const AccountList = () => {
     confirmButtonText: 'Yes, delete it!'
   }).then((result) => {
     if (result.isConfirmed) {
-      fetch(`http://localhost:5000/api/create-accounts/${id}`, {
+      fetch(`http://localhost:5000/api/accounts/${id}`, {
         method: "DELETE"
       })
         .then(res => {

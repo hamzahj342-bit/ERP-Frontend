@@ -17,7 +17,7 @@ const AccountForm = () => {
   // Fetch next account code from backend on load
   const fetchNextAccountCode = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/create-accounts/next-code");
+      const res = await fetch("http://localhost:5000/api/accounts/next-code");
       if (res.ok) {
         const data = await res.json();
         setFormData(prev => ({ ...prev, account_code: data.next_code }));
@@ -48,7 +48,7 @@ const AccountForm = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/create-accounts", {
+      const res = await fetch("http://localhost:5000/api/accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

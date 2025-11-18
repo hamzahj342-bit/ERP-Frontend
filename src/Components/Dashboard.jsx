@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { MdScience } from 'react-icons/md';
 import {
   FaBoxes, FaBoxOpen, FaChartLine, FaShoppingCart, FaCashRegister, FaUsers,
-  FaTruck, FaUndoAlt, FaCartPlus, FaExchangeAlt, FaCartArrowDown, FaFlask, FaStore, FaHistory,FaWallet,
+  FaTruck, FaUndoAlt, FaCartPlus, FaExchangeAlt, FaCartArrowDown, FaFlask,
+  FaStore, FaHistory,FaWallet, FaMoneyCheckAlt, FaMoneyBillWave,
 } from 'react-icons/fa';
 // import NavigationBar from './NavigationBar';
 import Footer from './Footer';
@@ -94,6 +95,8 @@ const Dashboard = () => {
     { title: "Create Recipe", value: "And detail", icon: <FaFlask size={30} color="#673ab7" /> },
     { title: "Create Product", value: "with recipe", icon: <FaBoxOpen size={30} color="#4caf50" /> },
     { title: "Accounts", value: "user-created", icon: <FaWallet size={30} color="#2196f3" /> },
+    { title: "Payments", value: "Transaction", icon: <FaMoneyCheckAlt size={30} color="#4caf50" />},
+    { title: "Investment", value: "Transaction", icon: <FaMoneyCheckAlt size={30} color="#4caf50" />},
   ];
 
   const allCardsRoute = {
@@ -114,7 +117,9 @@ const Dashboard = () => {
     "Sale Return": "/rm-sale-return",
     "Create Recipe": "/recipe",
     "Create Product": "/production",
-    "Accounts": "/accounts"
+    "Accounts": "/accounts",
+    "Payments": "/payments-list",
+    "Investment": "/investment-list"
   };
 
   const logOut = () => {

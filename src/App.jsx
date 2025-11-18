@@ -42,6 +42,10 @@ import Employees from './Pages/Emloyees';
 import EmployeesForm from './Components/EmployeesForm';
 import CreateAccount from './Pages/CreateAccount';
 import AccountList from './Pages/AccountList';
+import PaymentTransactionForm from './Components/PaymentTransactionForm';
+import PaymentTransactionList from './Components/PaymentTransctionList';
+import InvestmentList from './Components/InvestmentList';
+import InvestmentForm from './Components/InvestmentForm';
 
 
 const App = () => {
@@ -89,6 +93,10 @@ const App = () => {
         <Route path="/fp-invoice-detail/:invoiceNo" element={<ProtectedRoute> <FP_InvoiceDetail /> </ProtectedRoute>} />
         <Route path="/accounts" element={<ProtectedRoute> <AccountList /> </ProtectedRoute>} />
         <Route path="/create-account" element={<ProtectedRoute> <CreateAccount /> </ProtectedRoute>} />
+        <Route path="/payments" element={<ProtectedRoute> <PaymentTransactionForm /> </ProtectedRoute>} />
+        <Route path="/payments-list" element={<ProtectedRoute> <PaymentTransactionList /> </ProtectedRoute>} />
+        <Route path="/investment-list" element={<ProtectedRoute> <InvestmentList /> </ProtectedRoute>} />
+        <Route path="/investment" element={<ProtectedRoute> <InvestmentForm /> </ProtectedRoute>} />
       </Routes>
     </Router>
   );
