@@ -31,7 +31,7 @@ const InvestmentForm = () => {
 
   // Fetch Invoice Number
   useEffect(() => {
-    fetch("http://localhost:5000/api/payment-transactions/invoice-no")
+    fetch("http://localhost:5000/api/payment-transactions/investment-invoice")
       .then((res) => res.json())
       .then((data) => setInvoiceNo(data.invoice_no))
       .catch((err) => console.error("Error fetching invoice:", err));

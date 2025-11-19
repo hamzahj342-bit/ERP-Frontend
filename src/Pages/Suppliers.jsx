@@ -204,6 +204,7 @@ const Suppliers = ({ onEdit, onDelete }) => {
                 <th>Address</th>
                 <th>Contact</th>
                 <th>Shop</th>
+                <th>Account No</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -215,6 +216,7 @@ const Suppliers = ({ onEdit, onDelete }) => {
                   <td>{sup.address}</td>
                   <td>{sup.contact || "N/A"}</td>
                   <td>{sup.shop?.name || "N/A"}</td>
+                  <td>{sup.account?.account_code || "Not Created"}</td>
                   <td>
                     <button
                       className="edit-btn"

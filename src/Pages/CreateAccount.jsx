@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft } from "react-icons/fa";
 import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "../Components/NavigationBar";
@@ -11,13 +11,34 @@ const AccountForm = () => {
 
   const [formData, setFormData] = useState({
     account_name: "",
-    account_code: "", // read-only, auto from backend
+    category_id: "",
+    account_code: ""
   });
 
-  // Fetch next account code from backend on load
-  const fetchNextAccountCode = async () => {
+  const [categories, setCategories] = useState([]);
+
+  // Fetch user-created categories
+  const fetchCategories = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/accounts/next-code");
+      const res = await fetch("http://localhost:5000/api/account-categories/user-created");
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Fetch next account code for selected category
+  const fetchNextCode = async (category_id) => {
+    if (!category_id) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/accounts/next-code?category_id=${category_id}`);
       if (res.ok) {
         const data = await res.json();
         setFormData(prev => ({ ...prev, account_code: data.next_code }));
@@ -27,23 +48,24 @@ const AccountForm = () => {
     }
   };
 
-  useEffect(() => {
-    fetchNextAccountCode();
-  }, []);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    // If category changes, fetch new account code
+    if (name === "category_id") {
+      setFormData(prev => ({ ...prev, category_id: value, account_code: "" }));
+      fetchNextCode(value);
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
+  const userId = localStorage.getItem("user_id");
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.account_name) {
-      toast.error("Please enter an account name!");
+    if (!formData.account_name || !formData.category_id) {
+      toast.error("Please enter account name and select a category!");
       return;
     }
 
@@ -51,14 +73,17 @@ const AccountForm = () => {
       const res = await fetch("http://localhost:5000/api/accounts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          account_name: formData.account_name,
+          category_id: formData.category_id,
+          created_by: userId // replace with dynamic user if needed
+        })
       });
 
       if (res.ok) {
         toast.success("Account created successfully!");
-        setFormData({ account_name: "", account_code: "" });
-        fetchNextAccountCode(); // get next code
-        navigate("/accounts")
+        setFormData({ account_name: "", category_id: "", account_code: "" });
+        navigate("/accounts");
       } else {
         toast.error("Error creating account.");
       }
@@ -72,7 +97,7 @@ const AccountForm = () => {
     <>
       <NavigationBar />
       <div className="page-container">
-        <button className="back-btn" style={{marginTop:"30px"}} onClick={() => navigate("/accounts")}>
+        <button className="back-btn" style={{ marginTop: "30px" }} onClick={() => navigate("/accounts")}>
           <FaArrowLeft />
         </button>
 
@@ -87,6 +112,27 @@ const AccountForm = () => {
               onChange={handleChange}
               required
             />
+
+            {/* ✅ Category dropdown */}
+          <div className="row">
+            <select
+              name="category_id"
+              value={formData.category_id}
+              onChange={handleChange}
+              required
+              className="col select-customer"
+            >
+              <option value="">Select Category</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.category_name}</option>
+              ))}
+            </select>
+
+            {/*Action button*/}
+            <button type="button" className="col add-btn" onClick={() => navigate("/create-category")}>
+              Add Shop
+            </button>
+          </div>
 
             <input
               type="text"

@@ -140,6 +140,7 @@ const Customers = () => {
               <th>Name</th>
               <th>Address</th>
               <th>Contact</th>
+              <th>Account No</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -150,6 +151,7 @@ const Customers = () => {
                 <td>{cust.name}</td>
                 <td>{cust.address}</td>
                 <td>{cust.contact || "N/A"}</td>
+                <td>{cust.account?.account_code || "Not Created"}</td>
                 <td>
                   <button className="edit-btn" onClick={() => handleEditClick(cust)}>Edit</button>
                   <button className="delete-btn" onClick={() => handleDelete(cust.id)}>Delete</button>

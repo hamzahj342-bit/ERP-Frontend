@@ -15,6 +15,7 @@ const AccountList = () => {
   });
 
   const navigate = useNavigate();
+  const userId = localStorage.getItem("user_id");
 
   // Fetch only user-created accounts
   const fetchAccounts = () => {
@@ -49,7 +50,11 @@ const AccountList = () => {
     fetch(`http://localhost:5000/api/accounts/${onUpdate.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData)
+      body: JSON.stringify({
+        account_name: formData.account_name,
+          category_id: formData.category_id,
+          updated_by: userId
+      })
     })
       .then(res => {
         if (res.ok) {

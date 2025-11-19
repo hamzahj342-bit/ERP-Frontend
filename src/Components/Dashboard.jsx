@@ -5,6 +5,8 @@ import {
   FaBoxes, FaBoxOpen, FaChartLine, FaShoppingCart, FaCashRegister, FaUsers,
   FaTruck, FaUndoAlt, FaCartPlus, FaExchangeAlt, FaCartArrowDown, FaFlask,
   FaStore, FaHistory,FaWallet, FaMoneyCheckAlt, FaMoneyBillWave,
+  FaPiggyBank,
+  FaLayerGroup,
 } from 'react-icons/fa';
 // import NavigationBar from './NavigationBar';
 import Footer from './Footer';
@@ -96,7 +98,9 @@ const Dashboard = () => {
     { title: "Create Product", value: "with recipe", icon: <FaBoxOpen size={30} color="#4caf50" /> },
     { title: "Accounts", value: "user-created", icon: <FaWallet size={30} color="#2196f3" /> },
     { title: "Payments", value: "Transaction", icon: <FaMoneyCheckAlt size={30} color="#4caf50" />},
-    { title: "Investment", value: "Transaction", icon: <FaMoneyCheckAlt size={30} color="#4caf50" />},
+    { title: "Investment", value: "Transaction", icon: <FaPiggyBank size={30} color="#4caf50" />},
+    {title: "Account Categories", value: "account-categories", icon: <FaLayerGroup size={30} color="#4c9bafff" />, description: "View and manage account categories",
+  },
   ];
 
   const allCardsRoute = {
@@ -119,7 +123,8 @@ const Dashboard = () => {
     "Create Product": "/production",
     "Accounts": "/accounts",
     "Payments": "/payments-list",
-    "Investment": "/investment-list"
+    "Investment": "/investment-list",
+    "Account Categories": "/account-categories",
   };
 
   const logOut = () => {

@@ -46,6 +46,8 @@ import PaymentTransactionForm from './Components/PaymentTransactionForm';
 import PaymentTransactionList from './Components/PaymentTransctionList';
 import InvestmentList from './Components/InvestmentList';
 import InvestmentForm from './Components/InvestmentForm';
+import AccountCategoryList from './Pages/AccountCategoryList';
+import CreateAccountCategory from './Pages/CreateAccountCategory';
 
 
 const App = () => {
@@ -64,9 +66,13 @@ const App = () => {
         <Route path="/add-suppliers" element={<ProtectedRoute> <SupplierForm/> </ProtectedRoute>} />
         <Route path="/employees" element={<ProtectedRoute> <Employees /> </ProtectedRoute>} />
         <Route path="/add-employees" element={<ProtectedRoute> <EmployeesForm /> </ProtectedRoute>} />
+        <Route path="/shops" element={<ProtectedRoute> <Shops/> </ProtectedRoute>} />
+        <Route path="/add-shops" element={<ProtectedRoute> <ShopForm/> </ProtectedRoute>} />
+
         <Route path="/purchase" element={<ProtectedRoute> <PurchaseForm/> </ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute> <SalesForm/> </ProtectedRoute>} />
         <Route path="/transactions" element={<ProtectedRoute> <TransactionHistory/> </ProtectedRoute>} />
+
         <Route path="/add-materials" element={<ProtectedRoute> <AddMaterial/> </ProtectedRoute>} />
         <Route path="/rm-purchase" element={<ProtectedRoute> <RM_Purchase/> </ProtectedRoute>} />
         <Route path="/rm-purchase-form" element={<ProtectedRoute> <RM_PurchaseForm/> </ProtectedRoute>} />
@@ -74,16 +80,17 @@ const App = () => {
         <Route path="/rm-sale-form" element={<ProtectedRoute> <RM_SaleForm/> </ProtectedRoute>} />
         <Route path="/rm-return" element={<ProtectedRoute> <RM_Return/> </ProtectedRoute>} />
         <Route path="/rm-return-form" element={<ProtectedRoute> <RM_ReturnForm/> </ProtectedRoute>} />
-        <Route path="/shops" element={<ProtectedRoute> <Shops/> </ProtectedRoute>} />
-        <Route path="/add-shops" element={<ProtectedRoute> <ShopForm/> </ProtectedRoute>} />
         <Route path="/rm-sale-return"element={<ProtectedRoute> <RM_SaleReturn/> </ProtectedRoute>} />
         <Route path="/rm-sale-return-form"element={<ProtectedRoute> <RM_SaleReturnForm/> </ProtectedRoute>} />
         <Route path="/rm-stock"element={<ProtectedRoute> <RMStockList/> </ProtectedRoute>} />
         <Route path="/rm-invoice-detail" element={<ProtectedRoute> <RM_InvoiceDetail/> </ProtectedRoute>} />
+         <Route path="/rm-invoice/:invoiceNo" element={<ProtectedRoute> <RM_Invoice/> </ProtectedRoute>} />
+
         <Route path="/recipe"element={<ProtectedRoute> <RecipeList/> </ProtectedRoute>} />
         <Route path="/add-recipe"element={<ProtectedRoute> <AddRecipe/> </ProtectedRoute>} />
         <Route path="/add-recipe/:id" element={<ProtectedRoute> <AddRecipe/> </ProtectedRoute>} />
-        <Route path="/rm-invoice/:invoiceNo" element={<ProtectedRoute> <RM_Invoice/> </ProtectedRoute>} />
+
+       
         <Route path="/production" element={<ProtectedRoute> <ProductionList /> </ProtectedRoute>} />
         <Route path="/production-form" element={<ProtectedRoute> <ProductionForm /> </ProtectedRoute>} />
         <Route path="/fp-sale-list" element={<ProtectedRoute> <FP_SaleList /> </ProtectedRoute>} />
@@ -91,6 +98,9 @@ const App = () => {
         <Route path="/fp-salereturn-list" element={<ProtectedRoute> <FP_SaleReturnList /> </ProtectedRoute>} />
         <Route path="/fp-salereturn-form" element={<ProtectedRoute> <FP_SaleReturnForm /> </ProtectedRoute>} />
         <Route path="/fp-invoice-detail/:invoiceNo" element={<ProtectedRoute> <FP_InvoiceDetail /> </ProtectedRoute>} />
+        
+        <Route path="/account-categories" element={<ProtectedRoute> <AccountCategoryList/> </ProtectedRoute>} />
+        <Route path="/create-category" element={<ProtectedRoute> <CreateAccountCategory /> </ProtectedRoute>} />
         <Route path="/accounts" element={<ProtectedRoute> <AccountList /> </ProtectedRoute>} />
         <Route path="/create-account" element={<ProtectedRoute> <CreateAccount /> </ProtectedRoute>} />
         <Route path="/payments" element={<ProtectedRoute> <PaymentTransactionForm /> </ProtectedRoute>} />
