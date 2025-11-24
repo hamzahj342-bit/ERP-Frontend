@@ -1,0 +1,82 @@
+.rm-transactions-container {
+    padding: 20px;
+}
+
+.rm-transactions-container h2 {
+    margin-bottom: 30px;
+    color: #333;
+    font-size: 1.8em;
+}
+
+.transaction-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* 4 cards in one row, responsive */
+    gap: 25px;
+}
+
+.transaction-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 180px;
+    transition: transform 0.2s;
+    border-left: 5px solid; /* Defined by color prop */
+}
+
+.transaction-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.card-icon {
+    margin-right: 15px;
+}
+
+.card-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #555;
+    margin: 0;
+}
+
+.card-body {
+    margin: 15px 0;
+}
+
+.card-value {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+}
+
+.card-footer {
+    text-align: right;
+}
+
+.view-btn {
+    border: none;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+}
+
+.view-btn:hover {
+    opacity: 0.9;
+}

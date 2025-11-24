@@ -31,20 +31,25 @@ const InvestmentForm = () => {
 
   // Fetch Invoice Number
   useEffect(() => {
-    fetch("http://localhost:5000/api/payment-transactions/investment-invoice")
+    fetch("http://localhost:5000/api/payment-transactions/invoice-no?type=investment")
       .then((res) => res.json())
       .then((data) => setInvoiceNo(data.invoice_no))
       .catch((err) => console.error("Error fetching invoice:", err));
   }, []);
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  setFormData((prev) => ({ ...prev, [field]: value }));
 
-    if (field === "account_id") {
-      const acc = accounts.find((x) => x.id == value);
-      setAccountBalance(acc ? Number(acc.balance) : 0);
-    }
-  };
+  if (field === "account_id") {
+    const acc = accounts.find((x) => x.id == value);
+
+    // SAFE BALANCE PARSING
+    let balance = Number(acc?.balance);
+    if (isNaN(balance)) balance = 0;
+
+    setAccountBalance(balance);
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,10 +70,11 @@ const InvestmentForm = () => {
     const payload = {
       invoice_no: invoiceNo,
       account_id: formData.account_id,
-      amount: Number(formData.amount),
+      amount: parseFloat(formData.amount) || 0,
       transaction_date: formData.transaction_date,
       description: formData.description,
       created_by: user ? user.id : null,
+      type: "investment"
     };
 
     try {
@@ -159,14 +165,15 @@ const InvestmentForm = () => {
 
             {/* AMOUNT & DATE */}
             <div style={{ display: "flex", gap: "15px" }}>
-              <b>Amount:</b>
+              <b>Credit Amount:</b>
               <input
                 type="number"
                 className="input"
                 min="0.01"
                 step="0.01"
                 value={formData.amount}
-                onChange={(e) => handleChange("amount", e.target.value)}
+                onChange={(e) => handleChange("amount", e.target.value.replace(/[^\d.]/g, ""))}
+
               />
 
               <b>Transaction Date:</b>

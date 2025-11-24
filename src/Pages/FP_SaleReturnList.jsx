@@ -52,7 +52,7 @@ const FP_SaleReturnList = () => {
         <button
           className="back-btn"
           style={{ marginTop: "30px" }}
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/fp-transactions')}
         >
           <FaArrowLeft />
         </button>

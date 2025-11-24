@@ -40,7 +40,7 @@ const RM_Purchase = () => {
         <button
           className="back-btn"
           style={{ marginTop: "30px" }}
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/rm-transactions')}
         >
           <FaArrowLeft />
         </button>

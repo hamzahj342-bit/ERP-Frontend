@@ -48,6 +48,10 @@ import InvestmentList from './Components/InvestmentList';
 import InvestmentForm from './Components/InvestmentForm';
 import AccountCategoryList from './Pages/AccountCategoryList';
 import CreateAccountCategory from './Pages/CreateAccountCategory';
+import RM_Transactions from './Layout/RM_Transactions';
+import FP_Production from './Layout/FP_Production';
+import FP_Transactions from './Layout/FP_Transactions';
+import Accounts from './Layout/Accounts';
 
 
 const App = () => {
@@ -107,6 +111,12 @@ const App = () => {
         <Route path="/payments-list" element={<ProtectedRoute> <PaymentTransactionList /> </ProtectedRoute>} />
         <Route path="/investment-list" element={<ProtectedRoute> <InvestmentList /> </ProtectedRoute>} />
         <Route path="/investment" element={<ProtectedRoute> <InvestmentForm /> </ProtectedRoute>} />
+
+
+        <Route path='/rm-transactions' element={<ProtectedRoute> <RM_Transactions /> </ProtectedRoute>} />
+        <Route path='/fp-production' element={<ProtectedRoute> <FP_Production /> </ProtectedRoute>} />
+        <Route path='/fp-transactions' element={<ProtectedRoute> <FP_Transactions /> </ProtectedRoute>} />
+        <Route path='/accounts-setting' element={<ProtectedRoute> <Accounts /> </ProtectedRoute>} />
       </Routes>
     </Router>
   );

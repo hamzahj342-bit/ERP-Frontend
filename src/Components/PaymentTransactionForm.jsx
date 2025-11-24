@@ -4,6 +4,7 @@ import Footer from "./Footer";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import Swal from "sweetalert2";
 
 const PaymentTransactionForm = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const PaymentTransactionForm = () => {
 
   // Fetch all accounts
   useEffect(() => {
-    fetch("http://localhost:5000/api/accounts/list")
+    fetch("http://localhost:5000/api/accounts/list-with-balance")
       .then(res => res.json())
       .then(data => setAccounts(data))
       .catch(err => console.error("Error fetching accounts:", err));
@@ -31,7 +32,7 @@ const PaymentTransactionForm = () => {
 
   // Fetch invoice no
   useEffect(() => {
-    fetch("http://localhost:5000/api/payment-transactions/invoice-no")
+    fetch("http://localhost:5000/api/payment-transactions/invoice-no?type=payments")
       .then(res => res.json())
       .then(data => setInvoiceNo(data.invoice_no))
       .catch(err => console.error("Error fetching invoice:", err));
@@ -42,9 +43,17 @@ const PaymentTransactionForm = () => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
       if (field === "from_account_id") {
-        const acc = accounts.find(a => a.id == value);
-        setFromBalance(acc ? Number(acc.balance) : 0);
-      }
+  const acc = accounts.find(a => a.id == value);
+
+  // Safe convert balance
+  const balance = acc && acc.balance
+    ? Number(acc.balance) || 0
+    : 0;
+
+  setFromBalance(balance);
+}
+
+
       if (field === "debit") {
         updated.credit = value; // auto-set credit
       }
@@ -64,10 +73,12 @@ const PaymentTransactionForm = () => {
       toast.error("From & To account cannot be the same.");
       return;
     }
-    if (!formData.debit || Number(formData.debit) <= 0) {
-      toast.error("Please enter a valid amount.");
-      return;
-    }
+    const debitAmount = parseFloat(formData.debit);
+if (isNaN(debitAmount) || debitAmount <= 0) {
+  toast.error("Please enter a valid amount.");
+  return;
+}
+    
     if (Number(formData.debit) > fromBalance) {
       toast.error("Insufficient balance in From Account!");
       return;
@@ -85,6 +96,7 @@ const PaymentTransactionForm = () => {
       transaction_date: formData.transaction_date,
       description: formData.description,
       created_by: user ? user.id : null,
+      type: "payments"
     };
 
     try {
@@ -130,7 +142,9 @@ const PaymentTransactionForm = () => {
           <div className="form-group mb-3 d-flex"
           style={{gap:"15px"}}>
             <b>Invoice No:</b>
-            <input type="text" className="input" value={invoiceNo} readOnly style={{ background: "#f3f3f3" }} />
+            <input type="text" className="input" value={invoiceNo || ""} readOnly 
+            style={{ background: "#f3f3f3",}} 
+            />
             
             <b>Transaction Date:</b>
             <input

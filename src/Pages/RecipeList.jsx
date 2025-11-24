@@ -72,7 +72,7 @@ const RecipeList = () => {
           <button
             className="back-btn"
             style={{ marginTop: "30px" }}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/fp-production")}
           >
             <FaArrowLeft />
           </button>

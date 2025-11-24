@@ -11,7 +11,7 @@ const InvestmentList = () => {
 
   // Fetch Investment Transactions
   useEffect(() => {
-    fetch("http://localhost:5000/api/payment-transactions/list")
+    fetch("http://localhost:5000/api/payment-transactions/list?type=investment")
       .then((res) => res.json())
       .then((data) => {
         // Filter only investments if backend returns all types
@@ -53,7 +53,7 @@ const InvestmentList = () => {
                 <th>ID</th>
                 <th>Invoice No</th>
                 <th>Account Name</th>
-                <th>Amount</th>
+                <th>Credit Amount</th>
                 <th>Created At</th>
                 <th>Action</th>
               </tr>
@@ -66,8 +66,8 @@ const InvestmentList = () => {
                   <td>{inv.account_name}</td>
                   <td>{parseFloat(inv.amount).toFixed(2)}</td>
                   <td>
-                    {inv.createdat
-                      ? new Date(inv.createdat).toLocaleDateString()
+                    {inv.created_at
+                      ? new Date(inv.created_at).toLocaleDateString()
                       : ""}
                   </td>
                   <td>

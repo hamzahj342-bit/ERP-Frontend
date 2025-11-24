@@ -63,7 +63,7 @@ const ProductionList = () => {
           <button
             className="back-btn"
             style={{ marginTop: "30px" }}
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/fp-production")}
           >
             <FaArrowLeft />
           </button>
@@ -74,9 +74,8 @@ const ProductionList = () => {
             className="add-cust-sup"
             // Navigate to the Product Creation Form
             onClick={() => navigate("/production-form")} 
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
           >
-            <FaPlus /> Add Product
+             Add Product
           </button>
           <h2>Product Master List</h2>
           <table className="product-table">

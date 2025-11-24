@@ -11,7 +11,7 @@ const PaymentTransactionList = () => {
 
   // Fetch payment transactions
   useEffect(() => {
-    fetch("http://localhost:5000/api/payment-transactions/list")
+    fetch("http://localhost:5000/api/payment-transactions/list?type=payments")
       .then((res) => res.json())
       .then((data) => {
         console.log("Payment Transactions:", data);
@@ -61,6 +61,7 @@ const PaymentTransactionList = () => {
                 <th>To Account</th>
                 <th>Created At</th>
                 <th>Debit</th>
+                <th>Credit</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -77,6 +78,7 @@ const PaymentTransactionList = () => {
                       : ""}
                   </td>
                   <td>{parseFloat(tx.debit).toFixed(2)}</td>
+                  <td>{parseFloat(tx.credit).toFixed(2)}</td>
                   <td>
                     <button
                       className="primary-btn"

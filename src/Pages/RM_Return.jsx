@@ -38,7 +38,7 @@ const RM_Return = () => {
         <button
           className="back-btn"
           style={{ marginTop: "30px" }}
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/rm-transactions')}
         >
           <FaArrowLeft />
         </button>

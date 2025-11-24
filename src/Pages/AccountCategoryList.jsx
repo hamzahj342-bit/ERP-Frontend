@@ -116,7 +116,7 @@ const AccountCategoryList = () => {
         <button
           className="back-btn"
           style={{ marginTop: "30px" }}
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/accounts-setting")}
         >
           <FaArrowLeft />
         </button>
