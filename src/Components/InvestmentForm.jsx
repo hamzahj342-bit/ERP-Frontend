@@ -21,9 +21,9 @@ const InvestmentForm = () => {
 
   const [accountBalance, setAccountBalance] = useState(0);
 
-  // Fetch Employee Accounts
+  // Fetch Share Holder Accounts
   useEffect(() => {
-    fetch("http://localhost:5000/api/accounts/entity/employees")
+    fetch("http://localhost:5000/api/accounts/share-holders")
       .then((res) => res.json())
       .then((data) => setAccounts(data))
       .catch((err) => console.error("Error fetching employee accounts:", err));

@@ -52,6 +52,7 @@ import RM_Transactions from './Layout/RM_Transactions';
 import FP_Production from './Layout/FP_Production';
 import FP_Transactions from './Layout/FP_Transactions';
 import Accounts from './Layout/Accounts';
+import Transactions from './Layout/Transactions';
 
 
 const App = () => {
@@ -117,6 +118,7 @@ const App = () => {
         <Route path='/fp-production' element={<ProtectedRoute> <FP_Production /> </ProtectedRoute>} />
         <Route path='/fp-transactions' element={<ProtectedRoute> <FP_Transactions /> </ProtectedRoute>} />
         <Route path='/accounts-setting' element={<ProtectedRoute> <Accounts /> </ProtectedRoute>} />
+        <Route path='/payment-transactions' element={<ProtectedRoute> <Transactions /> </ProtectedRoute>} />
       </Routes>
     </Router>
   );

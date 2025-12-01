@@ -33,7 +33,7 @@ const InvestmentList = () => {
         <button
           className="back-btn"
           style={{ marginTop: "30px" }}
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/payment-transactions")}
         >
           <FaArrowLeft />
         </button>

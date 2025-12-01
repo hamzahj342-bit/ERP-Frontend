@@ -15,6 +15,8 @@ const RM_PurchaseForm = () => {
   const [invoiceNo, setInvoiceNo] = useState("");
   const [date, setDate] = useState("");
   const [grandTotal, setGrandTotal] = useState(0);
+  const [paidBalance, setPaidBalance] = useState("");
+
   const navigate = useNavigate();
 
   // 🔹 Fetch Materials & Suppliers
@@ -87,6 +89,7 @@ const RM_PurchaseForm = () => {
     const purchaseData = {
       entityid: selectedSupplier, // supplier only
       grand_total: grandTotal,
+      paid_balance: paidBalance,
       type: "purchase",
       createdby: user?.username || "guest",
       invoice_no: invoiceNo,
@@ -239,7 +242,6 @@ const RM_PurchaseForm = () => {
               <label className="grand-total"><b>Grand Total:</b></label>
               <input type="text" className="input" value={grandTotal} readOnly />
             </div>
-
             <div className="form-actions">
               <button type="submit" className="save-btn">Save</button>
             </div>

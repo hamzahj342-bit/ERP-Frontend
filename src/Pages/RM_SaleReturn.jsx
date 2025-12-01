@@ -4,93 +4,141 @@ import { FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
+import Pagination from '../Components/Pagination'; // Pagination component import kiya
 
 const RM_SaleReturn = () => {
-  const [saleReturns, setSaleReturns] = useState([]); // master records
+  const [saleReturns, setSaleReturns] = useState([]); // master records
+  // Pagination ke liye states add kiye
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  // Fetch Sale Return Master Data
-  useEffect(() => {
-    fetch('http://localhost:5000/api/rm-transactions?type=SaleReturn')
-      .then(res => res.json())
-      .then(data => {
-        console.log("Sale Return API Response:", data);
-        if (Array.isArray(data)) {
-          setSaleReturns(data);
-        } else if (Array.isArray(data.rows)) {
-          setSaleReturns(data.rows);
-        } else {
-          setSaleReturns([]); // fallback
+  // Fetch Sale Return Master Data with Pagination
+  useEffect(() => {
+    const fetchSaleReturns = async () => {
+        setLoading(true);
+        try {
+            // URL mein page aur limit parameters add kiye
+            const res = await fetch(`http://localhost:5000/api/rm-transactions?type=SaleReturn&page=${page}&limit=10`);
+            
+            if (!res.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
+            const data = await res.json();
+            console.log("Sale Return API Response:", data);
+
+            // API Response ko handle karne ka robust tareeka
+            let records = [];
+            let total = 1;
+
+            if (data && Array.isArray(data.data)) { // Agar structure { data: [...], totalPages: N } hai
+                records = data.data;
+                total = data.totalPages || 1;
+            } else if (data && Array.isArray(data.rows)) { // Agar structure { rows: [...], totalPages: N } hai
+                records = data.rows;
+                total = data.totalPages || 1;
+            } else if (Array.isArray(data)) { // Agar simple array hai (non-paginated)
+                records = data;
+                total = 1;
+            }
+
+            setSaleReturns(records);
+            setTotalPages(total);
+
+        } catch (error) {
+            console.error("Error fetching RM Sale Returns:", error);
+            setSaleReturns([]);
+            setTotalPages(1);
+        } finally {
+            setLoading(false);
         }
-      })
-      .catch(() => setSaleReturns([]));
-  }, []);
-
-   const handleViewDetails = (invoiceNo) => {
-        // ✅ CRITICAL: Yahan sahi route path aur parameter use hoga
-        navigate(`/rm-invoice/${invoiceNo}`); 
     };
-  return (
-    <>
-      <NavigationBar />
-      <div className="rm-page">
-        <button
-          className="back-btn"
-          style={{ marginTop: "30px" }}
-          onClick={() => navigate('/rm-transactions')}
-        >
-          <FaArrowLeft />
-        </button>
+    
+    fetchSaleReturns();
+  }, [page]); // Dependency mein 'page' add kiya taaki page change hone par data fetch ho
 
-        {/* Table */}
-        <div className="card">
-          <button
-            className="add-cust-sup"
-            onClick={() => navigate('/rm-sale-return-form')}
-          >
-            Add New
-          </button>
-          <h3>Raw Material Sale Returns</h3>
-          <table className="product-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Invoice No</th>
-                <th>Transaction Date</th>
-                <th>Created By</th>
-                <th>Customer</th>
-                <th>Grand Total</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {saleReturns.map((ret) => (
-                <tr key={ret.master_id}>
-                  <td>{ret.master_id}</td>
-                  <td>{ret.invoice_no}</td>
-                  <td>{ret.createdat ? new Date(ret.createdat).toLocaleDateString() : ""}</td>
-                  <td>{ret.createdby}</td>
-                  <td>{ret.entity_name}</td>
-                  <td>{parseFloat(ret.grand_total) ?? "-"}</td>
-                  <td>
-                        <button 
-                            // Button click par handleViewDetails call karein
-                            onClick={() => handleViewDetails(ret.invoice_no)} 
-                            className="primary-btn"
-                        >
-                            View Details
-                        </button>
-                    </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <Footer />
-    </>
-  );
+   const handleViewDetails = (invoiceNo) => {
+        navigate(`/rm-invoice/${invoiceNo}`); 
+    };
+    
+  return (
+    <>
+      <NavigationBar />
+      <div className="rm-page">
+        <button
+          className="back-btn"
+          style={{ marginTop: "30px" }}
+          onClick={() => navigate('/rm-transactions')}
+        >
+          <FaArrowLeft />
+        </button>
+
+        {/* Table */}
+        <div className="card">
+          <button
+            className="add-cust-sup"
+            onClick={() => navigate('/rm-sale-return-form')}
+          >
+            Add New
+          </button>
+          <h3>Raw Material Sale Returns</h3>
+        
+            {loading ? (
+                <p>Loading sale return data...</p>
+            ) : saleReturns.length === 0 ? (
+                <p>No Raw Material Sale Return records found.</p>
+            ) : (
+                <table className="product-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Invoice No</th>
+                            <th>Transaction Date</th>
+                            <th>Created By</th>
+                            <th>Customer</th>
+                            <th>Grand Total</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {saleReturns.map((ret) => (
+                            <tr key={ret.master_id}>
+                                <td>{ret.master_id}</td>
+                                <td>{ret.invoice_no}</td>
+                                <td>{ret.createdat ? new Date(ret.createdat).toLocaleDateString() : "N/A"}</td>
+                                <td>{ret.createdby}</td>
+                                <td>{ret.entity_name}</td>
+                                <td>{parseFloat(ret.grand_total)?.toFixed(2) ?? "-"}</td>
+                                <td>
+                                    <button 
+                                        onClick={() => handleViewDetails(ret.invoice_no)} 
+                                        className="primary-btn"
+                                    >
+                                        View Details
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
+
+            {/* Pagination Component add kiya */}
+            <div>
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={(newPage) => setPage(newPage)}
+                />
+            </div>
+        </div>
+      </div>
+      <Footer />
+    </>
+  );
 };
 
 export default RM_SaleReturn;

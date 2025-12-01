@@ -20,7 +20,7 @@ const AccountForm = () => {
   // Fetch user-created categories
   const fetchCategories = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/account-categories/user-created");
+      const res = await fetch("http://localhost:5000/api/account-categories");
       if (res.ok) {
         const data = await res.json();
         setCategories(data);
@@ -130,7 +130,7 @@ const AccountForm = () => {
 
             {/*Action button*/}
             <button type="button" className="col add-btn" onClick={() => navigate("/create-category")}>
-              Add Shop
+              Add Category
             </button>
           </div>
 

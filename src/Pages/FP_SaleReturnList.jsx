@@ -2,48 +2,71 @@ import React, { useState, useEffect } from 'react';
 import NavigationBar from '../Components/NavigationBar';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-// Aap RMForm.css ki jagah common ya dedicated CSS use kar sakte hain
-import '../RMForm.css'; 
+import '../RMForm.css';
 import Footer from '../Components/Footer';
+import Pagination from '../Components/Pagination'; // ✅ Imported Pagination component
 
 const FP_SaleReturnList = () => {
-  const [sales, setSales] = useState([]); // master records (FG Sales)
+  // ✅ Pagination States
+  const [sales, setSales] = useState([]); 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false); // Loading state added
 
+  const limit = 10;
   const navigate = useNavigate();
 
-  // ✅ Fetch Finished Goods Sale Master Data
+  // ✅ Fetch Finished Goods Sale Return Master Data
   useEffect(() => {
-    // 🛑 New Backend API Endpoint: /api/fp-sale?type=Sale
-    fetch('http://localhost:5000/api/fp-sale?type=SaleReturn')
-      .then(res => res.json())
-      .then(data => {
-        console.log("FG Sale API Response:", data);
-        // API response structure ko handle karein (direct array ya { rows: [...] })
-        if (Array.isArray(data)) {
-          setSales(data);
-        } else if (Array.isArray(data.rows)) {
-          setSales(data.rows);
-        } else {
-          setSales([]); // fallback
-        }
-      })
-      .catch((error) => {
-          console.error("Error fetching FG sales:", error);
-          setSales([]);
-      });
-  }, []);
-  
-  // Helper function for date formatting
-  const formatDate = (dateString) => {
-    if (!dateString) return "—";
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-  // 💡 Yeh function tab call hoga jab user list mein kisi row par click karega
-    const handleViewDetails = (invoiceNo) => {
-        // ✅ CRITICAL: Yahan sahi route path aur parameter use hoga
-        navigate(`/fp-invoice-detail/${invoiceNo}`); 
+    const fetchSaleReturns = async () => {
+        setLoading(true);
+        try {
+            // API call for SaleReturn with page and limit parameters
+            const res = await fetch(`http://localhost:5000/api/fp-sale?type=SaleReturn&page=${page}&limit=${limit}`);
+            
+            if (!res.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
+            const data = await res.json();
+            console.log("FG Sale Return API Response:", data);
+
+            // 💡 Logic matching FP_SaleList: Checking data.data and data.totalPages
+            if (data && Array.isArray(data.data)) {
+                setSales(data.data);
+                setTotalPages(data.totalPages || 1);
+            } 
+            // Fallback for older/different structure (e.g., if backend sends {rows: ..., count: ...})
+            else if (data && Array.isArray(data.rows)) {
+                setSales(data.rows);
+                setTotalPages(Math.ceil((data.count || 1) / limit));
+            }
+            else {
+                setSales([]);
+                setTotalPages(1);
+            }
+        } catch (error) {
+            console.error("Error fetching FG sales:", error);
+            setSales([]);
+            setTotalPages(1);
+        } finally {
+            setLoading(false);
+        }
     };
+    
+    fetchSaleReturns();
+  }, [page]); // Dependency mein 'page' add kiya
+  
+  // Helper function for date formatting
+  const formatDate = (dateString) => {
+    if (!dateString) return "—";
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // 💡 Yeh function tab call hoga jab user list mein kisi row par click karega
+    const handleViewDetails = (invoiceNo) => {
+        navigate(`/fp-invoice-detail/${invoiceNo}`); 
+    };
 
   return (
     <>
@@ -61,54 +84,61 @@ const FP_SaleReturnList = () => {
         <div className="card">
           <button
             className="add-cust-sup"
-            // 🛑 Navigate to the new Finished Goods Sale Form
             onClick={() => navigate('/fp-salereturn-form')} 
           >
             Add Sale Return
           </button>
           <h3>Finished Goods Sale Returns List</h3>
-          <table className="product-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Invoice No</th>
-                <th>Transaction Date</th>
-                <th>Customer</th>
-                <th>Grand Total (Rs)</th>
-                <th>Created By</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sales.length > 0 ? (
-                sales.map((sale) => (
-                  // Assuming backend returns SaleMaster fields with entity_name joined
-                  <tr key={sale.id}>
-                    <td>{sale.id}</td> 
-                    <td>{sale.invoice_no}</td>
-                    <td>{sale.createdat ? new Date(sale.createdat).toLocaleDateString() : ""}</td> 
-                    {/* Note: entity_name field backend join se aana chahiye */}
-                    <td>{sale.customer?.name || sale.entity_name || "N/A"}</td>
-                    <td>{parseFloat(sale.grand_total) || "-"}</td>
-                    <td>{sale.createdby || "—"}</td>
-                    <td>
-                        <button 
-                            // Button click par handleViewDetails call karein
-                            onClick={() => handleViewDetails(sale.invoice_no)} 
-                            className="primary-btn"
-                        >
-                            View Details
-                        </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                 <tr>
-                    <td colSpan="6" style={{textAlign: "center"}}>No Finished Goods Sales Returns transactions found.</td>
-                 </tr>
-              )}
-            </tbody>
-          </table>
+          
+            {/* Loading and Data Display */}
+            {loading ? (
+                <p>Loading Finished Goods Sale Returns...</p>
+            ) : sales.length === 0 ? (
+                <p style={{textAlign: "center"}}>No Finished Goods Sale Returns transactions found.</p>
+            ) : (
+                <table className="product-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Invoice No</th>
+                            <th>Transaction Date</th>
+                            <th>Customer</th>
+                            <th>Grand Total (Rs)</th>
+                            <th>Created By</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sales.map((sale) => (
+                            <tr key={sale.id}>
+                                <td>{sale.id}</td> 
+                                <td>{sale.invoice_no}</td>
+                                <td>{formatDate(sale.createdat)}</td> 
+                                <td>{sale.customer?.name || sale.entity_name || "N/A"}</td>
+                                <td>{parseFloat(sale.grand_total)?.toFixed(2) || "-"}</td>
+                                <td>{sale.createdby || "—"}</td>
+                                <td>
+                                    <button 
+                                        onClick={() => handleViewDetails(sale.invoice_no)} 
+                                        className="primary-btn"
+                                    >
+                                        View Details
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
+            
+            {/* ✅ Pagination Component */}
+            <div style={{ marginTop: "25px" }}>
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={(newPage) => setPage(newPage)}
+                />
+            </div>
         </div>
       </div>
       <Footer />

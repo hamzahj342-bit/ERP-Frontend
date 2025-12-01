@@ -80,7 +80,7 @@ const Dashboard = () => {
   // Card data
   const cards = [
     // { title: "Raw Material", value: "Stocks", icon: <FaBoxes size={30} color="#4caf50" /> },
-    { title: "Raw Material Reports", value: "7 Reports", icon: <FaChartLine size={30} color="#2196f3" /> },
+    // { title: "Raw Material Reports", value: "7 Reports", icon: <FaChartLine size={30} color="#2196f3" /> },
     // { title: "Purchase Invoice", value: "Transactions", icon: <FaShoppingCart size={30} color="#ff9800" /> },
     // { title: "Finished Product Sales", value: "Transactions", icon: <FaCashRegister size={30} color="#f44336" /> },
     // { title: "Finished Product Sale Returns", value: "Transactions", icon: <FaUndoAlt size={30} color="#9c27b0" /> },
@@ -98,8 +98,8 @@ const Dashboard = () => {
     // { title: "Create Product", value: "with recipe", icon: <FaBoxOpen size={30} color="#4caf50" /> },
     // { title: "Accounts", value: "user-created", icon: <FaWallet size={30} color="#2196f3" /> },
     // {title: "Account Categories", value: "account-categories", icon: <FaLayerGroup size={30} color="#4c9bafff" />},
-    { title: "Payments", value: "Transaction", icon: <FaMoneyCheckAlt size={30} color="#4caf50" />},
-    { title: "Investment", value: "Transaction", icon: <FaPiggyBank size={30} color="#4caf50" />},
+    // { title: "Payments", value: "Transaction", icon: <FaMoneyCheckAlt size={30} color="#4caf50" />},
+    // { title: "Investment", value: "Transaction", icon: <FaPiggyBank size={30} color="#4caf50" />},
     
   ];
 

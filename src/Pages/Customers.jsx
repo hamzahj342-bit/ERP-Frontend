@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
+import Swal from 'sweetalert2'; // 💡 SweetAlert2 Import
 import '../CustomersAndSuppliers.css';
 import NavigationBar from '../Components/NavigationBar';
 import Footer from "../Components/Footer";
@@ -27,7 +28,7 @@ const Customers = () => {
     fetchCustomers();
   }, []);
 
-   // Update API
+  // Update API
   const handleUpdate = (e) => {
     e.preventDefault();
     fetch(`http://localhost:5000/api/entities/${onEdit.id}`, {
@@ -37,11 +38,24 @@ const Customers = () => {
     })
       .then(res => {
         if (res.ok) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Updated!',
+            text: `Customer ${formData.name} has been updated.`,
+            showConfirmButton: false,
+            timer: 1500
+          });
           setOnEdit(null);
           fetchCustomers();
+        } else {
+            // Handle error response from server
+            Swal.fire('Error!', 'Failed to update customer.', 'error');
         }
       })
-      .catch(err => console.error("Error updating:", err));
+      .catch(err => {
+        console.error("Error updating:", err);
+        Swal.fire('Error!', 'Server error while updating customer.', 'error');
+      });
   };
 
 
@@ -60,18 +74,42 @@ const Customers = () => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
- 
-
-  // Delete API
-  const handleDelete = (id) => {
-    if (!window.confirm("Are you sure you want to delete this customer?")) return;
-    fetch(`http://localhost:5000/api/entities/${id}`, {
-      method: "DELETE",
-    })
-      .then(res => {
-        if (res.ok) fetchCustomers();
-      })
-      .catch(err => console.error("Error deleting:", err));
+  // 🗑️ Delete API with SweetAlert2 Confirmation
+  const handleDelete = (id, name) => { // Added 'name' for better alert message
+    Swal.fire({
+        title: `Are you sure?`,
+        text: `Do you want to delete customer: ${name}? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // User confirmed, proceed with deletion
+            fetch(`http://localhost:5000/api/entities/${id}`, {
+                method: "DELETE",
+            })
+            .then(res => {
+                if (res.ok) {
+                    // Show success alert
+                    Swal.fire(
+                        'Deleted!',
+                        `Customer ${name} has been deleted.`,
+                        'success'
+                    );
+                    fetchCustomers();
+                } else {
+                    // Handle server error response
+                    Swal.fire('Error!', 'Failed to delete customer.', 'error');
+                }
+            })
+            .catch(err => {
+                console.error("Error deleting:", err);
+                Swal.fire('Error!', 'Server error during deletion.', 'error');
+            });
+        }
+    });
   };
 
   return (
@@ -79,7 +117,7 @@ const Customers = () => {
       <NavigationBar />
     <div className="table-container">
       <button className='back-btn' style={{marginTop:"30px"}}
-               onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/dashboard')}
       >
         <FaArrowLeft />
       </button>
@@ -88,7 +126,7 @@ const Customers = () => {
         <button className="add-cust-sup" onClick={() => navigate("/add-customers")}>Add Customers</button>
         <h2>Customers List</h2>
 
-        {/* Edit Form */}
+        {/* Edit Form (remains the same) */}
         {onEdit && (
           <div 
           style={{
@@ -100,35 +138,36 @@ const Customers = () => {
           backgroundColor: 'rgba(0, 0, 0, 0.5)',
           display: 'flex',
           justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', width: '300px' }}>
-            <h3>Edit Customer</h3>
-          <form onSubmit={handleUpdate} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-            <input className="input"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Name"
-              required
-            />
-            <input className="input"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Address"
-              required
-            />
-            <input className="input"
-              name="contact"
-              value={formData.contact}
-              onChange={handleChange}
-              placeholder="Contact"
-            />
-            <button type="submit" className="primary-btn">Update</button>
-            <button type="button" className="primary-btn" onClick={() => setOnEdit(null)}>Cancel</button>
-          </form>
-          </div>
+          alignItems: 'center',
+          zIndex: 1000 // Ensure modal is on top
+          }}>
+            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', width: '300px' }}>
+              <h3>Edit Customer</h3>
+            <form onSubmit={handleUpdate} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+              <input className="input"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Name"
+                required
+              />
+              <input className="input"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                placeholder="Address"
+                required
+              />
+              <input className="input"
+                name="contact"
+                value={formData.contact}
+                onChange={handleChange}
+                placeholder="Contact"
+              />
+              <button type="submit" className="primary-btn">Update</button>
+              <button type="button" className="primary-btn" onClick={() => setOnEdit(null)}>Cancel</button>
+            </form>
+            </div>
           </div>
         )}
 
@@ -140,7 +179,7 @@ const Customers = () => {
               <th>Name</th>
               <th>Address</th>
               <th>Contact</th>
-              <th>Account No</th>
+              {/* <th>Account No</th> */}
               <th>Actions</th>
             </tr>
           </thead>
@@ -151,10 +190,11 @@ const Customers = () => {
                 <td>{cust.name}</td>
                 <td>{cust.address}</td>
                 <td>{cust.contact || "N/A"}</td>
-                <td>{cust.account?.account_code || "Not Created"}</td>
+                {/* <td>{cust.account?.account_code || "Not Created"}</td> */}
                 <td>
                   <button className="edit-btn" onClick={() => handleEditClick(cust)}>Edit</button>
-                  <button className="delete-btn" onClick={() => handleDelete(cust.id)}>Delete</button>
+                  {/* 💡 Passing 'cust.name' to the delete handler for a better message */}
+                  <button className="delete-btn" onClick={() => handleDelete(cust.id, cust.name)}>Delete</button>
                 </td>
               </tr>
             ))}

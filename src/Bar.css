@@ -35,8 +35,6 @@
   background-color: #ffffff; /* white dropdown background */
   font-weight: bold;
 }
-
-
 .user-info {
   display: flex;
   cursor: pointer;
@@ -136,7 +134,7 @@
   color: #fff;
 }
 
-.sidebar li:hover {
+.sidebar li:not(.sidebar-heading):hover {
   color: #fff;
   background: linear-gradient(to right, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.05) 100%);
   border-left: 4px solid #ffffff;

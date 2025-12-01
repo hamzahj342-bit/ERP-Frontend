@@ -2,352 +2,380 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2'; // 💡 SweetAlert2 Import
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
 
 const AddMaterial = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  const [rawMaterial, setRawMaterial] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    uom_id: '',
-    unit_quantity: '',
-  });
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editData, setEditData] = useState({
-    rm_id: null,
-    name: '',
-    uom_id: '',
-    unit_quantity: '',
-  });
-  const [uoms, setUoms] = useState([]);
+  const [rawMaterial, setRawMaterial] = useState([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    uom_id: '',
+    unit_quantity: '',
+  });
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState({
+    rm_id: null,
+    name: '',
+    uom_id: '',
+    unit_quantity: '',
+  });
+  const [uoms, setUoms] = useState([]);
 
-  // Fetch all materials
-  const fetchMaterials = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/add-materials');
-      const data = await res.json();
-      if (Array.isArray(data)) setRawMaterial(data);
-      else if (data && data.rows) setRawMaterial(data.rows);
-      else setRawMaterial([]);
-    } catch (error) {
-      toast.error('Failed to fetch materials');
-    }
-  };
+  // Fetch all materials
+  const fetchMaterials = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/add-materials');
+      const data = await res.json();
+      // Ensure the data structure is handled correctly
+      const materials = Array.isArray(data) ? data : (data && data.rows) ? data.rows : [];
+      setRawMaterial(materials);
+    } catch (error) {
+      toast.error('Failed to fetch materials');
+    }
+  };
 
-  // Fetch all UOMs
-  const fetchUoms = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/uoms');
-      const data = await res.json();
-      setUoms(data);
-    } catch (error) {
-      toast.error('Failed to fetch UOMs');
-    }
-  };
+  // Fetch all UOMs
+  const fetchUoms = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/uoms');
+      const data = await res.json();
+      setUoms(data);
+    } catch (error) {
+      toast.error('Failed to fetch UOMs');
+    }
+  };
 
-  useEffect(() => {
-    fetchMaterials();
-    fetchUoms();
-  }, []);
+  useEffect(() => {
+    fetchMaterials();
+    fetchUoms();
+  }, []);
 
-  // Handle input change
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  // Handle input change
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  // Handle create new material
-  const handleCreateMaterial = async (e) => {
-  e.preventDefault();
+  // Handle create new material
+  const handleCreateMaterial = async (e) => {
+  e.preventDefault();
 
-  // Validation check before submitting
-  if (!formData.name || !formData.uom_id) {
-    toast.error("Please fill all required fields!");
-    return;
-  }
+  // Validation check before submitting
+  if (!formData.name || !formData.uom_id) {
+    toast.error("Please fill all required fields!");
+    return;
+  }
 
-  // Check if UOM requires unit_quantity
-  const selectedUom = uoms.find((u) => u.id == formData.uom_id)?.name;
-  if (["Bag", "Drum", "Piece"].includes(selectedUom) && !formData.unit_quantity) {
-    toast.error("Please enter Unit Quantity for this UOM!");
-    return;
-  }
+  // Check if UOM requires unit_quantity
+  const selectedUom = uoms.find((u) => u.id == formData.uom_id)?.name;
+  if (["Bag", "Drum", "Piece"].includes(selectedUom) && !formData.unit_quantity) {
+    toast.error("Please enter Unit Quantity for this UOM!");
+    return;
+  }
 
-  try {
-    const res = await fetch("http://localhost:5000/api/add-materials", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+  try {
+    const res = await fetch("http://localhost:5000/api/add-materials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
 
-    if (res.ok) {
-      const newMaterial = await res.json();
-      setRawMaterial([...rawMaterial, newMaterial]);
-      setFormData({ name: "", uom_id: "", unit_quantity: "" });
-      toast.success("Raw Material Added Successfully!");
-    } else {
-      toast.error("Failed to add material!");
-    }
-  } catch (error) {
-    toast.error("Server error, please try again!");
-    console.error(error);
-  }
+    if (res.ok) {
+      const newMaterial = await res.json();
+      // Assuming newMaterial structure matches existing data structure (incl. UOM object)
+      // For accurate list update, re-fetching is safer, but pushing the new material for instant feedback:
+      fetchMaterials(); 
+      setFormData({ name: "", uom_id: "", unit_quantity: "" });
+      toast.success("Raw Material Added Successfully!");
+    } else {
+      toast.error("Failed to add material!");
+    }
+  } catch (error) {
+    toast.error("Server error, please try again!");
+    console.error(error);
+  }
 };
 
-  // Handle delete
-  const handleDelete = async (rm_id) => {
-    try {
-      await fetch(`http://localhost:5000/api/add-materials/${rm_id}`, {
-        method: 'DELETE',
-      });
-      fetchMaterials();
-      toast.success('Material deleted successfully!');
-    } catch (error) {
-      toast.error('Error deleting material');
-    }
-  };
+  // 🗑️ Handle delete with SweetAlert2
+  const handleDelete = async (rm_id, name) => {
+    Swal.fire({
+        title: `Are you sure?`,
+        text: `Do you want to delete material: ${name}? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`http://localhost:5000/api/add-materials/${rm_id}`, {
+                    method: 'DELETE',
+                });
 
-  // Open edit modal
-  const openEditModal = (material) => {
-    setEditData({
-      rm_id: material.rm_id,
-      name: material.name,
-      uom_id: material.uom_id,
-      unit_quantity: material.unit_quantity || '',
+                if (res.ok) {
+                    Swal.fire(
+                        'Deleted!',
+                        `Material ${name} has been deleted.`,
+                        'success'
+                    );
+                    fetchMaterials();
+                } else {
+                    Swal.fire('Error!', 'Failed to delete material.', 'error');
+                }
+            } catch (error) {
+                console.error("Error deleting:", error);
+                Swal.fire('Error!', 'Server error during deletion.', 'error');
+            }
+        }
     });
-    setEditModalOpen(true);
   };
 
-  const handleEditChange = (e) => {
-    setEditData({ ...editData, [e.target.name]: e.target.value });
-  };
+  // Open edit modal
+  const openEditModal = (material) => {
+    setEditData({
+      rm_id: material.rm_id,
+      name: material.name,
+      uom_id: material.uom_id,
+      unit_quantity: material.unit_quantity || '',
+    });
+    setEditModalOpen(true);
+  };
 
-  // Handle update
-  const handleUpdateMaterial = async (e) => {
-    e.preventDefault();
+  const handleEditChange = (e) => {
+    setEditData({ ...editData, [e.target.name]: e.target.value });
+  };
 
-    const selectedUom = uoms.find((u) => u.id == editData.uom_id)?.name;
+  // Handle update
+  const handleUpdateMaterial = async (e) => {
+    e.preventDefault();
 
-    // Validation
-    if (['Bag', 'Drum', 'Piece'].includes(selectedUom) && !editData.unit_quantity) {
-      toast.error('Please fill Unit Quantity for Bag, Drum, or Piece.');
-      return;
-    }
+    const selectedUom = uoms.find((u) => u.id == editData.uom_id)?.name;
 
-    try {
-      const res = await fetch(`http://localhost:5000/api/add-materials/${editData.rm_id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editData),
-      });
+    // Validation
+    if (['Bag', 'Drum', 'Piece'].includes(selectedUom) && !editData.unit_quantity) {
+      toast.error('Please fill Unit Quantity for Bag, Drum, or Piece.');
+      return;
+    }
 
-      if (res.ok) {
-        const updatedMaterial = await res.json();
-        setRawMaterial(
-          rawMaterial.map((m) =>
-            m.rm_id === updatedMaterial.rm_id ? updatedMaterial : m
-          )
-        );
-        toast.success('Material updated successfully!');
-        setEditModalOpen(false);
-      } else {
-        toast.error('Failed to update material');
-      }
-    } catch (error) {
-      toast.error('Error updating material');
-    }
-  };
+    try {
+      const res = await fetch(`http://localhost:5000/api/add-materials/${editData.rm_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editData),
+      });
 
-  return (
-    <>
-      <NavigationBar />
-      <div className="page-container">
-        <button
-          className="back-btn"
-          style={{ marginTop: '30px' }}
-          onClick={() => navigate('/dashboard')}
-        >
-          <FaArrowLeft />
-        </button>
+      if (res.ok) {
+        Swal.fire({
+            icon: 'success',
+            title: 'Updated!',
+            text: `Material ${editData.name} has been updated.`,
+            showConfirmButton: false,
+            timer: 1500
+        });
+        // Re-fetch all materials to ensure UOM name is updated correctly
+        fetchMaterials(); 
+        setEditModalOpen(false);
+      } else {
+        toast.error('Failed to update material');
+      }
+    } catch (error) {
+      toast.error('Error updating material');
+    }
+  };
 
-        {/* Create Material */}
-        <div className="card">
-          <h2>Create Raw Material</h2>
-          <form onSubmit={handleCreateMaterial} className="form">
-            <input
-              type="text"
-              name="name"
-              placeholder="Material Name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-            />
+  return (
+    <>
+      <NavigationBar />
+      <div className="page-container">
+        <button
+          className="back-btn"
+          style={{ marginTop: '30px' }}
+          onClick={() => navigate('/dashboard')}
+        >
+          <FaArrowLeft />
+        </button>
 
-            <select
-              className="form"
-              name="uom_id"
-              value={formData.uom_id}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">Select UOM</option>
-              {uoms.map((uom) => (
-                <option key={uom.id} value={uom.id}>
-                  {uom.name}
-                </option>
-              ))}
-            </select>
+        {/* Create Material */}
+        <div className="card">
+          <h2>Create Raw Material</h2>
+          <form onSubmit={handleCreateMaterial} className="form">
+            <input
+              type="text"
+              name="name"
+              placeholder="Material Name"
+              value={formData.name}
+              onChange={handleInputChange}
+              required
+            />
 
-            {/* Conditional input for Bag, Drum, Piece */}
-            {['Bag', 'Drum', 'Piece'].includes(
-              uoms.find((u) => u.id == formData.uom_id)?.name
-            ) && (
-              <input
-                type="number"
-                name="unit_quantity"
-                placeholder="Enter quantity per unit (e.g. 25 kg)"
-                value={formData.unit_quantity}
-                onChange={handleInputChange}
-                
-              />
-            )}
+            <select
+              className="form"
+              name="uom_id"
+              value={formData.uom_id}
+              onChange={handleInputChange}
+              required
+            >
+              <option value="">Select UOM</option>
+              {uoms.map((uom) => (
+                <option key={uom.id} value={uom.id}>
+                  {uom.name}
+                </option>
+              ))}
+            </select>
 
-            <button className="primary-btn" type="submit">
-              Add Raw Material
-            </button>
-          </form>
-        </div>
+            {/* Conditional input for Bag, Drum, Piece */}
+            {['Bag', 'Drum', 'Piece'].includes(
+              uoms.find((u) => u.id == formData.uom_id)?.name
+            ) && (
+              <input
+                type="number"
+                name="unit_quantity"
+                placeholder="Enter quantity per unit (e.g. 25 kg)"
+                value={formData.unit_quantity}
+                onChange={handleInputChange}
+                required // Added required if conditional is true
+              />
+            )}
 
-        {/* List */}
-        <div className="card">
-          <h2>Raw Material List</h2>
-          <table className="product-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>UOM</th>
-                <th>Unit Quantity</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rawMaterial.map((m) => (
-                <tr key={m.rm_id}>
-                  <td>{m.rm_id}</td>
-                  <td>{m.name}</td>
-                  <td>{m.uom?.name}</td>
-                  <td>{m.unit_quantity ? m.unit_quantity : '-'}</td>
-                  <td>
-                    <button
-                      onClick={() => openEditModal(m)}
-                      className="edit-btn"
-                    >
-                      Edit
-                    </button>{' '}
-                    <button
-                      onClick={() => handleDelete(m.rm_id)}
-                      className="delete-btn"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            <button className="primary-btn" type="submit">
+              Add Raw Material
+            </button>
+          </form>
+        </div>
 
-        {/* Edit Modal */}
-        {editModalOpen && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: 'white',
-                padding: '30px',
-                borderRadius: '10px',
-                width: '300px',
-              }}
-            >
-              <h3>Edit Raw Material</h3>
-              <form
-                onSubmit={handleUpdateMaterial}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}
-              >
-                <input
-                className='input'
-                  type="text"
-                  name="name"
-                  value={editData.name}
-                  onChange={handleEditChange}
-                  required
-                />
+        {/* List */}
+        <div className="card">
+          <h2>Raw Material List</h2>
+          <table className="product-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>UOM</th>
+                <th>Unit Quantity</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rawMaterial.map((m) => (
+                <tr key={m.rm_id}>
+                  <td>{m.rm_id}</td>
+                  <td>{m.name}</td>
+                  <td>{m.uom?.name}</td>
+                  <td>{m.unit_quantity ? m.unit_quantity : '-'}</td>
+                  <td>
+                    <button
+                      onClick={() => openEditModal(m)}
+                      className="edit-btn"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(m.rm_id, m.name)} 
+                      className="delete-btn"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-                <select
-                className='form'
-                  name="uom_id"
-                  value={editData.uom_id}
-                  onChange={handleEditChange}
-                  required
-                >
-                  <option value="">Select UOM</option>
-                  {uoms.map((uom) => (
-                    <option key={uom.id} value={uom.id}>
-                      {uom.name}
-                    </option>
-                  ))}
-                </select>
+        {/* Edit Modal */}
+        {editModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000 // Ensure modal is on top
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: 'white',
+                padding: '30px',
+                borderRadius: '10px',
+                width: '300px',
+              }}
+            >
+              <h3>Edit Raw Material</h3>
+              <form
+                onSubmit={handleUpdateMaterial}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <input
+                className='input'
+                  type="text"
+                  name="name"
+                  value={editData.name}
+                  onChange={handleEditChange}
+                  required
+                />
 
-                {/* Conditional for edit modal */}
-                {['Bag', 'Drum', 'Piece'].includes(
-                  uoms.find((u) => u.id == editData.uom_id)?.name
-                ) && (
-                  <input
-                  className='input'
-                    type="number"
-                    name="unit_quantity"
-                    placeholder="Enter quantity per unit (e.g. 25 kg)"
-                    value={editData.unit_quantity}
-                    onChange={handleEditChange}
-                    required
-                  />
-                )}
+                <select
+                className='form'
+                  name="uom_id"
+                  value={editData.uom_id}
+                  onChange={handleEditChange}
+                  required
+                >
+                  <option value="">Select UOM</option>
+                  {uoms.map((uom) => (
+                    <option key={uom.id} value={uom.id}>
+                      {uom.name}
+                    </option>
+                  ))}
+                </select>
 
-                <button type="submit" className="primary-btn">
-                  Update
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditModalOpen(false)}
-                  className="primary-btn"
-                >
-                  Cancel
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-      <Footer />
-    </>
-  );
+                {/* Conditional for edit modal */}
+                {['Bag', 'Drum', 'Piece'].includes(
+                  uoms.find((u) => u.id == editData.uom_id)?.name
+                ) && (
+                  <input
+                  className='input'
+                    type="number"
+                    name="unit_quantity"
+                    placeholder="Enter quantity per unit (e.g. 25 kg)"
+                    value={editData.unit_quantity}
+                    onChange={handleEditChange}
+                    required
+                  />
+                )}
+
+                <button type="submit" className="primary-btn">
+                  Update
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="primary-btn"
+                >
+                  Cancel
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+      <Footer />
+    </>
+  );
 };
 
 export default AddMaterial;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from "react-icons/fa";
+import Swal from 'sweetalert2'; // 💡 SweetAlert2 Import
 import '../CustomersAndSuppliers.css';
 import NavigationBar from '../Components/NavigationBar';
 import Footer from "../Components/Footer";
@@ -27,7 +28,7 @@ const Employees = () => {
     fetchEmployees();
   }, []);
 
-  // Update API
+  // Update API (Added Swal alerts for success/error)
   const handleUpdate = (e) => {
     e.preventDefault();
     fetch(`http://localhost:5000/api/entities/${onEdit.id}`, {
@@ -37,11 +38,23 @@ const Employees = () => {
     })
       .then(res => {
         if (res.ok) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Updated!',
+            text: `Employee ${formData.name} details have been updated.`,
+            showConfirmButton: false,
+            timer: 1500
+          });
           setOnEdit(null);
           fetchEmployees();
+        } else {
+            Swal.fire('Error!', 'Failed to update employee.', 'error');
         }
       })
-      .catch(err => console.error("Error updating:", err));
+      .catch(err => {
+        console.error("Error updating:", err);
+        Swal.fire('Error!', 'Server error while updating employee.', 'error');
+      });
   };
 
   // On Edit Click
@@ -59,16 +72,42 @@ const Employees = () => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Delete API
-  const handleDelete = (id) => {
-    if (!window.confirm("Are you sure you want to delete this employee?")) return;
-    fetch(`http://localhost:5000/api/entities/${id}`, {
-      method: "DELETE",
-    })
-      .then(res => {
-        if (res.ok) fetchEmployees();
-      })
-      .catch(err => console.error("Error deleting:", err));
+  // 🗑️ Delete API with SweetAlert2 Confirmation
+  const handleDelete = (id, name) => {
+    Swal.fire({
+        title: `Are you sure?`,
+        text: `Do you want to delete employee: ${name}? This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // User confirmed, proceed with deletion
+            fetch(`http://localhost:5000/api/entities/${id}`, {
+                method: "DELETE",
+            })
+            .then(res => {
+                if (res.ok) {
+                    // Show success alert
+                    Swal.fire(
+                        'Deleted!',
+                        `Employee ${name} has been deleted.`,
+                        'success'
+                    );
+                    fetchEmployees();
+                } else {
+                    // Handle server error response
+                    Swal.fire('Error!', 'Failed to delete employee.', 'error');
+                }
+            })
+            .catch(err => {
+                console.error("Error deleting:", err);
+                Swal.fire('Error!', 'Server error during deletion.', 'error');
+            });
+        }
+    });
   };
 
   return (
@@ -104,7 +143,8 @@ const Employees = () => {
               backgroundColor: 'rgba(0, 0, 0, 0.5)',
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'center'
+              alignItems: 'center',
+              zIndex: 1000 // Ensure modal is on top
             }}>
               <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', width: '300px' }}>
                 <h3>Edit Employee</h3>
@@ -149,7 +189,7 @@ const Employees = () => {
                 <th>Name</th>
                 <th>Address</th>
                 <th>Contact</th>
-                <th>Account No</th>
+                {/* <th>Account No</th> */}
                 <th>Actions</th>
               </tr>
             </thead>
@@ -160,10 +200,10 @@ const Employees = () => {
                   <td>{emp.name}</td>
                   <td>{emp.address}</td>
                   <td>{emp.contact || "N/A"}</td>
-                  <td>{emp.account?.account_code || "Not Created"}</td>
+                  {/* <td>{emp.account?.account_code || "Not Created"}</td> */}
                   <td>
                     <button className="edit-btn" onClick={() => handleEditClick(emp)}>Edit</button>
-                    <button className="delete-btn" onClick={() => handleDelete(emp.id)}>Delete</button>
+                    <button className="delete-btn" onClick={() => handleDelete(emp.id, emp.name)}>Delete</button>
                   </td>
                 </tr>
               ))}

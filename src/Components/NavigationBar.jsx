@@ -112,12 +112,12 @@ const menuSections = [
     // --- ACCOUNTS (Theme: Gold/Orange for Money/Finance) ---
     {
       type: "heading",
-      label: "ACCOUNTS",
+      label: "CHART OF ACCOUNT",
       icon: <FaMoneyBillAlt color="#F8F8FF" />, // White for Heading
       children: [
         { icon: <FaUserPlus  /> ,label: "Create Account", path: "/accounts-setting" }, // Orange for New Finance Entry
-        { icon: <FaExchangeAlt  />, label: "Transactions", path: "/transactions" }, // Orange-Red for flow/transactions
-        { icon: <FaChartBar  /> , label: "Reports", path: "/cash_register" }, // Goldenrod for Analysis
+        { icon: <FaExchangeAlt  />, label: "Transactions", path: "/payment-transactions" }, // Orange-Red for flow/transactions
+        { icon: <FaChartBar  /> , label: "Reports", path: "/rm-invoice-detail" }, // Goldenrod for Analysis
       ],
     },
   // { 
