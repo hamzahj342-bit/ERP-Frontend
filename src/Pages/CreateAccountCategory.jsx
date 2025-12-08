@@ -55,6 +55,7 @@ const CreateAccountCategory = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
            category_name: formData.category_name,
+           category_code: formData.category_code,
            created_by: userId
         }),
       });

@@ -95,7 +95,7 @@ if (isNaN(debitAmount) || debitAmount <= 0) {
       credit: Number(formData.credit),
       transaction_date: formData.transaction_date,
       description: formData.description,
-      created_by: user ? user.id : null,
+      created_by: user ? user.id : null, 
       type: "payments"
     };
 

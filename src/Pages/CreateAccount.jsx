@@ -60,7 +60,8 @@ const AccountForm = () => {
     }
   };
 
-  const userId = localStorage.getItem("user_id");
+  const token = localStorage.getItem("token");
+ const userId = localStorage.getItem("user_id");
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -72,7 +73,10 @@ const AccountForm = () => {
     try {
       const res = await fetch("http://localhost:5000/api/accounts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+         },
         body: JSON.stringify({
           account_name: formData.account_name,
           category_id: formData.category_id,

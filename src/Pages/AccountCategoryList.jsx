@@ -20,7 +20,7 @@ const AccountCategoryList = () => {
   // Fetch categories
   const fetchCategories = () => {
     setLoading(true);
-    fetch("http://localhost:5000/api/account-categories/user-created")
+    fetch("http://localhost:5000/api/account-categories")
       .then((res) => res.json())
       .then((data) => {
         setCategories(data);

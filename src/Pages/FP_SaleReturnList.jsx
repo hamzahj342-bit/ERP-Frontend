@@ -86,7 +86,7 @@ const FP_SaleReturnList = () => {
             className="add-cust-sup"
             onClick={() => navigate('/fp-salereturn-form')} 
           >
-            Add Sale Return
+            Add New
           </button>
           <h3>Finished Goods Sale Returns List</h3>
           

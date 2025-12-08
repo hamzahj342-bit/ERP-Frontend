@@ -23,19 +23,25 @@ const CustomerForm = () => {
       [name]: value,
     }));
   };
+  const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const payload = {
       ...formData,
+      created_by: user ? user.id : null,
       type: "customer" // 👈 hardcoded for customer
     };
 
     try {
       const res = await fetch("http://localhost:5000/api/entities", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
 

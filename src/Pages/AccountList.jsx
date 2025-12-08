@@ -19,7 +19,7 @@ const AccountList = () => {
 
   // Fetch only user-created accounts
   const fetchAccounts = () => {
-    fetch("http://localhost:5000/api/accounts/user-created")
+    fetch("http://localhost:5000/api/accounts")
       .then(res => res.json())
       .then(data => setAccounts(data))
       .catch(err => console.error("Error fetching accounts:", err));
@@ -52,6 +52,7 @@ const AccountList = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         account_name: formData.account_name,
+        account_code: formData.account_code,
           category_id: formData.category_id,
           updated_by: userId
       })

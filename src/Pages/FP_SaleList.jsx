@@ -55,7 +55,7 @@ const FP_SaleList = () => {
             className="add-cust-sup"
             onClick={() => navigate('/fp-sale-form')}
           >
-            Add New Sale
+            Add New
           </button>
 
           <h3>Finished Goods Sales List</h3>
