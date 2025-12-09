@@ -12,7 +12,9 @@ const PaymentTransactionForm = () => {
   const [accounts, setAccounts] = useState([]);
   const [invoiceNo, setInvoiceNo] = useState("");
   const [fromBalance, setFromBalance] = useState(0);
-
+  const [suppliers, setSuppliers] = useState([]); // New State
+  const [customers, setCustomers] = useState([]); // New State
+  const [selectedEntityId, setSelectedEntityId] = useState("");
   const [formData, setFormData] = useState({
     from_account_id: "",
     to_account_id: "",
@@ -20,7 +22,55 @@ const PaymentTransactionForm = () => {
     credit: "",
     transaction_date: new Date().toISOString().split("T")[0],
     description: "",
+    entity_id: ""
   });
+
+  // 🚨 Fetch Suppliers and Customers
+   const fetchCustomers = () => {
+    fetch("http://localhost:5000/api/entities")
+      .then(res => res.json())
+      .then(data => {
+        const customerData = data.filter(item => item.type === "customer");
+        setCustomers(customerData);
+      })
+      .catch(err => console.error("Error fetching customers:", err));
+  };
+
+   const fetchSuppliers = () => {
+    fetch("http://localhost:5000/api/entities")
+      .then(res => res.json())
+      .then(data => {
+        const supplierData = data.filter(item => item.type === "supplier");
+        setSuppliers(supplierData);
+      })
+      .catch(err => console.error("Error fetching suppliers:", err));
+  };
+
+ useEffect(() => {
+    fetchSuppliers();
+    fetchCustomers();
+  }, []);
+
+// Determine if a Control Account is selected (e.g., Payable or Receivable)
+  const getControlAccType = (accountId) => {
+    const acc = accounts.find(a => a.id == accountId);
+    // Use the actual codes from your database
+    if (acc?.account_code === '0002-0001') return 'Payable'; 
+    if (acc?.account_code === '0001-0004') return 'Receivable'; 
+    return null;
+  };
+
+// Get the currently active control account (to decide which entity list to show)
+  const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
+  const entityList = activeControlAcc === 'Payable' ? suppliers : (activeControlAcc === 'Receivable' ? customers : []);
+  const entityTypeLabel = activeControlAcc === 'Payable' ? 'Supplier' : (activeControlAcc === 'Receivable' ? 'Customer' : 'Entity');
+  
+
+  // Handle change for the new Entity dropdown
+  const handleEntityChange = (value) => {
+    setSelectedEntityId(value);
+  };
+
 
   // Fetch all accounts
   useEffect(() => {
@@ -54,8 +104,8 @@ const PaymentTransactionForm = () => {
 }
 
 
-      if (field === "debit") {
-        updated.credit = value; // auto-set credit
+      if (field === "credit") {
+        updated.debit = value; // auto-set credit
       }
       return updated;
     });
@@ -69,20 +119,24 @@ const PaymentTransactionForm = () => {
       toast.error("Please select both accounts.");
       return;
     }
+    if (activeControlAcc && !selectedEntityId) {
+      toast.error(`Please select a specific ${entityTypeLabel}.`);
+      return;
+    }
     if (formData.from_account_id === formData.to_account_id) {
       toast.error("From & To account cannot be the same.");
       return;
     }
-    const debitAmount = parseFloat(formData.debit);
+    const debitAmount = parseFloat(formData.credit);
 if (isNaN(debitAmount) || debitAmount <= 0) {
   toast.error("Please enter a valid amount.");
   return;
 }
     
-    if (Number(formData.debit) > fromBalance) {
-      toast.error("Insufficient balance in From Account!");
-      return;
-    }
+    // if (Number(formData.credit) > fromBalance) {
+    //   toast.error("Insufficient balance in From Account!");
+    //   return;
+    // }
 
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user"));
@@ -96,7 +150,8 @@ if (isNaN(debitAmount) || debitAmount <= 0) {
       transaction_date: formData.transaction_date,
       description: formData.description,
       created_by: user ? user.id : null, 
-      type: "payments"
+      type: "payments",
+      entity_id: selectedEntityId || null,
     };
 
     try {
@@ -182,21 +237,39 @@ if (isNaN(debitAmount) || debitAmount <= 0) {
                 ))}
               </select>
             </div>
+            {/* 🚨 FIX: CONDITIONAL ENTITY DROPDOWN */}
+            {activeControlAcc && (
+                <div className="form-group" style={{ display: "flex", gap: "15px", marginTop: "10px"}}>
+                    <b style={{marginTop:"10px"}}>{entityTypeLabel}:</b>
+                    <select 
+                        className="input" 
+                        value={selectedEntityId} 
+                        onChange={(e) => handleEntityChange(e.target.value)}
+                    >
+                        <option value="">Select {entityTypeLabel}</option>
+                        {entityList.map(entity => (
+                            <option key={entity.id} value={entity.id}>
+                                {entity.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
 
 
             {/* Debit */}
             <div className="form-group" style={{ display: "flex", gap: "15px",marginTop:"10px"}}>
-              <b style={{marginTop:"10px"}}>Debit:</b>
+              <b style={{marginTop:"10px"}}>Credit:</b>
               <input
                 type="number"
                 className="input"
                 min="0.01"
                 step="0.01"
                 value={formData.debit}
-                onChange={(e) => handleChange("debit", e.target.value)}
+                onChange={(e) => handleChange("credit", e.target.value)}
               />
-              <b style={{marginTop:"10px"}}>Credit:</b>
-              <input type="number" className="input" value={formData.credit} readOnly />
+              <b style={{marginTop:"10px"}}>Debit:</b>
+              <input type="number" className="input" value={formData.debit} readOnly />
             </div>
 
             {/* Description */}

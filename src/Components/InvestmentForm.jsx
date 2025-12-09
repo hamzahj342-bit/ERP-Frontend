@@ -118,7 +118,7 @@ const InvestmentForm = () => {
           style={{ marginTop: "30px" }}
           onClick={() => navigate("/investment-list")}
         >
-          <FaArrowLeft /> Back
+          <FaArrowLeft />
         </button>
 
         <div className="rm-card">
@@ -139,13 +139,13 @@ const InvestmentForm = () => {
           <form onSubmit={handleSubmit}>
             {/* ACCOUNT */}
             <div style={{ display: "flex", gap: "15px" }} className="form-group">
-              <b>Account:</b>
+              <b>Account No:</b>
               <select
                 className="input"
                 value={formData.account_id}
                 onChange={(e) => handleChange("account_id", e.target.value)}
               >
-                <option value="">Select Employee Account</option>
+                <option value="">Select Account</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
                     {acc.account_name} - {acc.account_code}
