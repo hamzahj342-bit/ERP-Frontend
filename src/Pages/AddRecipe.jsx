@@ -242,8 +242,6 @@ const AddRecipe = () => {
                     placeholder="% Material Percentage"
                     value={detail.percentage}
                     onChange={(e) => handleDetailChange(index, e)}
-                    min="0"
-                    max="100"
                   />
 
                   <div>

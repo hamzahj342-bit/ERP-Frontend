@@ -326,7 +326,7 @@ const FP_SaleReturnForm = () => {
                   }
                 />
                 <small style={{ color: "gray", minWidth: "120px" }}>
-                  Max Return: {Number(row.stock).toFixed(4)} {/* ✅ Max Return Qty Show */}
+                  Max Return: {Number(row.stock)} {/* ✅ Max Return Qty Show */}
                 </small>
                 <input
                   type="number"

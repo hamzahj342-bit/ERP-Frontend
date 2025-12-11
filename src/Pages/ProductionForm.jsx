@@ -4,6 +4,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import { toast } from "react-toastify";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
+import { calculateDynamicFIFOCost } from "../utilities/FIFO_Production";
 
 const ProductionForm = () => {
   const navigate = useNavigate();
@@ -133,6 +134,8 @@ const handleProductionQuantityChange = (e) => {
     const updated = materials.map(mat => {
         const matPercentage = parseFloat(mat.percentage) || 0;
         const requiredQty = (newQty * matPercentage) / 100;
+
+        const dynamicFIFOCost = calculateDynamicFIFOCost(mat.fifo_batches, requiredQty);
         
         // Stock se zyada to nahi ho rahi?
         if (requiredQty > mat.total_available_stock) {
@@ -145,6 +148,8 @@ const handleProductionQuantityChange = (e) => {
         } else {
             mat.quantity = requiredQty;
         }
+
+        mat.unit_price = dynamicFIFOCost
 
         // Total price bhi update karo
         mat.total_price = (mat.unit_price * mat.quantity);
