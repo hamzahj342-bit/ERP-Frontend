@@ -1,0 +1,90 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+    FaFileInvoiceDollar, // Icon for Entity Ledger/Invoice Report
+    FaChartLine,        // Icon for Profit & Loss / Performance
+    FaArrowRight, 
+    FaArrowLeft,
+} from 'react-icons/fa';
+import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
+import Footer from '../Components/Footer';
+import NavigationBar from '../Components/NavigationBar';
+
+// Reusable Card component for Reports
+const ReportCard = ({ title, description, icon, path, color }) => {
+    const navigate = useNavigate();
+    
+    return (
+        // Reusing .production-card class for consistent styling
+        <div className="production-card" style={{ borderLeft: `5px solid ${color}` }}>
+            <div className="card-header-prod">
+                <span className="card-icon-prod" style={{ color: color }}>
+                    {icon}
+                </span>
+                <h3 className="card-title-prod">{title}</h3>
+            </div>
+            
+            <div className="card-body-prod">
+                <p>{description}</p>
+            </div>
+            
+            <div className="card-footer-prod">
+                <button 
+                    className="action-btn" 
+                    style={{ backgroundColor: color }}
+                    onClick={() => navigate(path)}
+                >
+                    View Report <FaArrowRight />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const Reports = () => {
+    const navigate = useNavigate();
+    return (
+        <>
+        <NavigationBar/>
+        <div className="rm-page">
+            <button
+                className="back-btn"
+                style={{ marginTop: "30px" }}
+                onClick={() => navigate('/dashboard')}
+            >
+                <FaArrowLeft/>
+            </button>
+            <div className="fp-production-container">
+                <h3>📈 Financial Reports</h3>
+                
+                <div className="production-cards-grid">
+                    
+                    {/* 1. ENTITY LEDGER REPORT CARD */}
+                    <ReportCard 
+                        title="📜 Entity Ledger Report"
+                        description="View detailed transactional history and running balances for a specific Customer (A/R) or Supplier (A/P)."
+                        icon={<FaFileInvoiceDollar size={40} />}
+                        path="/entity-ledger" // Assuming this is your target route
+                        color="#00A86B" // Green for Money Tracking
+                    />
+
+                    {/* 2. PROFIT & LOSS REPORT CARD */}
+                    <ReportCard 
+                        title="💰 Profit & Loss Report"
+                        description="Calculate your financial performance over a period by comparing Revenues against Expenses (Income Statement)."
+                        icon={<FaChartLine size={40} />}
+                        path="/profit-loss-report" // Assuming this is your target route
+                        color="#CC5500" // Orange/Brown for Financial Statement
+                    />
+                    
+                    {/* Add more reports here if needed, e.g., Trial Balance, Balance Sheet */}
+
+                </div>
+            </div>
+        </div>
+        <Footer />
+        </>
+    );
+};
+
+export default Reports;

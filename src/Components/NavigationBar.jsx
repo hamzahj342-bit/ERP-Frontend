@@ -19,7 +19,8 @@ import {
   FaUserTie,
   FaUserFriends,
   FaHandshake,
-  FaShoppingBag
+  FaShoppingBag,
+  FaFileAlt
 } from "react-icons/fa";
 import "../Bar.css";
 import { MdScience } from "react-icons/md";
@@ -85,6 +86,12 @@ const menuSections = [
       label: "Employees", 
       path: "/employees" 
     },
+    {
+      type: "link",
+      icon: <FaFileAlt />,
+      label: "Invoice Details",
+      path: "/rm-invoice-detail"
+    },
 
     // --- RAW MATERIAL (Theme: Green/Cyan for Nature/Stock) ---
     {
@@ -117,7 +124,7 @@ const menuSections = [
       children: [
         { icon: <FaUserPlus  /> ,label: "Create Account", path: "/accounts-setting" }, // Orange for New Finance Entry
         { icon: <FaExchangeAlt  />, label: "Transactions", path: "/payment-transactions" }, // Orange-Red for flow/transactions
-        { icon: <FaChartBar  /> , label: "Reports", path: "/rm-invoice-detail" }, // Goldenrod for Analysis
+        { icon: <FaChartBar  /> , label: "Reports", path: "/reports" }, // Goldenrod for Analysis
       ],
     },
   // { 

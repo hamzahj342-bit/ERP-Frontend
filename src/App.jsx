@@ -53,6 +53,8 @@ import FP_Production from './Layout/FP_Production';
 import FP_Transactions from './Layout/FP_Transactions';
 import Accounts from './Layout/Accounts';
 import Transactions from './Layout/Transactions';
+import EntityLedgerReport from './Components/EntityLedgerReport';
+import Reports from './Layout/Reports';
 
 
 const App = () => {
@@ -119,7 +121,10 @@ const App = () => {
         <Route path='/fp-transactions' element={<ProtectedRoute> <FP_Transactions /> </ProtectedRoute>} />
         <Route path='/accounts-setting' element={<ProtectedRoute> <Accounts /> </ProtectedRoute>} />
         <Route path='/payment-transactions' element={<ProtectedRoute> <Transactions /> </ProtectedRoute>} />
-      </Routes>
+
+        <Route path='/reports' element={<ProtectedRoute> <Reports /> </ProtectedRoute>} />
+        <Route path='/entity-ledger' element={<ProtectedRoute> <EntityLedgerReport /> </ProtectedRoute>} />
+      </Routes>  
     </Router>
   );
 };
