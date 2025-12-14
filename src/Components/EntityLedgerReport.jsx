@@ -16,6 +16,9 @@ import Footer from "./Footer";
 // const navigate = useNavigate(); // Ya phir function ke andar use karein
 
 const EntityLedgerReport = () => {
+  const navigate = useNavigate();
+
+
   const [entities, setEntities] = useState([]);
   const [selectedEntity, setSelectedEntity] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -151,7 +154,7 @@ const EntityLedgerReport = () => {
   };
 
 
-const navigate = useNavigate();
+
   return (
     <>
     <NavigationBar />

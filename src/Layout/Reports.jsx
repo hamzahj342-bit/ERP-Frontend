@@ -73,8 +73,16 @@ const Reports = () => {
                         title="💰 Profit & Loss Report"
                         description="Calculate your financial performance over a period by comparing Revenues against Expenses (Income Statement)."
                         icon={<FaChartLine size={40} />}
-                        path="/profit-loss-report" // Assuming this is your target route
+                        path="/profit-loss" // Assuming this is your target route
                         color="#CC5500" // Orange/Brown for Financial Statement
+                    />
+
+                    <ReportCard 
+                        title="💰 Accounts Report"
+                        description="Calculate your financial performance over a period by comparing Revenues against Expenses (Income Statement)."
+                        icon={<FaChartLine size={40} />}
+                        path="/accounts-report" // Assuming this is your target route
+                        color="#00a3ccff" // Orange/Brown for Financial Statement
                     />
                     
                     {/* Add more reports here if needed, e.g., Trial Balance, Balance Sheet */}

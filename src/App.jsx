@@ -55,6 +55,8 @@ import Accounts from './Layout/Accounts';
 import Transactions from './Layout/Transactions';
 import EntityLedgerReport from './Components/EntityLedgerReport';
 import Reports from './Layout/Reports';
+import ProfitLoss from './Components/ProfitLoss';
+import AccountLedger from './Components/AccountsLedger';
 
 
 const App = () => {
@@ -124,6 +126,8 @@ const App = () => {
 
         <Route path='/reports' element={<ProtectedRoute> <Reports /> </ProtectedRoute>} />
         <Route path='/entity-ledger' element={<ProtectedRoute> <EntityLedgerReport /> </ProtectedRoute>} />
+        <Route path='/profit-loss' element={<ProtectedRoute> <ProfitLoss /> </ProtectedRoute>} />
+        <Route path='/accounts-report' element={<ProtectedRoute> <AccountLedger /> </ProtectedRoute>} />
       </Routes>  
     </Router>
   );

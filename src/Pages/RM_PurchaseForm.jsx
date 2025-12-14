@@ -15,7 +15,7 @@ const RM_PurchaseForm = () => {
   const [invoiceNo, setInvoiceNo] = useState("");
   const [date, setDate] = useState("");
   const [grandTotal, setGrandTotal] = useState(0);
-  const [paidBalance, setPaidBalance] = useState("");
+  
 
   const navigate = useNavigate();
 
@@ -89,7 +89,6 @@ const RM_PurchaseForm = () => {
     const purchaseData = {
       entityid: selectedSupplier, // supplier only
       grand_total: grandTotal,
-      paid_balance: paidBalance,
       type: "purchase",
       createdby: user?.username || "guest",
       invoice_no: invoiceNo,
