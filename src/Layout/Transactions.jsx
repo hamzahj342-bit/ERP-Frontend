@@ -75,7 +75,7 @@ const Transactions = () => {
                             title="💸 Payment Transactions"
                             description="Record general operational payments, bank transfers, and expenses not covered by specific purchase/sales modules."
                             icon={<FaMoneyBillWave size={40} />}
-                            path="/payments-list" 
+                            path="/payments" 
                             color="#DC3545" // Red for General Outflow/Expense
                         />
 

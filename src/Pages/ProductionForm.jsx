@@ -338,7 +338,7 @@ const handleProductionQuantityChange = (e) => {
                     <input className="input" value={mat.rm_name || ""} readOnly />
                     <input className="input" value={mat.total_available_stock || ""} readOnly />
                     <input className="input" value={mat.uom_name || ""} readOnly />
-                    <input className="input" value={parseFloat(mat.percentage || "")} readOnly />
+                    <input className="input" value={parseFloat(mat.percentage || "").toFixed(4)} readOnly />
 
                     {/* Editable unit price */}
                     <input

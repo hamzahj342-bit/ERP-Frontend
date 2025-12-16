@@ -168,6 +168,8 @@ const AddRecipe = () => {
             rm_id: d.rm_id,
             rm_name: d.rm_name,
             percentage: d.percentage,
+            uom_id: d.uom_id,
+            uom_name: rawMaterials.find((rm) => rm.rm_id === d.rm_id)?.uom?.name || "",
           })),
         });
       })

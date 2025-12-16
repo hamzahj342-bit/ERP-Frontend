@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
 import { FaArrowLeft } from "react-icons/fa";
@@ -6,187 +6,245 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 
+
 const PaymentTransactionForm = () => {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  const [accounts, setAccounts] = useState([]);
-  const [invoiceNo, setInvoiceNo] = useState("");
-  const [fromBalance, setFromBalance] = useState(0);
-  const [suppliers, setSuppliers] = useState([]); // New State
-  const [customers, setCustomers] = useState([]); // New State
-  const [selectedEntityId, setSelectedEntityId] = useState("");
-  const [formData, setFormData] = useState({
-    from_account_id: "",
-    to_account_id: "",
-    debit: "",
-    credit: "",
-    transaction_date: new Date().toISOString().split("T")[0],
-    description: "",
-    entity_id: ""
-  });
-
-  // 🚨 Fetch Suppliers and Customers
-   const fetchCustomers = () => {
-    fetch("http://localhost:5000/api/entities")
-      .then(res => res.json())
-      .then(data => {
-        const customerData = data.filter(item => item.type === "customer");
-        setCustomers(customerData);
-      })
-      .catch(err => console.error("Error fetching customers:", err));
-  };
-
-   const fetchSuppliers = () => {
-    fetch("http://localhost:5000/api/entities")
-      .then(res => res.json())
-      .then(data => {
-        const supplierData = data.filter(item => item.type === "supplier");
-        setSuppliers(supplierData);
-      })
-      .catch(err => console.error("Error fetching suppliers:", err));
-  };
-
- useEffect(() => {
-    fetchSuppliers();
-    fetchCustomers();
-  }, []);
-
-// Determine if a Control Account is selected (e.g., Payable or Receivable)
-  const getControlAccType = (accountId) => {
-    const acc = accounts.find(a => a.id == accountId);
-    // Use the actual codes from your database
-    if (acc?.account_code === '0002-0001') return 'Payable'; 
-    if (acc?.account_code === '0001-0004') return 'Receivable'; 
-    return null;
-  };
-
-// Get the currently active control account (to decide which entity list to show)
-  const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
-  const entityList = activeControlAcc === 'Payable' ? suppliers : (activeControlAcc === 'Receivable' ? customers : []);
-  const entityTypeLabel = activeControlAcc === 'Payable' ? 'Supplier' : (activeControlAcc === 'Receivable' ? 'Customer' : 'Entity');
-  
-
-  // Handle change for the new Entity dropdown
-  const handleEntityChange = (value) => {
-    setSelectedEntityId(value);
-  };
-
-
-  // Fetch all accounts
-  useEffect(() => {
-    fetch("http://localhost:5000/api/accounts/list-with-balance")
-      .then(res => res.json())
-      .then(data => setAccounts(data))
-      .catch(err => console.error("Error fetching accounts:", err));
-  }, []);
-
-  // Fetch invoice no
-  useEffect(() => {
-    fetch("http://localhost:5000/api/payment-transactions/invoice-no?type=payments")
-      .then(res => res.json())
-      .then(data => setInvoiceNo(data.invoice_no))
-      .catch(err => console.error("Error fetching invoice:", err));
-  }, []);
-
-  // Handle input change
-  const handleChange = (field, value) => {
-    setFormData(prev => {
-      const updated = { ...prev, [field]: value };
-      if (field === "from_account_id") {
-  const acc = accounts.find(a => a.id == value);
-
-  // Safe convert balance
-  const balance = acc && acc.balance
-    ? Number(acc.balance) || 0
-    : 0;
-
-  setFromBalance(balance);
-}
-
-
-      if (field === "credit") {
-        updated.debit = value; // auto-set credit
-      }
-      return updated;
+    const [accounts, setAccounts] = useState([]);
+    const [invoiceNo, setInvoiceNo] = useState("");
+    const [fromBalance, setFromBalance] = useState(0);
+    const [suppliers, setSuppliers] = useState([]);
+    const [customers, setCustomers] = useState([]);
+    const [selectedEntityId, setSelectedEntityId] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false); // To prevent double clicks
+    const [formData, setFormData] = useState({
+        from_account_id: "",
+        to_account_id: "",
+        debit: "",
+        credit: "",
+        transaction_date: new Date().toISOString().split("T")[0],
+        description: "",
+        entity_id: ""
     });
-  };
 
-  // Submit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    // =======================================================
+    // 1. INVOICE NUMBER FETCH LOGIC (Extracted for reusability)
+    // =======================================================
+    const fetchInvoiceNo = useCallback(async () => {
+  try {
+    const res = await fetch("http://localhost:5000/api/payment-transactions/invoice-no?type=payments");
+    const data = await res.json();
+    console.log("GET /invoice-no:", res.status, data); // debug
+    if (res.ok) {
+      setInvoiceNo(data.invoice_no);
+      return data.invoice_no;
+    } else {
+      setInvoiceNo("PAY-INV-ERROR");
+      return null;
+    }
+  } catch (err) {
+    console.error("Error fetching invoice:", err);
+    setInvoiceNo("PAY-INV-ERROR");
+    return null;
+  }
+}, []);
 
-    if (!formData.from_account_id || !formData.to_account_id) {
-      toast.error("Please select both accounts.");
-      return;
-    }
-    if (activeControlAcc && !selectedEntityId) {
-      toast.error(`Please select a specific ${entityTypeLabel}.`);
-      return;
-    }
-    if (formData.from_account_id === formData.to_account_id) {
-      toast.error("From & To account cannot be the same.");
-      return;
-    }
-    const debitAmount = parseFloat(formData.credit);
-if (isNaN(debitAmount) || debitAmount <= 0) {
-  toast.error("Please enter a valid amount.");
-  return;
-}
+    // Initial Data Fetch (Runs once on mount)
+    useEffect(() => {
+        fetchSuppliers();
+        fetchCustomers();
+        fetchAccounts();
+        // Fetch the initial invoice number
+        fetchInvoiceNo();
+    }, [fetchInvoiceNo]);
+
+
+    // Fetch all accounts (Extracted)
+    const fetchAccounts = () => {
+        fetch("http://localhost:5000/api/accounts/list-with-balance")
+            .then(res => res.json())
+            .then(data => setAccounts(data))
+            .catch(err => console.error("Error fetching accounts:", err));
+    };
+
+    const fetchCustomers = () => {
+        fetch("http://localhost:5000/api/entities")
+            .then(res => res.json())
+            .then(data => {
+                const customerData = data.filter(item => item.type === "customer");
+                setCustomers(customerData);
+            })
+            .catch(err => console.error("Error fetching customers:", err));
+    };
+
+    const fetchSuppliers = () => {
+        fetch("http://localhost:5000/api/entities")
+            .then(res => res.json())
+            .then(data => {
+                const supplierData = data.filter(item => item.type === "supplier");
+                setSuppliers(supplierData);
+            })
+            .catch(err => console.error("Error fetching suppliers:", err));
+    };
     
+    // Determine control account logic... (no changes here)
+    const getControlAccType = (accountId) => {
+        const acc = accounts.find(a => a.id == accountId);
+        if (acc?.account_code === '0002-0001') return 'Payable'; 
+        if (acc?.account_code === '0001-0004') return 'Receivable'; 
+        return null;
+    };
+
+    const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
+    const entityList = activeControlAcc === 'Payable' ? suppliers : (activeControlAcc === 'Receivable' ? customers : []);
+    const entityTypeLabel = activeControlAcc === 'Payable' ? 'Supplier' : (activeControlAcc === 'Receivable' ? 'Customer' : 'Entity');
+    
+    const handleEntityChange = (value) => {
+        setSelectedEntityId(value);
+    };
+    
+    const handleChange = (field, value) => {
+        setFormData(prev => {
+            const updated = { ...prev, [field]: value };
+            if (field === "from_account_id") {
+                const acc = accounts.find(a => a.id == value);
+                const balance = acc && acc.balance
+                    ? Number(acc.balance) || 0
+                    : 0;
+                setFromBalance(balance);
+            }
+            if (field === "credit") {
+                updated.debit = value;
+            }
+            return updated;
+        });
+    };
+
+    // =======================================================
+    // 2. CORRECTED SUBMIT HANDLER (DO COPY PASTE)
+    // =======================================================
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (isSubmitting) return; // Prevent double submission
+
+        // --- Frontend Validation ---
+        if (!formData.from_account_id || !formData.to_account_id) {
+            toast.error("Please select both accounts.");
+            return;
+        }
+        if (activeControlAcc && !selectedEntityId) {
+            toast.error(`Please select a specific ${entityTypeLabel}.`);
+            return;
+        }
+        if (formData.from_account_id === formData.to_account_id) {
+            toast.error("From & To account cannot be the same.");
+            return;
+        }
+        const debitAmount = parseFloat(formData.credit);
+        if (isNaN(debitAmount) || debitAmount <= 0) {
+            toast.error("Please enter a valid amount.");
+            return;
+        }
     // if (Number(formData.credit) > fromBalance) {
     //   toast.error("Insufficient balance in From Account!");
     //   return;
     // }
+        // --- End Validation ---
 
-    const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user"));
+        setIsSubmitting(true);
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user"));
 
-    const payload = {
-      invoice_no: invoiceNo,
-      from_account_id: formData.from_account_id,
-      to_account_id: formData.to_account_id,
-      debit: Number(formData.debit),
-      credit: Number(formData.credit),
-      transaction_date: formData.transaction_date,
-      description: formData.description,
-      created_by: user ? user.id : null, 
-      type: "payments",
-      entity_id: selectedEntityId || null,
+        // 🚨 CRITICAL CHANGE 🚨: We DO NOT send the stale `invoiceNo` from state.
+        // The backend is responsible for generating the final, atomic number.
+        const payload = {
+            // invoice_no: invoiceNo, 
+            from_account_id: formData.from_account_id,
+            to_account_id: formData.to_account_id,
+            debit: debitAmount, // Use the validated number
+            credit: debitAmount,
+            transaction_date: formData.transaction_date,
+            description: formData.description,
+            created_by: user ? user.id : null,
+            type: "payments",
+            entity_id: selectedEntityId || null,
+        };
+
+        try {
+            const res = await fetch("http://localhost:5000/api/payment-transactions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+            setIsSubmitting(false);
+
+//             const computeNextInvoice = (invoice) => {
+//     if (!invoice) return invoice;
+//     const parts = String(invoice).split("-");
+//     const last = parts[parts.length - 1];
+//     const num = parseInt(last, 10) || 0;
+//     const prefix = parts.slice(0, parts.length - 1).join("-");
+//     return `${prefix}-${String(num + 1).padStart(4, "0")}`;
+//   };
+
+            if (res.ok) {
+
+//                 console.log("POST /payment-transactions response:", data); // debug
+//   const assignedInvoice = data.invoice_no;
+//   if (assignedInvoice) {
+//     // immediate UI update
+//     setInvoiceNo(computeNextInvoice(assignedInvoice));
+//   }
+//   // re-sync with server (overwrite if needed)
+//   await fetchInvoiceNo();
+
+                Swal.fire({
+                    title: "Payment Successful!",
+                    text: `Transaction completed with Invoice No: ${data.invoice_no}`, // Assuming backend returns the final invoice_no
+                    icon: "success",
+                    confirmButtonColor: "#3085d6",
+                    confirmButtonText: "OK",
+                }).then(() => {
+                    // 1. Reset form fields for a new transaction
+                    setFormData({
+                        from_account_id: "",
+                        to_account_id: "",
+                        debit: "",
+                        credit: "",
+                        transaction_date: new Date().toISOString().split("T")[0],
+                        description: "",
+                        entity_id: ""
+                    });
+                    setSelectedEntityId("");
+                    setFromBalance(0);
+                    
+                    // 2. 🚨 CRITICAL: Re-fetch the NEXT invoice number immediately
+                    fetchInvoiceNo();
+                    
+                    // Optional: navigate("/payments-list"); 
+                    // Keeping the navigation commented out lets the user stay on the form
+                    // and start a new transaction with the correct new invoice number.
+                });
+            } else {
+                toast.error(data.message || data.error || "Transaction Failed!");
+            }
+        } catch (err) {
+            setIsSubmitting(false);
+            console.error(err);
+            toast.error("Network or server error!");
+        }
     };
-
-    try {
-      const res = await fetch("http://localhost:5000/api/payment-transactions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        Swal.fire({
-          title: "Payment Successful!",
-          text: "The payment transaction has been completed.",
-          icon: "success",
-          confirmButtonColor: "#3085d6",
-          confirmButtonText: "OK",
-        }).then(() => navigate("/payments-list"));
-      } else {
-        toast.error(data.error || "Transaction Failed!");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Network or server error!");
-    }
-  };
-
   return (
     <>
       <NavigationBar />
       <div className="rm-page">
-        <button className="back-btn" onClick={() => navigate("/payments-list")}>
+        <button className="back-btn" onClick={() => navigate("/payment-transactions")}>
           <FaArrowLeft />
         </button>
 
@@ -197,7 +255,7 @@ if (isNaN(debitAmount) || debitAmount <= 0) {
           <div className="form-group mb-3 d-flex"
           style={{gap:"15px"}}>
             <b>Invoice No:</b>
-            <input type="text" className="input" value={invoiceNo || ""} readOnly 
+            <input type="text" className="input" value={invoiceNo} readOnly 
             style={{ background: "#f3f3f3",}} 
             />
             
