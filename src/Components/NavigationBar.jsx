@@ -20,7 +20,8 @@ import {
   FaUserFriends,
   FaHandshake,
   FaShoppingBag,
-  FaFileAlt
+  FaFileAlt,
+  FaLayerGroup
 } from "react-icons/fa";
 import "../Bar.css";
 import { MdScience } from "react-icons/md";
@@ -113,6 +114,7 @@ const menuSections = [
       children: [
         { icon: <FaTools />, label: "FP Production", path: "/fp-production" }, // Light Steel Blue for process
         { icon: <FaExchangeAlt  />, label: "FP Transactions", path: "/fp-transactions" }, // Orange-Red for flow/transactions
+        { icon: <FaLayerGroup /> , label: "Product Batches", path: "/product-batches" },
       ],
     },
     

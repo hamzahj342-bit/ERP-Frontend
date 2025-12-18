@@ -178,6 +178,7 @@ const FP_InvoiceDetail = () => {
                     <div className="total-area">
                         {/* Total Box: High Contrast Primary Color Block */}
                         <div className="total-box shadow">
+                            <h5>Discount: Rs. {Number(invoice.discount)}</h5>
                             <h4 className="total-label">GRAND TOTAL</h4>
                             <h2 className="total-value">Rs. {Number(invoice.grand_total)}</h2> 
                         </div>

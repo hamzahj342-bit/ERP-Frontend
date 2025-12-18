@@ -57,6 +57,7 @@ import EntityLedgerReport from './Components/EntityLedgerReport';
 import Reports from './Layout/Reports';
 import ProfitLoss from './Components/ProfitLoss';
 import AccountLedger from './Components/AccountsLedger';
+import ProductBatchList from './Components/ProductBatchList';
 
 
 const App = () => {
@@ -107,6 +108,7 @@ const App = () => {
         <Route path="/fp-salereturn-list" element={<ProtectedRoute> <FP_SaleReturnList /> </ProtectedRoute>} />
         <Route path="/fp-salereturn-form" element={<ProtectedRoute> <FP_SaleReturnForm /> </ProtectedRoute>} />
         <Route path="/fp-invoice-detail/:invoiceNo" element={<ProtectedRoute> <FP_InvoiceDetail /> </ProtectedRoute>} />
+        <Route path="/product-batches" element={<ProtectedRoute> <ProductBatchList /> </ProtectedRoute>} />
         
         <Route path="/account-categories" element={<ProtectedRoute> <AccountCategoryList/> </ProtectedRoute>} />
         <Route path="/create-category" element={<ProtectedRoute> <CreateAccountCategory /> </ProtectedRoute>} />

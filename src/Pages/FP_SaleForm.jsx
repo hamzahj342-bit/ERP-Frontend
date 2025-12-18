@@ -6,6 +6,8 @@ import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
 
 const FP_SaleForm = () => {
+  const navigate = useNavigate();
+  
   const [rows, setRows] = useState([
     {
       product_master_id: "",
@@ -24,8 +26,39 @@ const FP_SaleForm = () => {
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [invoiceNo, setInvoiceNo] = useState("");
   const [date, setDate] = useState("");
-  const [grandTotal, setGrandTotal] = useState(0);
-  const navigate = useNavigate();
+  
+  // 🛑 NEW STATES for Discount Logic
+  const [subTotal, setSubTotal] = useState(0); 
+  const [globalDiscount, setGlobalDiscount] = useState(""); 
+  const [grandTotal, setGrandTotal] = useState(0); 
+
+
+  // ✅ Grand Total Calculation Logic (Updated for Global Discount)
+  const calculateTotals = (currentRows, discountValue) => {
+    // 1. Calculate Subtotal (Sum of all Qty * Price)
+    const currentSubTotal = currentRows.reduce((sum, row) => {
+        const qty = parseFloat(row.quantity) || 0;
+        const price = parseFloat(row.unitPrice) || 0;
+        return sum + (qty * price);
+    }, 0);
+    
+    const discount = parseFloat(discountValue) || 0;
+    
+    // 2. Calculate Grand Total
+    let finalGrandTotal = currentSubTotal - discount;
+    if (finalGrandTotal < 0) finalGrandTotal = 0;
+    
+    setSubTotal(currentSubTotal.toFixed(2));
+    setGrandTotal(finalGrandTotal.toFixed(2));
+  };
+  
+  // 🔹 Handler for Global Discount Change
+  const handleGlobalDiscountChange = (value) => {
+      setGlobalDiscount(value);
+      // 🛑 Recalculate based on current rows and new discount
+      calculateTotals(rows, value);
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,6 +77,13 @@ const FP_SaleForm = () => {
       toast.error("Please add at least one product item.");
       return;
     }
+    
+    // 🛑 Discount validation
+    const disc = parseFloat(globalDiscount) || 0;
+    if (disc > parseFloat(subTotal)) {
+        toast.error("Global Discount cannot exceed the Total Sub Amount.");
+        return;
+    }
 
     const user = JSON.parse(localStorage.getItem("user"));
     const token = localStorage.getItem("token");
@@ -51,7 +91,8 @@ const FP_SaleForm = () => {
     // Final data structure for backend (SaleMaster & SaleDetail)
     const saleData = {
       entity_customer_id: selectedCustomer, // Customer ID
-      grand_total: Number(grandTotal),
+      grand_total: Number(grandTotal),       // Use state's final Grand Total
+      discount: disc,                        // 🛑 ADDED: Discount to payload
       type: "Sale",
       date: date,
       createdby: user ? user.username : "guest",
@@ -62,7 +103,7 @@ const FP_SaleForm = () => {
         recipe_id: r.recipe_id, // Important for stock update
         quantity: Number(r.quantity),
         unit_price: Number(r.unitPrice),
-        total_price: Number(r.total), // Grand total is sum of total_price
+        total_price: Number(r.total), 
         uom_id: r.uom_id,
       })),
     };
@@ -82,8 +123,16 @@ const FP_SaleForm = () => {
 
       const data = await res.json();
       if (res.ok) {
-        toast.success("Finished Goods Sale Transaction Successful!");
-        navigate("/fp-sale-list"); // Navigate to list view
+        toast.success(`Finished Goods Sale Transaction Successful! Invoice: ${data.invoice_no}`);
+        // 🛑 Reset Form and Fetch New Invoice No
+        setRows([{ product_master_id: "", product_name: "", recipe_id: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }]);
+        setSelectedCustomer("");
+        setDate("");
+        setSubTotal(0);
+        setGlobalDiscount("");
+        setGrandTotal(0);
+        fetchInvoiceNo(); 
+
       } else {
         // Display error message from backend
         toast.error(data.message || "Error creating sale transaction!");
@@ -92,8 +141,9 @@ const FP_SaleForm = () => {
       console.error("Error creating sale:", err);
       toast.error("Network or Server error!");
     }
-  }; // ✅ Fetch Customers
-
+  };
+  
+  // ✅ Fetch Customers
   useEffect(() => {
     fetch("http://localhost:5000/api/entities")
       .then((res) => res.json())
@@ -101,8 +151,9 @@ const FP_SaleForm = () => {
         setCustomers(data.filter((ent) => ent.type === "customer"))
       )
       .catch((err) => console.error("Error fetching customers:", err));
-  }, []); // ✅ Fetch Products (Recipes)
-
+  }, []); 
+  
+  // ✅ Fetch Products (Recipes)
   useEffect(() => {
     // 🛑 This endpoint needs to be created on the backend
     fetch("http://localhost:5000/api/fp-sale/products-for-sale")
@@ -112,16 +163,21 @@ const FP_SaleForm = () => {
         setProducts(data);
       })
       .catch((err) => console.error("Error fetching products:", err));
-  }, []); // ✅ Fetch Invoice No
-
+  }, []); 
+  
+  // ✅ Fetch Invoice No
+  const fetchInvoiceNo = () => {
+      fetch("http://localhost:5000/api/fp-sale/invoice-no?type=Sale")
+        .then((res) => res.json())
+        .then((data) => setInvoiceNo(data.invoice_no))
+        .catch((err) => console.error("Error fetching invoice number:", err));
+  };
+  
   useEffect(() => {
-    // 🛑 This endpoint needs to be created on the backend
-    fetch("http://localhost:5000/api/fp-sale/invoice-no?type=Sale")
-      .then((res) => res.json())
-      .then((data) => setInvoiceNo(data.invoice_no))
-      .catch((err) => console.error("Error fetching invoice number:", err));
-  }, []); // ✅ Handle field changes
-
+      fetchInvoiceNo();
+  }, []);
+  
+  // ✅ Handle field changes
   const handleChange = (index, field, value) => {
     const updatedRows = [...rows];
     updatedRows[index][field] = value;
@@ -135,26 +191,21 @@ const FP_SaleForm = () => {
         toast.error(
           `Only ${stock} units of ${updatedRows[index].product_name} available!`
         );
-        updatedRows[index].quantity = ""; // Limit to available stock
+        updatedRows[index].quantity = ""; // Reset quantity if it exceeds stock
+        updatedRows[index].total = 0;
+      } else {
+        // Recalculate total after potential quantity change
+        const finalQty = parseFloat(updatedRows[index].quantity) || 0;
+        updatedRows[index].total = (finalQty * price).toFixed(2);
       }
-
-      // Recalculate total after potential quantity change
-      const finalQty = parseFloat(updatedRows[index].quantity) || 0;
-      updatedRows[index].total = finalQty * price;
     }
 
     setRows(updatedRows);
-    updateGrandTotal(updatedRows);
-  }; // ✅ Update Grand Total
-
-  const updateGrandTotal = (rows) => {
-    const total = rows.reduce(
-      (sum, row) => sum + (parseFloat(row.total) || 0),
-      0
-    );
-    setGrandTotal(total);
-  }; // ✅ Add Row
-
+    // 🛑 Recalculate totals based on new rows and current discount
+    calculateTotals(updatedRows, globalDiscount);
+  };
+  
+  // ✅ Add Row
   const addRow = () => {
     setRows([
       ...rows,
@@ -170,33 +221,30 @@ const FP_SaleForm = () => {
         stock: 0,
       },
     ]);
-  }; // ✅ Delete Row
-
+  }; 
+  
+  // ✅ Delete Row
   const deleteRow = (index) => {
     const updatedRows = rows.filter((_, i) => i !== index);
     setRows(updatedRows);
-    updateGrandTotal(updatedRows);
+    calculateTotals(updatedRows, globalDiscount); // Recalculate after delete
   };
-
-  // Note: Since we fetch all stock data initially, a separate fetchStock function isn't needed.
 
   return (
     <>
-            <NavigationBar />
+      <NavigationBar />
       <div className="rm-page">
-         
         <button
           className="back-btn"
           style={{ marginTop: "30px" }}
           onClick={() => navigate("/fp-sale-list")}
         >
-                    <FaArrowLeft /> 
+          <FaArrowLeft />
         </button>
-         
+
         <div className="rm-card">
-                    <h2>Finished Goods Sale Form</h2>   
+          <h2>Finished Goods Sale Form</h2>
           <div className="form-group d-flex">
-                 
             <h6>
               <b>
                 Sale
@@ -204,7 +252,6 @@ const FP_SaleForm = () => {
                 Invoice No:
               </b>
             </h6>
-                 
             <input
               type="text"
               value={invoiceNo}
@@ -216,54 +263,48 @@ const FP_SaleForm = () => {
                 width: "auto",
               }}
             />
-               
           </div>
-                    {/* Customer & Date */}   
+
+          {/* Customer & Date */}
           <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
-                 
             <select
               className="input"
               value={selectedCustomer}
               onChange={(e) => setSelectedCustomer(e.target.value)}
             >
-                     
               <option key="default-customer" value="">
                 Select Customer
               </option>
-                     
               {customers.map((ent) => (
                 <option key={ent.id} value={ent.id}>
-                                  {ent.name}         
+                  {ent.name}
                 </option>
               ))}
-                   
             </select>
-                 
+
             <button
               className="add-sup-cust"
               onClick={() => navigate("/add-customers")}
             >
-                            Add Customer      
+              Add Customer
             </button>
-                 
+
             <label>
               <b>Sale Date:</b>
             </label>
-                 
+
             <input
               type="date"
               className="input"
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
-               
           </div>
-                    {/* Rows */}   
+
+          {/* Rows */}
           <form onSubmit={handleSubmit}>
-                 
             {rows.map((row, index) => (
               <div className="rm-row" key={index}>
-                         
                 <select
                   className="input"
                   // We use recipe_id as the value for dropdown selection
@@ -275,52 +316,43 @@ const FP_SaleForm = () => {
                       (p) => String(p.recipe_id) === String(selectedRecipeId)
                     );
 
-                    // 2. Logging for Debugging
-                    console.log("Selected Product Value:", selectedRecipeId);
-                    console.log("Found Product Object:", selected);
-
-                    // Agar 'Select Product' select hota hai (value === ""), toh selected 'undefined' hi aayega, jo theek hai.
-
                     if (!selected) {
-                      // Agar 'undefined' hai (yaani 'Select Product' chuna gaya ya match nahi hua),
-                      // to row ko reset kar dein.
+                      // Reset row if selection is invalid or 'Select Product'
                       handleChange(index, "product_master_id", "");
-                      handleChange(index, "recipe_id", selectedRecipeId); // Value ko set karein taki dropdown select rahe
+                      handleChange(index, "recipe_id", selectedRecipeId);
                       handleChange(index, "product_name", "");
                       handleChange(index, "uom_id", "");
                       handleChange(index, "uom_name", "");
                       handleChange(index, "stock", 0);
                       handleChange(index, "quantity", "");
+                      handleChange(index, "unitPrice", "");
+                      handleChange(index, "total", 0);
                       return;
                     }
-                    handleChange(
-                      index,
-                      "product_master_id",
-                      selected.product_master_id
-                    );
+                    
+                    // Populate fields from selected product/recipe
+                    handleChange(index, "product_master_id", selected.product_master_id);
                     handleChange(index, "recipe_id", selected.recipe_id);
                     handleChange(index, "product_name", selected.name);
                     handleChange(index, "uom_id", selected.uom_id);
                     handleChange(index, "uom_name", selected.uom_name);
-                    handleChange(
-                      index,
-                      "stock",
-                      Number(selected.current_stock) || 0
-                    );
+                    handleChange(index, "stock", Number(selected.current_stock) || 0);
+                    
+                    // Clear Qty and Price to force re-entry or calculation
                     handleChange(index, "quantity", "");
-                    // Note: unitPrice needs to be set manually or fetched (we'll fetch later)
+                    handleChange(index, "unitPrice", ""); 
+                    // Note: unitPrice needs to be set manually or fetched (can be added later)
                   }}
                 >
-                                    <option value="">Select Product</option>   
-                         
+                  <option value="">Select Product</option>
+
                   {products.map((p, index) => (
                     <option key={`${p.recipe_id}-${index}`} value={p.recipe_id}>
-                                      {p.name}         
+                      {p.name}
                     </option>
                   ))}
-                           
                 </select>
-                         
+
                 <input
                   type="text"
                   className="input"
@@ -328,7 +360,7 @@ const FP_SaleForm = () => {
                   value={row.uom_name || ""}
                   readOnly
                 />
-                         
+
                 <input
                   type="number"
                   className="input"
@@ -340,9 +372,9 @@ const FP_SaleForm = () => {
                     handleChange(index, "quantity", e.target.value)
                   }
                 />
-                         
+
                 <small style={{ color: "gray" }}>Available: {row.stock}</small>
-                         
+
                 <input
                   type="number"
                   className="input"
@@ -354,7 +386,7 @@ const FP_SaleForm = () => {
                     handleChange(index, "unitPrice", e.target.value)
                   }
                 />
-                         
+
                 <input
                   type="text"
                   className="input"
@@ -362,52 +394,63 @@ const FP_SaleForm = () => {
                   value={row.total}
                   readOnly
                 />
-                         
+
                 <button type="button" className="add-more" onClick={addRow}>
-                                    <FaPlus size={20} />         
+                  <FaPlus size={20} />
                 </button>
-                         
+
                 {rows.length > 1 && (
                   <button
                     type="button"
                     className="del-btn"
                     onClick={() => deleteRow(index)}
                   >
-                                        ❌            
+                    ❌
                   </button>
                 )}
-                       
               </div>
             ))}
-                 
-            <div>
-                     
-              <label className="grand-total">
-                <b>Grand Total:</b>
-              </label>
-                     
-              <input
-                type="text"
-                className="input"
-                value={grandTotal}
-                readOnly
-              />
-                   
+
+            {/* 🛑 NEW: Totals Section (Subtotal, Discount, Grand Total) */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "20px", marginTop: "20px" }}>
+                
+                {/* Total Sub Amount */}
+                
+                    <label className="grand-total"><b>Total<br />Sub Amount:</b></label>
+                    <input type="text" className="input" value={subTotal} readOnly style={{ width: 'auto', backgroundColor: '#f3f3f3' }} />
+                
+                
+                {/* Global Discount Input */}
+                
+                    <label className="grand-total"><b>Global<br />Discount:</b></label>
+                    <input
+                        type="number"
+                        className="input"
+                        placeholder="Discount"
+                        value={globalDiscount}
+                        min="0"
+                        step="0.01"
+                        onChange={(e) => handleGlobalDiscountChange(e.target.value)}
+                        style={{ width: 'auto' }}
+                    />
+                
+                
+                {/* Final Grand Total */}
+                
+                    <label className="grand-total"><b>Grand<br />Total:</b></label>
+                    <input type="text" className="input" value={grandTotal} readOnly style={{ width: 'auto', backgroundColor: '#f3f3f3' }} />
+                
             </div>
-                 
+
             <div className="form-actions">
-                     
               <button type="submit" className="save-btn">
                 Save Sale
               </button>
-                   
             </div>
-               
           </form>
-           
         </div>
       </div>
-            <Footer />
+      <Footer />
     </>
   );
 };
