@@ -24,6 +24,7 @@ import {
   CartesianGrid
 } from 'recharts';
 import MainLayout from '../Layout/MainLayout';
+import api from '../../api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -36,45 +37,38 @@ const Dashboard = () => {
   const [barChartData, setBarChartData] = useState([]);
   const [lineChartData, setLineChartData] = useState([]);
 
-  // Fetch counts
+  // Fetch counts using Axios (api.js)
   useEffect(() => {
-    fetch('http://localhost:5000/api/products/count')
-      .then(res => res.json())
-      .then(data => setProductCount(data.count))
-      .catch(console.error);
+    // Counts fetch karne ke liye common function
+    const fetchDashboardData = async () => {
+      try {
+        // Axios automatic JSON parse kar deta hai, isliye .json() ki zaroorat nahi
+        // const prod = await api.get('/products/count');
+        // setProductCount(prod.data.count);
 
-    fetch('http://localhost:5000/api/add-materials/count')
-      .then(res => res.json())
-      .then(data => setMaterialCount(data.count))
-      .catch(console.error);
+        // const mat = await api.get('/add-materials/count');
+        // setMaterialCount(mat.data.count);
 
-    fetch('http://localhost:5000/api/entities/count/customers')
-      .then(res => res.json())
-      .then(data => setCustomerCount(data.count))
-      .catch(console.error);
+        // const cust = await api.get('/entities/count/customers');
+        // setCustomerCount(cust.data.count);
 
-    fetch('http://localhost:5000/api/entities/count/suppliers')
-      .then(res => res.json())
-      .then(data => setSupplierCount(data.count))
-      .catch(console.error);
+        // const supp = await api.get('/entities/count/suppliers');
+        // setSupplierCount(supp.data.count);
 
-      fetch('http://localhost:5000/api/entities/count/employees')
-      .then(res => res.json())
-      .then(data => setEmployeeCount(data.count))
-      .catch(console.error);
+        // const emp = await api.get('/entities/count/employees');
+        // setEmployeeCount(emp.data.count);
 
-       // Bar chart: Raw Material vs Finished Product Sales
-    fetch('http://localhost:5000/api/dashboard/bar-chart')
-      .then(res => res.json())
-      .then(data => setBarChartData(data))
-      .catch(console.error);
+        const bar = await api.get('/dashboard/bar-chart');
+        setBarChartData(bar.data);
 
-    // Line chart: Sales & Purchases trend over time
-    fetch('http://localhost:5000/api/dashboard/line-chart')
-      .then(res => res.json())
-      .then(data => setLineChartData(data))
-      .catch(console.error);
+        const line = await api.get('/dashboard/line-chart');
+        setLineChartData(line.data);
+      } catch (err) {
+        console.error("Dashboard data fetch error:", err);
+      }
+    };
 
+    fetchDashboardData();
   }, []);
 
   // Card data
@@ -163,7 +157,7 @@ const Dashboard = () => {
 
   {/* 📈 Line Chart */}
   <div className="chart-box">
-    <h3>Weekly Sales & Purchases Trend</h3>
+    <h3>Sales & Purchases Trend</h3>
     <ResponsiveContainer width="100%" height={280} className='chart-color'> 
       <LineChart
         data={lineChartData}

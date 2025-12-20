@@ -4,6 +4,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import "../RMForm.css";
 import Footer from "../Components/Footer";
+import api from "../../api"; 
 
 const PaymentTransactionList = () => {
   const [transactions, setTransactions] = useState([]);
@@ -11,10 +12,17 @@ const PaymentTransactionList = () => {
 
   // Fetch payment transactions
   useEffect(() => {
-    fetch("http://localhost:5000/api/payment-transactions/list?type=payments")
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchTransactions = async () => {
+      try {
+        // fetch + .then ki jagah api.get with await
+        const res = await api.get("/payment-transactions/list", {
+          params: { type: "payments" }
+        });
+        
+        const data = res.data; // Axios mein data direct yahan hota hai
         console.log("Payment Transactions:", data);
+
+        // Aapki original logic same to same
         if (Array.isArray(data)) {
           setTransactions(data);
         } else if (Array.isArray(data.rows)) {
@@ -22,11 +30,16 @@ const PaymentTransactionList = () => {
         } else {
           setTransactions([]);
         }
-      })
-      .catch(() => setTransactions([]));
+      } catch (err) {
+        console.error("Error fetching transactions:", err);
+        setTransactions([]);
+      }
+    };
+
+    fetchTransactions();
   }, []);
 
-  // View details handler
+  // View details handler (Same logic)
   const handleViewDetails = (invoiceNo) => {
     navigate(`/payment-transaction/${invoiceNo}`);
   };

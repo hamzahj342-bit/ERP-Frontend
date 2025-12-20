@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
+import api from "../../api"; 
 
 const RM_Purchase = () => {
   const [purchases, setPurchases] = useState([]);
@@ -13,12 +14,21 @@ const RM_Purchase = () => {
 
   const navigate = useNavigate();
 
-  // Fetch paginated data
+  // Fetch paginated data using api.js
   useEffect(() => {
-    fetch(`http://localhost:5000/api/rm-transactions?type=purchase&page=${page}&limit=10`)
-      .then(res => res.json())
-      .then(data => {
-        console.log("API Response:", data);
+    const fetchPurchases = async () => {
+      try {
+        // Axios automatically builds the query string from 'params'
+        const res = await api.get("/rm-transactions", {
+          params: {
+            type: "purchase",
+            page: page,
+            limit: 10
+          }
+        });
+
+        const data = res.data;
+        console.log("RM Purchase API Response:", data);
 
         if (Array.isArray(data.data)) {
           setPurchases(data.data);
@@ -26,9 +36,14 @@ const RM_Purchase = () => {
         } else {
           setPurchases([]);
         }
-      })
-      .catch(() => setPurchases([]));
-  }, [page]); // fetch every time page changes
+      } catch (err) {
+        console.error("Error fetching purchases:", err);
+        setPurchases([]);
+      }
+    };
+
+    fetchPurchases();
+  }, [page]); // Runs whenever the page changes
 
   const handleViewDetails = (invoiceNo) => {
     navigate(`/rm-invoice/${invoiceNo}`);

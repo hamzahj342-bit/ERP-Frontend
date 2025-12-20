@@ -4,6 +4,7 @@ import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
+import api from '../../api';
 
 const RM_PurchaseForm = () => {
     const navigate = useNavigate();
@@ -16,35 +17,42 @@ const RM_PurchaseForm = () => {
     const [selectedSupplier, setSelectedSupplier] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
-    const [subTotal, setSubTotal] = useState(0); // New state to hold SUM of all row totals
-    const [globalDiscount, setGlobalDiscount] = useState(""); // 🛑 NEW: Single Discount Input
+    const [subTotal, setSubTotal] = useState(0); 
+    const [globalDiscount, setGlobalDiscount] = useState(""); 
     const [grandTotal, setGrandTotal] = useState(0);
 
-    // 🔹 Fetch Next Invoice Number (Reused from previous fix)
+    // 🔹 Fetch Next Invoice Number (Using api.js)
     const fetchInvoiceNo = useCallback(async () => {
         try {
-            const res = await fetch("http://localhost:5000/api/rm-transactions/rm-invoice?type=Purchase");
-            const data = await res.json();
-            if (res.ok) {
-                setInvoiceNo(data.invoice_no);
-            }
+            const res = await api.get("/rm-transactions/rm-invoice", {
+                params: { type: "Purchase" }
+            });
+            setInvoiceNo(res.data.invoice_no);
         } catch (err) {
             console.error("Error fetching invoice:", err);
         }
     }, []);
 
-    // 🔹 Fetch Initial Data (Materials, Suppliers, Invoice No)
+    // 🔹 Fetch Initial Data
     useEffect(() => {
-        // Fetch Materials and Suppliers logic remains the same
-        fetch("http://localhost:5000/api/add-materials").then(res => res.json()).then(data => setMaterials(data)).catch(err => console.error("Error fetching materials:", err));
-        fetch("http://localhost:5000/api/entities").then(res => res.json()).then(data => { const onlySuppliers = data.filter(ent => ent.type === "supplier"); setSuppliers(onlySuppliers); }).catch(err => console.error("Error fetching suppliers:", err));
+        // Fetch Materials
+        api.get("/add-materials")
+            .then(res => setMaterials(res.data))
+            .catch(err => console.error("Error fetching materials:", err));
+
+        // Fetch Suppliers
+        api.get("/entities")
+            .then(res => {
+                const onlySuppliers = res.data.filter(ent => ent.type === "supplier");
+                setSuppliers(onlySuppliers);
+            })
+            .catch(err => console.error("Error fetching suppliers:", err));
         
         fetchInvoiceNo();
     }, [fetchInvoiceNo]);
 
-    // 🔹 Grand Total Calculation Logic (Updated for Global Discount)
+    // 🔹 Totals Calculation (Same logic as yours)
     const calculateTotals = (currentRows, discountValue) => {
-        // 1. Calculate Subtotal (Sum of all Qty * Price)
         const currentSubTotal = currentRows.reduce((sum, row) => {
             const qty = parseFloat(row.quantity) || 0;
             const price = parseFloat(row.unitPrice) || 0;
@@ -52,16 +60,14 @@ const RM_PurchaseForm = () => {
         }, 0);
         
         const discount = parseFloat(discountValue) || 0;
-        
-        // 2. Calculate Grand Total
         let finalGrandTotal = currentSubTotal - discount;
-        if (finalGrandTotal < 0) finalGrandTotal = 0; // Prevent negative total
+        if (finalGrandTotal < 0) finalGrandTotal = 0; 
         
         setSubTotal(currentSubTotal.toFixed(2));
         setGrandTotal(finalGrandTotal.toFixed(2));
     };
     
-    // 🔹 Handler for Quantity/Price changes
+    // 🔹 Handlers
     const handleChange = (index, field, value) => {
         const updated = [...rows];
         updated[index][field] = value;
@@ -73,19 +79,16 @@ const RM_PurchaseForm = () => {
         }
 
         setRows(updated);
-        // Recalculate based on updated rows and current discount
         calculateTotals(updated, globalDiscount); 
     };
     
-    // 🔹 Handler for Global Discount Change
     const handleGlobalDiscountChange = (value) => {
         setGlobalDiscount(value);
-        // Recalculate based on current rows and new discount
         calculateTotals(rows, value); 
     };
 
 
-    const addRow = () => {
+      const addRow = () => {
         setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }]);
     };
 
@@ -95,7 +98,7 @@ const RM_PurchaseForm = () => {
         calculateTotals(updated, globalDiscount); // Recalculate after delete
     };
 
-    // 🔹 Handle Submit (Updated to send total_discount field instead of per-row)
+    // 🔹 Handle Submit (Using api.js POST)
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -105,21 +108,17 @@ const RM_PurchaseForm = () => {
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0 && parseFloat(r.unitPrice) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one valid material row.");
         
-        // 🛑 Validation: Discount should not exceed Sub Total
         const disc = parseFloat(globalDiscount) || 0;
         if (disc > parseFloat(subTotal)) {
              return toast.error("Global Discount cannot exceed the Total Sub Amount.");
         }
 
-
         const user = JSON.parse(localStorage.getItem("user"));
-        const token = localStorage.getItem("token");
 
         const purchaseData = {
             entityid: selectedSupplier,
-            // 🚨 We send the final calculated Grand Total and the Global Discount amount
             grand_total: parseFloat(grandTotal), 
-            discount: disc, // 🛑 NEW FIELD to send to backend
+            discount: disc, 
             type: "purchase",
             createdby: user?.username || "guest",
             invoice_no: invoiceNo, 
@@ -131,39 +130,26 @@ const RM_PurchaseForm = () => {
                 uom_id: r.uom_id,
                 date,
                 entity_supplier_id: selectedSupplier,
-                // Note: No 'discount' field in detail rows now
             }))
         };
 
-        // ... (API call and success handling remains the same)
         try {
-            const res = await fetch("http://localhost:5000/api/rm-transactions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(purchaseData),
-            });
+            const res = await api.post("/rm-transactions", purchaseData);
 
-            const data = await res.json();
-            if (res.ok) {
-                toast.success(`Purchase Transaction Successful! Invoice: ${data.invoice_no}`);
-                // 1. Reset Form
-                setRows([{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }]);
-                setSelectedSupplier("");
-                setDate("");
-                setGrandTotal(0);
-                setSubTotal(0);
-                setGlobalDiscount(""); // Reset discount field
-                // 2. Re-fetch the next invoice number
-                fetchInvoiceNo(); 
-            } else {
-                toast.error(data.message || "Failed to save purchase.");
-            }
+            toast.success(`Purchase Transaction Successful! Invoice: ${res.data.invoice_no}`);
+            
+            // Reset Form
+            setRows([{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }]);
+            setSelectedSupplier("");
+            setDate("");
+            setGrandTotal(0);
+            setSubTotal(0);
+            setGlobalDiscount(""); 
+            fetchInvoiceNo(); 
+            navigate("/rm-purchase");
         } catch (err) {
             console.error("❌ Error creating purchase:", err);
-            toast.error("Error saving purchase transaction.");
+            toast.error(err.response?.data?.message || "Error saving purchase transaction.");
         }
     };
 

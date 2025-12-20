@@ -5,6 +5,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
+import api from '../../api'; // Import your axios instance
 
 const InvestmentForm = () => {
   const navigate = useNavigate();
@@ -21,35 +22,30 @@ const InvestmentForm = () => {
 
   const [accountBalance, setAccountBalance] = useState(0);
 
-  // Fetch Share Holder Accounts
+  // 1. Fetch Share Holder Accounts (Using api.js)
   useEffect(() => {
-    fetch("http://localhost:5000/api/accounts/share-holders")
-      .then((res) => res.json())
-      .then((data) => setAccounts(data))
+    api.get("/accounts/share-holders")
+      .then((res) => setAccounts(res.data))
       .catch((err) => console.error("Error fetching employee accounts:", err));
   }, []);
 
-  // Fetch Invoice Number
+  // 2. Fetch Invoice Number (Using api.js with query params)
   useEffect(() => {
-    fetch("http://localhost:5000/api/payment-transactions/invoice-no?type=investment")
-      .then((res) => res.json())
-      .then((data) => setInvoiceNo(data.invoice_no))
+    api.get("/payment-transactions/invoice-no", { params: { type: 'investment' } })
+      .then((res) => setInvoiceNo(res.data.invoice_no))
       .catch((err) => console.error("Error fetching invoice:", err));
   }, []);
 
   const handleChange = (field, value) => {
-  setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
-  if (field === "account_id") {
-    const acc = accounts.find((x) => x.id == value);
-
-    // SAFE BALANCE PARSING
-    let balance = Number(acc?.balance);
-    if (isNaN(balance)) balance = 0;
-
-    setAccountBalance(balance);
-  }
-};
+    if (field === "account_id") {
+      const acc = accounts.find((x) => x.id == value);
+      let balance = Number(acc?.balance);
+      if (isNaN(balance)) balance = 0;
+      setAccountBalance(balance);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -78,36 +74,30 @@ const InvestmentForm = () => {
     };
 
     try {
-      const res = await fetch(
-        "http://localhost:5000/api/payment-transactions/investment",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      // 3. POST request using api.js
+      const res = await api.post("/payment-transactions/investment", payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      const data = await res.json();
+      // Status 200/201 par Axios yahan ayega
+      Swal.fire({
+        title: "Investment Added!",
+        text: "The investment transaction has been completed.",
+        icon: "success",
+        confirmButtonColor: "#3085d6",
+        confirmButtonText: "OK",
+      }).then(() => navigate("/investment-list"));
 
-      if (res.ok) {
-        Swal.fire({
-          title: "Investment Added!",
-          text: "The investment transaction has been completed.",
-          icon: "success",
-          confirmButtonColor: "#3085d6",
-          confirmButtonText: "OK",
-        }).then(() => navigate("/investment-list"));
-      } else {
-        toast.error(data.error || "Transaction Failed!");
-      }
     } catch (err) {
       console.error("Error:", err);
-      toast.error("Network or server error!");
+      // Backend error message handle karein
+      const errorMsg = err.response?.data?.error || "Transaction Failed!";
+      toast.error(errorMsg);
     }
   };
+
 
   return (
     <>

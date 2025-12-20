@@ -5,28 +5,33 @@ import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
+import api from '../../api'
 
 const RM_Return = () => {
   const [returns, setReturns] = useState([]); // master records
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false); // Loading state added
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  // Fetch Return Master Data
+  // ✅ Fetch Return Master Data using standardized api.js
   useEffect(() => {
     const fetchReturns = async () => {
       setLoading(true);
       try {
-        // Fetching Return transactions with pagination
-        const res = await fetch(`http://localhost:5000/api/rm-transactions?type=Return&page=${page}&limit=10`);
+        // Query parameters ko params object mein pass kiya gaya hai
+        const res = await api.get("/rm-transactions", {
+          params: {
+            type: "Return",
+            page: page,
+            limit: 10
+          }
+        });
         
-        if (!res.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const data = await res.json();
+        const data = res.data;
         console.log("Return API Response:", data);
+
         if (data && Array.isArray(data.data)) {
           setReturns(data.data);
           setTotalPages(data.totalPages || 1); 
@@ -44,12 +49,11 @@ const RM_Return = () => {
     };
     
     fetchReturns();
-  }, [page]); // Re-fetch when page changes
+  }, [page]);
 
-   const handleViewDetails = (invoiceNo) => {
-        // Navigate to the detail view using the invoice number
-        navigate(`/rm-invoice/${invoiceNo}`); 
-    };
+  const handleViewDetails = (invoiceNo) => {
+    navigate(`/rm-invoice/${invoiceNo}`); 
+  };
     
   return (
     <>

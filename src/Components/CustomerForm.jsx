@@ -6,6 +6,7 @@ import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
+import api from "../../api";
 
 const CustomerForm = () => {
   const navigate = useNavigate();
@@ -36,27 +37,21 @@ const CustomerForm = () => {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/entities", {
-        method: "POST",
+      const res = await api.post("/entities", payload, {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+        }
       });
 
-      if (res.ok) {
-        toast.success("Customer added successfully!");
-        setFormData({ name: "", address: "", contact: "" });
-      } else {
-        toast.error("Error adding customer.");
-      }
+      toast.success("Customer added successfully!");
+      setFormData({ name: "", address: "", contact: "" });
+      
     } catch (err) {
       console.error("Submit Error:", err);
-      toast.error("Server error occurred.");
+      const errorMsg = err.response?.data?.message || "Error adding customer.";
+      toast.error(errorMsg);
     }
   };
-
   return (
     <>
     <NavigationBar />

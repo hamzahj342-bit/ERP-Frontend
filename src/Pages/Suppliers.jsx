@@ -5,126 +5,111 @@ import Swal from 'sweetalert2'; // 💡 SweetAlert2 Import
 import '../CustomersAndSuppliers.css';
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
+import api from "../../api"; 
 
-const Suppliers = () => { // Removed props (onEdit, onDelete) as they are not used
-  const [suppliers, setSuppliers] = useState([]);
-  const [shops, setShops] = useState([]); // shops list
-  const [onUpdate, setOnUpdate] = useState(null);
-  const [venderData, setVenderData] = useState({
-    name: "",
-    address: "",
-    contact: "",
-    shop_id: ""
-  });
+const Suppliers = () => { 
+  const [suppliers, setSuppliers] = useState([]);
+  const [shops, setShops] = useState([]); 
+  const [onUpdate, setOnUpdate] = useState(null);
+  const [venderData, setVenderData] = useState({
+    name: "",
+    address: "",
+    contact: "",
+    shop_id: ""
+  });
 
-  const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  // Fetch suppliers
-  const fetchSuppliers = () => {
-    fetch("http://localhost:5000/api/entities")
-      .then(res => res.json())
-      .then(data => {
-        const supplierData = data.filter(item => item.type === "supplier");
-        setSuppliers(supplierData);
-      })
-      .catch(err => console.error("Error fetching suppliers:", err));
-  };
+  // ✅ Fetch suppliers (Filtered by type: supplier)
+  const fetchSuppliers = async () => {
+    try {
+      const res = await api.get("/entities");
+      // Axios mein data 'res.data' mein hota hai
+      const supplierData = res.data.filter(item => item.type === "supplier");
+      setSuppliers(supplierData);
+    } catch (err) {
+      console.error("Error fetching suppliers:", err);
+    }
+  };
 
-  // Fetch shops
-  const fetchShops = () => {
-    fetch("http://localhost:5000/api/shops")
-      .then(res => res.json())
-      .then(data => setShops(data))
-      .catch(err => console.error("Error fetching shops:", err));
-  };
+  // ✅ Fetch shops
+  const fetchShops = async () => {
+    try {
+      const res = await api.get("/shops");
+      setShops(res.data);
+    } catch (err) {
+      console.error("Error fetching shops:", err);
+    }
+  };
 
-  useEffect(() => {
-    fetchSuppliers();
-    fetchShops();
-  }, []);
+  useEffect(() => {
+    fetchSuppliers();
+    fetchShops();
+  }, []);
 
-  // Update API
-  const handleUpdate = (e) => {
-    e.preventDefault();
-    fetch(`http://localhost:5000/api/entities/${onUpdate.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...venderData, type: "supplier" })
-    })
-      .then(res => {
-        if (res.ok) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Updated!',
-                text: `Supplier ${venderData.name} has been updated.`,
-                showConfirmButton: false,
-                timer: 1500
-            });
-          setOnUpdate(null);
-          fetchSuppliers();
-        } else {
-            Swal.fire('Error!', 'Failed to update supplier.', 'error');
-        }
-      })
-      .catch(err => {
-          console.error("Error updating:", err);
-          Swal.fire('Error!', 'Server error while updating supplier.', 'error');
+  // ✅ Update API (Standardized)
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.put(`/entities/${onUpdate.id}`, { 
+        ...venderData, 
+        type: "supplier" 
       });
-  };
 
-  // On Edit Click
-  const handleEditClick = (supplier) => {
-    setOnUpdate(supplier);
-    setVenderData({
-      name: supplier.name,
-      address: supplier.address,
-      contact: supplier.contact || "",
-      shop_id: supplier.shop?.id || ""
-    });
-  };
+      if (res.status === 200 || res.status === 204) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Updated!',
+          text: `Supplier ${venderData.name} has been updated.`,
+          showConfirmButton: false,
+          timer: 1500
+        });
+        setOnUpdate(null);
+        fetchSuppliers();
+      }
+    } catch (err) {
+      console.error("Error updating:", err);
+      Swal.fire('Error!', err.response?.data?.message || 'Failed to update supplier.', 'error');
+    }
+  };
 
-  // Handle Input Change
-  const handleChange = (e) => {
-    setVenderData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  // 🗑️ Delete API with SweetAlert2 Confirmation
-  const handleDelete = (id, name) => {
-    Swal.fire({
-        title: `Are you sure?`,
-        text: `Do you want to delete supplier: ${name}? This action cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // User confirmed, proceed with deletion
-            fetch(`http://localhost:5000/api/entities/${id}`, {
-                method: "DELETE",
-            })
-            .then(res => {
-                if (res.ok) {
-                    // Show success alert
-                    Swal.fire(
-                        'Deleted!',
-                        `Supplier ${name} has been deleted.`,
-                        'success'
-                    );
-                    fetchSuppliers();
-                } else {
-                    // Handle server error response
-                    Swal.fire('Error!', 'Failed to delete supplier.', 'error');
-                }
-            })
-            .catch(err => {
-                console.error("Error deleting:", err);
-                Swal.fire('Error!', 'Server error during deletion.', 'error');
-            });
-        }
+  const handleEditClick = (supplier) => {
+    setOnUpdate(supplier);
+    setVenderData({
+      name: supplier.name,
+      address: supplier.address,
+      contact: supplier.contact || "",
+      shop_id: supplier.shop?.id || ""
     });
-  };
+  };
+
+  const handleChange = (e) => {
+    setVenderData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  // ✅ Delete API (Standardized)
+  const handleDelete = (id, name) => {
+    Swal.fire({
+      title: `Are you sure?`,
+      text: `Do you want to delete supplier: ${name}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await api.delete(`/entities/${id}`);
+          Swal.fire('Deleted!', `Supplier ${name} has been deleted.`, 'success');
+          fetchSuppliers();
+        } catch (err) {
+          console.error("Error deleting:", err);
+          Swal.fire('Error!', err.response?.data?.message || 'Failed to delete supplier.', 'error');
+        }
+      }
+    });
+  };
 
   return (
     <>

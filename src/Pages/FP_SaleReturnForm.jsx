@@ -4,8 +4,11 @@ import { FaArrowLeft, FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
+import api from "../../api";
 
 const FP_SaleReturnForm = () => {
+  const navigate = useNavigate();
+  
   const [rows, setRows] = useState([
     {
       product_master_id: "",
@@ -16,65 +19,70 @@ const FP_SaleReturnForm = () => {
       total: "",
       uom_id: "",
       uom_name: "",
-      stock: 0, // ✅ Max return quantity will be stored here
+      stock: 0, // Max return quantity
     },
   ]);
-  const [products, setProducts] = useState([]); // Products will be recipes sold to the selected customer
+  const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [invoiceNo, setInvoiceNo] = useState("");
   const [date, setDate] = useState("");
   const [grandTotal, setGrandTotal] = useState(0);
-  const navigate = useNavigate();
 
-  // Utility function to fetch products based on selected customer
-  const fetchProductsForReturn = (customerId) => {
+  // 1. Fetch products based on customer (Using api.js)
+  const fetchProductsForReturn = async (customerId) => {
     if (!customerId) {
       setProducts([]);
       return;
     }
-    // 🛑 Corrected route to fetch products sold to the specific customer
-    fetch(`http://localhost:5000/api/fp-sale/products-by-customer/${customerId}`) 
-      .then((res) => res.json())
-      .then((data) => {
-        // Data contains max_return_qty (total sold stock to this customer)
-        setProducts(data);
-        console.log("Products for Return fetched:", data);
-      })
-      .catch((err) => console.error("Error fetching customer sale products:", err));
+    try {
+      const res = await api.get(`/fp-sale/products-by-customer/${customerId}`);
+      setProducts(res.data);
+    } catch (err) {
+      console.error("Error fetching customer sale products:", err);
+      toast.error("Failed to load products for this customer");
+    }
   };
 
-
-  // ✅ useEffect 1: Fetch eligible customers (last 3 months)
+  // 2. Fetch eligible customers (last 3 months)
   useEffect(() => {
-    // 🛑 Corrected route to fetch customers with sales in last 3 months
-    fetch("http://localhost:5000/api/fp-sale/customers-for-return") 
-      .then(res => res.json())
-      .then(setCustomers)
-      .catch(err => console.error("Error fetching eligible customers:", err));
+    const fetchCustomers = async () => {
+      try {
+        const res = await api.get("/fp-sale/customers-for-return");
+        setCustomers(res.data);
+      } catch (err) {
+        console.error("Error fetching customers:", err);
+      }
+    };
+    fetchCustomers();
   }, []);
 
-  // ✅ useEffect 2: Fetch Invoice No for SaleReturn
+  // 3. Fetch Invoice No for SaleReturn
   useEffect(() => {
-    // Type ko 'SaleReturn' bhejein taaki 'FPR-' prefix bane
-    fetch("http://localhost:5000/api/fp-sale/invoice-no?type=SaleReturn") 
-      .then((res) => res.json())
-      .then((data) => setInvoiceNo(data.invoice_no))
-      .catch((err) => console.error("Error fetching invoice number:", err));
+    const fetchInvoiceNo = async () => {
+      try {
+        const res = await api.get("/fp-sale/invoice-no", {
+          params: { type: "SaleReturn" }
+        });
+        setInvoiceNo(res.data.invoice_no);
+      } catch (err) {
+        console.error("Error fetching invoice number:", err);
+      }
+    };
+    fetchInvoiceNo();
   }, []);
 
-  // ✅ Customer Select Change Handler
+  // --- Handlers ---
+
   const handleCustomerChange = (e) => {
     const customerId = e.target.value;
     setSelectedCustomer(customerId);
     
-    // Naye customer ke liye rows aur products ko reset karein
     setRows([
         { product_master_id: "", product_name: "", recipe_id: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 },
     ]);
     setGrandTotal(0);
 
-    // Customer select hone par products fetch karein
     if (customerId) {
       fetchProductsForReturn(customerId);
     } else {
@@ -82,45 +90,34 @@ const FP_SaleReturnForm = () => {
     }
   };
 
-
-  // ✅ Product Select Change Handler (sets max_return_qty to 'stock')
   const handleProductSelectChange = (e, index) => {
     const selectedRecipeId = e.target.value;
-
-    const selected = products.find(
-        (p) => String(p.recipe_id) === String(selectedRecipeId)
-    );
+    const selected = products.find((p) => String(p.recipe_id) === String(selectedRecipeId));
     
-    console.log("Selected Product Value:", selectedRecipeId);
-    console.log("Found Product Object:", selected);
-
     if (!selected) {
-        // Reset logic
-        handleChange(index, "product_master_id", "");
-        handleChange(index, "recipe_id", selectedRecipeId);
-        handleChange(index, "product_name", "");
-        handleChange(index, "uom_id", "");
-        handleChange(index, "uom_name", "");
-        handleChange(index, "stock", 0);
-        handleChange(index, "quantity", "");
+        updateRowData(index, { product_master_id: "", recipe_id: selectedRecipeId, product_name: "", uom_id: "", uom_name: "", stock: 0, quantity: "" });
         return;
     }
 
-    // ✅ CRITICAL: Max return quantity ko stock field mein set karein
     const maxReturnQty = parseFloat(selected.max_return_qty) || 0; 
-    
-    handleChange(index, "product_master_id", selected.product_master_id);
-    handleChange(index, "recipe_id", selected.recipe_id);
-    handleChange(index, "product_name", selected.name);
-    handleChange(index, "uom_id", selected.uom_id);
-    handleChange(index, "uom_name", selected.uom_name);
-    handleChange(index, "stock", maxReturnQty); // ✅ Max return quantity set
-    handleChange(index, "quantity", "");
-    // Note: unitPrice user manually enter karega ya Sale Detail se fetch hoga
+    updateRowData(index, {
+        product_master_id: selected.product_master_id,
+        recipe_id: selected.recipe_id,
+        product_name: selected.name,
+        uom_id: selected.uom_id,
+        uom_name: selected.uom_name,
+        stock: maxReturnQty,
+        quantity: ""
+    });
   };
 
+  // Helper function to update row state cleanly
+  const updateRowData = (index, data) => {
+    const updatedRows = [...rows];
+    updatedRows[index] = { ...updatedRows[index], ...data };
+    setRows(updatedRows);
+  };
 
-  // ✅ Handle field changes & Validation against max_return_qty
   const handleChange = (index, field, value) => {
     const updatedRows = [...rows];
     updatedRows[index][field] = value;
@@ -128,36 +125,24 @@ const FP_SaleReturnForm = () => {
     if (field === "quantity" || field === "unitPrice") {
       const qty = parseFloat(updatedRows[index].quantity) || 0;
       const price = parseFloat(updatedRows[index].unitPrice) || 0;
-      const maxReturnQty = parseFloat(updatedRows[index].stock) || 0; // 'stock' is max return qty
+      const maxReturnQty = parseFloat(updatedRows[index].stock) || 0;
 
-      // 🛑 Validation: Sale ki gayi quantity se zyada return nahi kar sakte
       if (qty > maxReturnQty) {
-        toast.error(
-          `Max return quantity is ${maxReturnQty} units of ${
-            updatedRows[index].product_name
-          }!`
-        );
-        updatedRows[index].quantity = ""; // Limit to max return qty
+        toast.error(`Max return quantity is ${maxReturnQty} units!`);
+        updatedRows[index].quantity = ""; 
       }
 
-      // Recalculate total
       const finalQty = parseFloat(updatedRows[index].quantity) || 0;
       updatedRows[index].total = (finalQty * price);
     }
 
     setRows(updatedRows);
-    updateGrandTotal(updatedRows);
+    const total = updatedRows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
+    setGrandTotal(total);
   };
 
-  const updateGrandTotal = (rows) => {
-    const total = rows.reduce(
-      (sum, row) => sum + (parseFloat(row.total) || 0),
-      0
-    );
-    setGrandTotal(total);
-  }; 
 
-  const addRow = () => {
+   const addRow = () => {
     setRows([
       ...rows,
       {
@@ -173,25 +158,22 @@ const FP_SaleReturnForm = () => {
     updateGrandTotal(updatedRows);
   };
 
+  // 4. Submit Function (POST using api.js)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ... (rest of validation) ...
-
     const validRows = rows.filter((r) => r.product_master_id && Number(r.quantity) > 0);
     if (validRows.length === 0) {
-      toast.error("Please add at least one product item with quantity.");
+      toast.error("Please add at least one product item.");
       return;
     }
 
     const user = JSON.parse(localStorage.getItem("user"));
-    const token = localStorage.getItem("token");
 
-    // Final data structure for backend (SaleMaster & SaleDetail)
     const saleData = {
       entity_customer_id: selectedCustomer, 
       grand_total: Number(grandTotal),
-      type: "SaleReturn", // ✅ CRITICAL: Transaction type is SaleReturn
+      type: "SaleReturn", 
       date: date,
       createdby: user ? user.username : "guest",
       invoice_no: invoiceNo,
@@ -206,31 +188,16 @@ const FP_SaleReturnForm = () => {
       })),
     };
 
-    console.log("Submitting FG Sale Return Data:", JSON.stringify(saleData, null, 2));
-
     try {
-      // 🛑 API call to the combined Finished Goods Sale/Return Route
-      const res = await fetch("http://localhost:5000/api/fp-sale", { 
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(saleData),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success("Finished Goods Sale Return Transaction Successful!");
-        navigate("/fp-salereturn-list"); 
-      } else {
-        toast.error(data.message || "Error creating return transaction!");
-      }
+      await api.post("/fp-sale", saleData);
+      toast.success("Sale Return Successful!");
+      navigate("/fp-salereturn-list"); 
     } catch (err) {
       console.error("Error creating return:", err);
-      toast.error("Network or Server error!");
+      toast.error(err.response?.data?.message || "Error creating return transaction!");
     }
-  }; 
+  };
+
 
   return (
     <>

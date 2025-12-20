@@ -10,149 +10,133 @@ import html2canvas from "html2canvas";
 // 🚨 Custom Components (Ensure these paths are correct)
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
-// Assuming navigate is available or imported (e.g., from react-router-dom)
-// Agar navigate import nahi hai, toh ye line hata dein ya import karein.
-// import { useNavigate } from "react-router-dom"; 
-// const navigate = useNavigate(); // Ya phir function ke andar use karein
+import api from "../../api";
 
 const EntityLedgerReport = () => {
   const navigate = useNavigate();
 
+  const [entities, setEntities] = useState([]);
+  const [selectedEntity, setSelectedEntity] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const reportRef = React.useRef(null); 
 
-  const [entities, setEntities] = useState([]);
-  const [selectedEntity, setSelectedEntity] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const reportRef = React.useRef(null); // Ref to target the report section for PDF
+  // --- 1. Load Entities (Using api.js) ---
+  useEffect(() => {
+    const fetchEntities = async () => {
+      try {
+        const res = await api.get("/entities");
+        setEntities(res.data);
+      } catch (err) {
+        console.error("Entities fetch error:", err);
+        toast.error("Failed to load entities");
+      }
+    };
+    fetchEntities();
+  }, []);
 
- 
+  // --- 2. Fetch Report (Using api.js) ---
+  const fetchLedger = async () => {
+    if (!selectedEntity || !fromDate || !toDate) {
+      toast.error("Please select entity and date range");
+      return;
+    }
 
-  // Load Entities
-  useEffect(() => {
-    fetch("http://localhost:5000/api/entities")
-      .then((res) => res.json())
-      .then((data) => setEntities(data))
-      .catch(() => toast.error("Failed to load entities"));
-  }, []);
+    setLoading(true);
 
-  // Fetch Report
-  const fetchLedger = async () => {
-    if (!selectedEntity || !fromDate || !toDate) {
-      toast.error("Please select entity and date range");
-      return;
-    }
+    try {
+      // Axios params ka use karke URL clean rehta hai
+      const res = await api.get("/reports/entity-ledger", {
+        params: {
+          entity_id: selectedEntity,
+          fromDate: fromDate,
+          toDate: toDate
+        }
+      });
 
-    setLoading(true);
+      setReport(res.data);
+      toast.success("Ledger loaded successfully");
+    } catch (err) {
+      console.error("Ledger fetch error:", err);
+      const errorMsg = err.response?.data?.message || "Server error fetching ledger";
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    try {
-      const url = `http://localhost:5000/api/reports/entity-ledger?entity_id=${selectedEntity}&fromDate=${fromDate}&toDate=${toDate}`;
+  // ------------------------------
+  // EXPORT LOGIC (Wese hi rahega)
+  // ------------------------------
+  
+  const calculateRunningBalance = (index, items, openingBalance) => {
+    if (index === 0) {
+      return openingBalance + (items[0].debit - items[0].credit);
+    }
+    return (
+      items[index - 1].runningBalance +
+      (items[index].debit - items[index].credit)
+    );
+  };
 
-      const res = await fetch(url);
-      if (!res.ok) {
-        toast.error("Failed to fetch ledger");
-        setLoading(false);
-        return;
-      }
-
-      const data = await res.json();
-      setReport(data);
-      toast.success("Ledger loaded successfully");
-    } catch (err) {
-      toast.error("Server error fetching ledger");
-    }
-
-    setLoading(false);
-  };
-
-  // Running Balance
-  const calculateRunningBalance = (index, items, openingBalance) => {
-    if (index === 0) {
-      return openingBalance + (items[0].debit - items[0].credit);
-    }
-    return (
-      items[index - 1].runningBalance +
-      (items[index].debit - items[index].credit)
-    );
-  };
-
-  // ------------------------------
-  // EXPORT TO EXCEL
-  // ------------------------------
-  const exportToExcel = () => {
-    if (!report) {
-      toast.error("No data to export");
-      return;
-    }
-
-    // Ensure running balance is calculated for export
+  const exportToExcel = () => {
+    if (!report) {
+      toast.error("No data to export");
+      return;
+    }
     const excelData = report.transactions.map((t, index) => {
-        // Calculate running balance locally for export consistency
         const runningBalance = calculateRunningBalance(index, report.transactions, report.openingBalance);
-        
-        return {
-          Date: t.transaction_date, // Correct field name
-          Description: t.description,
-          Debit: t.debit,
-          Credit: t.credit,
-          Running_Balance: runningBalance,
-        };
+        return {
+          Date: t.transaction_date,
+          Description: t.description,
+          Debit: t.debit,
+          Credit: t.credit,
+          Running_Balance: runningBalance,
+        };
     });
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    XLSX.utils.book_append_sheet(wb, ws, "Ledger");
+    const fileName = `${report.entity.name}_Ledger_${fromDate}_to_${toDate}.xlsx`;
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([wbout], { type: "application/octet-stream" }), fileName);
+    toast.success("Excel file downloaded");
+  };
 
-    XLSX.utils.book_append_sheet(wb, ws, "Ledger");
+  const exportToPDF = () => {
+    if (!report || !reportRef.current) {
+      toast.error("No report data or element found for PDF export.");
+      return;
+    }
+    const input = reportRef.current;
+    toast.info("Generating PDF...");
+    html2canvas(input, { scale: 2, logging: false }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-    const fileName = `${report.entity.name}_Ledger_${fromDate}_to_${toDate}.xlsx`;
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
 
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([wbout], { type: "application/octet-stream" }), fileName);
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
 
-    toast.success("Excel file downloaded");
-  };
-
-  // ------------------------------
-  // EXPORT TO PDF
-  // ------------------------------
-  const exportToPDF = () => {
-    if (!report || !reportRef.current) {
-      toast.error("No report data or element found for PDF export.");
-      return;
-    }
-
-    const input = reportRef.current;
-    
-    toast.info("Generating PDF...");
-
-    html2canvas(input, { scale: 2, logging: false }).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Add image/page 1
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // If content height is more than one page, add more pages
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      const fileName = `${report.entity.name}_Ledger_${fromDate}_to_${toDate}.pdf`;
-      pdf.save(fileName);
-      toast.success("PDF downloaded successfully!");
-    });
-  };
-
+      const fileName = `${report.entity.name}_Ledger_${fromDate}_to_${toDate}.pdf`;
+      pdf.save(fileName);
+      toast.success("PDF downloaded successfully!");
+    });
+  };
 
 
   return (
@@ -162,7 +146,7 @@ const EntityLedgerReport = () => {
          <button
                   className="back-btn"
                   style={{ marginTop: "30px" }}
-                  onClick={() => navigate("reports")}
+                  onClick={() => navigate("/reports")}
                 >
                   <FaArrowLeft />
                 </button>

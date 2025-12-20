@@ -6,6 +6,8 @@ import '../CustomersAndSuppliers.css';
 import NavigationBar from '../Components/NavigationBar';
 import Footer from "../Components/Footer";
 
+import api from "../../api"; 
+
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [onEdit, setOnEdit] = useState(null);
@@ -13,53 +15,48 @@ const Customers = () => {
 
   const navigate = useNavigate();
 
-  // Fetch customers
-  const fetchCustomers = () => {
-    fetch("http://localhost:5000/api/entities")
-      .then(res => res.json())
-      .then(data => {
-        const customerData = data.filter(item => item.type === "customer");
-        setCustomers(customerData);
-      })
-      .catch(err => console.error("Error fetching customers:", err));
+  // 1. Fetch customers (GET)
+  const fetchCustomers = async () => {
+    try {
+      const res = await api.get("/entities");
+      // Filter logic same rakha hai
+      const customerData = res.data.filter(item => item.type === "customer");
+      setCustomers(customerData);
+    } catch (err) {
+      console.error("Error fetching customers:", err);
+      toast.error("Failed to load customers list");
+    }
   };
 
   useEffect(() => {
     fetchCustomers();
   }, []);
 
-  // Update API
-  const handleUpdate = (e) => {
+  // 2. Update API (PUT)
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    fetch(`http://localhost:5000/api/entities/${onEdit.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...formData, type: "customer" })
-    })
-      .then(res => {
-        if (res.ok) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Updated!',
-            text: `Customer ${formData.name} has been updated.`,
-            showConfirmButton: false,
-            timer: 1500
-          });
-          setOnEdit(null);
-          fetchCustomers();
-        } else {
-            // Handle error response from server
-            Swal.fire('Error!', 'Failed to update customer.', 'error');
-        }
-      })
-      .catch(err => {
-        console.error("Error updating:", err);
-        Swal.fire('Error!', 'Server error while updating customer.', 'error');
+    try {
+      // payload aur type standardization
+      await api.put(`/entities/${onEdit.id}`, { 
+        ...formData, 
+        type: "customer" 
       });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Updated!',
+        text: `Customer ${formData.name} has been updated.`,
+        showConfirmButton: false,
+        timer: 1500
+      });
+      setOnEdit(null);
+      fetchCustomers();
+    } catch (err) {
+      console.error("Error updating:", err);
+      Swal.fire('Error!', 'Failed to update customer.', 'error');
+    }
   };
 
-
-  // On Edit Click
   const handleEditClick = (customer) => {
     setOnEdit(customer);
     setFormData({
@@ -69,49 +66,39 @@ const Customers = () => {
     });
   };
 
-  // Handle Input Change
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // 🗑️ Delete API with SweetAlert2 Confirmation
-  const handleDelete = (id, name) => { // Added 'name' for better alert message
+  // 3. Delete API (DELETE)
+  const handleDelete = (id, name) => {
     Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to delete customer: ${name}? This action cannot be undone.`,
+        text: `Do you want to delete customer: ${name}?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            // User confirmed, proceed with deletion
-            fetch(`http://localhost:5000/api/entities/${id}`, {
-                method: "DELETE",
-            })
-            .then(res => {
-                if (res.ok) {
-                    // Show success alert
-                    Swal.fire(
-                        'Deleted!',
-                        `Customer ${name} has been deleted.`,
-                        'success'
-                    );
-                    fetchCustomers();
-                } else {
-                    // Handle server error response
-                    Swal.fire('Error!', 'Failed to delete customer.', 'error');
-                }
-            })
-            .catch(err => {
+            try {
+                await api.delete(`/entities/${id}`);
+                
+                Swal.fire(
+                    'Deleted!',
+                    `Customer ${name} has been deleted.`,
+                    'success'
+                );
+                fetchCustomers();
+            } catch (err) {
                 console.error("Error deleting:", err);
-                Swal.fire('Error!', 'Server error during deletion.', 'error');
-            });
+                Swal.fire('Error!', 'Failed to delete customer.', 'error');
+            }
         }
     });
   };
-
+  
   return (
     <>
       <NavigationBar />

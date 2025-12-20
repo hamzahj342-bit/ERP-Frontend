@@ -5,23 +5,25 @@ import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
+import api from "../../api"; 
 
 const RecipeList = () => {
   const navigate = useNavigate();
   const [recipes, setRecipes] = useState([]);
 
-  // Fetch all recipes
+  // ✅ Fetch all recipes (Standardized)
   const fetchRecipes = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/recipe");
-      const data = await res.json();
-      setRecipes(Array.isArray(data) ? data : []);
+      const res = await api.get("/recipe");
+      // Axios mein data 'res.data' mein hota hai
+      setRecipes(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error fetching recipes:", err);
+      toast.error("Failed to load recipes");
     }
   };
 
-  // ✅ Delete a recipe with SweetAlert2
+  // ✅ Delete a recipe with SweetAlert2 (Standardized)
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -36,20 +38,16 @@ const RecipeList = () => {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`http://localhost:5000/api/recipe/${id}`, {
-          method: "DELETE",
-        });
+        // Fetch ki jagah api.delete use kiya
+        await api.delete(`/recipe/${id}`);
 
-        if (res.ok) {
-          toast.success("Recipe deleted successfully");
-          fetchRecipes();
-          Swal.fire("Deleted!", "The recipe has been deleted.", "success");
-        } else {
-          toast.error("Failed to delete recipe");
-        }
+        toast.success("Recipe deleted successfully");
+        fetchRecipes();
+        Swal.fire("Deleted!", "The recipe has been deleted.", "success");
       } catch (err) {
         console.error(err);
-        toast.error("Something went wrong");
+        // Backend se aane wala error message dikhane ke liye
+        toast.error(err.response?.data?.message || "Something went wrong");
       }
     }
   };
@@ -58,6 +56,7 @@ const RecipeList = () => {
     fetchRecipes();
   }, []);
 
+  
   return (
     <>
       <NavigationBar />

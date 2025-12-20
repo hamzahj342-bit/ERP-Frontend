@@ -5,12 +5,12 @@ import { toast } from "react-toastify";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import { calculateDynamicFIFOCost } from "../utilities/FIFO_Production";
+import api from "../../api"; 
 
 const ProductionForm = () => {
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user"));
-  const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
     product_name: "",
@@ -27,35 +27,29 @@ const ProductionForm = () => {
   // ✅ Fetch all recipes for dropdown
   const fetchRecipes = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/recipe");
-      const data = await res.json();
-      setRecipes(data);
+      const res = await api.get("/recipe");
+      setRecipes(res.data);
     } catch (err) {
       console.error("Error fetching recipes:", err);
     }
   };
 
   const fetchUOMs = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/uoms/uoms"); 
-      const data = await res.json();
-      setUoms(data);
-    } catch (err) {
-      console.error("Error fetching UOMs:", err);
-    }
-};
+    try {
+      const res = await api.get("/uoms/uoms"); 
+      setUoms(res.data);
+    } catch (err) {
+      console.error("Error fetching UOMs:", err);
+    }
+  };
 
   // ✅ Fetch recipe materials + stock when recipe selected
   const fetchRecipeDetails = async (recipeId) => {
     try {
       console.log("Fetching recipe details for ID:", recipeId);
-      const res = await fetch(`http://localhost:5000/api/production/${recipeId}/materials`);
-      if (!res.ok) {
-        toast.error("Recipe details not found!");
-        setMaterials([]);
-        return;
-      }
-      const data = await res.json();
+      const res = await api.get(`/production/${recipeId}/materials`);
+      
+      const data = res.data;
       console.log("📦 Recipe details:", data);
 
       // Set initial editable material rows
@@ -80,85 +74,69 @@ const ProductionForm = () => {
   // ✅ Handle recipe select
   const handleRecipeSelect = (e) => {
     const recipeId = e.target.value;
-    setFormData({ ...formData, recipe_id: recipeId });
+    // Aapka original column name recipe_master_id hi rakha hai
+    setFormData({ ...formData, recipe_master_id: recipeId });
     if (recipeId) fetchRecipeDetails(recipeId);
     else setMaterials([]);
   };
 
   // ✅ Update unit price or quantity & auto calculate totals
- const handleMaterialChange = (index, field, value) => {
-    const updated = [...materials];
-    updated[index][field] = parseFloat(value) || 0;
+  const handleMaterialChange = (index, field, value) => {
+    const updated = [...materials];
+    updated[index][field] = parseFloat(value) || 0;
     
-    // --- 🛑 Stock Validation (Aapka pehla check) ---
-    if (field === "quantity" && updated[index].quantity > updated[index].total_available_stock) {
-      toast.error(`Stock: Sirf ${updated[index].total_available_stock} units available hain!`);
-      // Value ko available stock par set kar diya
-      updated[index].quantity = updated[index].total_available_stock;
-    }
+    // --- 🛑 Stock Validation ---
+    if (field === "quantity" && updated[index].quantity > updated[index].total_available_stock) {
+      toast.error(`Stock: Sirf ${updated[index].total_available_stock} units available hain!`);
+      updated[index].quantity = updated[index].total_available_stock;
+    }
     
     // --- ✅ NEW: Percentage Validation ---
     const matPercentage = parseFloat(updated[index].percentage) || 0;
     const productionQty = parseFloat(formData.production_quantity) || 0;
 
     if (field === "quantity" && productionQty > 0) {
-        // Required quantity nikalte hain (Ex: 100 kg product ka 10% = 10 kg)
         const requiredQty = (productionQty * matPercentage) / 100;
-
-        // Check karte hain ke user required quantity se zyada ya kam to nahi daal raha
         if (updated[index].quantity !== requiredQty) {
-            // Agar quantity required se match nahi karti to error dikhao
             toast.error(
-                `Percentage Error: ${updated[index].rm_name} ki required quantity ${requiredQty} ${updated[index].uom_name} hai (${matPercentage}% of ${productionQty}).`
+                `Percentage Error: ${updated[index].rm_name} ki required quantity ${requiredQty} ${updated[index].uom_name} hai.`
             );
-            // Aur quantity ko required value par set kar do
-            // updated[index].quantity = requiredQty.toFixed(2);
         }
     }
 
+    updated[index].total_price = (updated[index].unit_price * updated[index].quantity);
+    setMaterials(updated);
+  };
 
-    // Auto calculate total price
-    updated[index].total_price = (
-      updated[index].unit_price * updated[index].quantity
-    );
-
-    setMaterials(updated);
-};
-
-// ✅ Handle production quantity change
-const handleProductionQuantityChange = (e) => {
-    const newQty = parseFloat(e.target.value) ;
+  // ✅ Handle production quantity change
+  const handleProductionQuantityChange = (e) => {
+    const newQty = parseFloat(e.target.value) || 0;
     setFormData({ ...formData, production_quantity: newQty });
 
-    // Agar production quantity change ho to materials ki quantity bhi update karo
     const updated = materials.map(mat => {
         const matPercentage = parseFloat(mat.percentage) || 0;
         const requiredQty = (newQty * matPercentage) / 100;
 
-        const dynamicFIFOCost = calculateDynamicFIFOCost(mat.fifo_batches, requiredQty);
+        // Assuming calculateDynamicFIFOCost is available in your scope
+        const dynamicFIFOCost = typeof calculateDynamicFIFOCost === 'function' 
+            ? calculateDynamicFIFOCost(mat.fifo_batches, requiredQty) 
+            : mat.unit_price;
         
-        // Stock se zyada to nahi ho rahi?
         if (requiredQty > mat.total_available_stock) {
-            toast.error(
-                `Stock Error: ${mat.rm_name} ki required quantity (${requiredQty}) available stock (${mat.total_available_stock}) se zyada hai. Kam Quantity use karein.`
-            );
-
-            // Yahan hum quantity ko stock limit par set kar sakte hain
+            toast.error(`Stock Error: ${mat.rm_name} required qty exceeds available stock.`);
             mat.quantity = mat.total_available_stock;
         } else {
             mat.quantity = requiredQty;
         }
 
-        mat.unit_price = dynamicFIFOCost
-
-        // Total price bhi update karo
+        mat.unit_price = dynamicFIFOCost;
         mat.total_price = (mat.unit_price * mat.quantity);
         return mat;
     });
     setMaterials(updated);
-};
+  };
 
-  // ✅ Recalculate grand total when materials change
+  // ✅ Recalculate grand total
   useEffect(() => {
     const total = materials.reduce(
       (sum, mat) => sum + parseFloat(mat.total_price || 0),
@@ -167,37 +145,35 @@ const handleProductionQuantityChange = (e) => {
     setGrandTotal(total);
   }, [materials]);
 
-  // ✅ Submit form
+  // ✅ Submit form (Using api.js POST)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.product_name.trim()) {
       toast.error("Please enter product name");
       return;
     }
-    if (!formData.recipe_id) {
+    if (!formData.recipe_master_id) {
       toast.error("Please select a recipe");
       return;
     }
 
-    // ✅ NEW: Production Quantity validation
-    if (parseFloat(formData.production_quantity) <= 0) {
-      toast.error("Please enter a valid production quantity.");
-      return;
-    }
+    if (parseFloat(formData.production_quantity) <= 0) {
+      toast.error("Please enter a valid production quantity.");
+      return;
+    }
 
-    // Double check all materials have enough stock before submission
     const insufficientStock = materials.some(mat => 
         parseFloat(mat.quantity) > parseFloat(mat.total_available_stock)
     );
 
     if (insufficientStock) {
-        toast.error("One or more materials have insufficient stock after calculation. Please re-check.");
+        toast.error("One or more materials have insufficient stock.");
         return;
     }
 
     const payload = {
       product_name: formData.product_name,
-      recipe_master_id: formData.recipe_id,
+      recipe_master_id: formData.recipe_master_id,
       grand_total: grandTotal,
       details: materials,
       createdby: user?.username || "guest",
@@ -206,24 +182,12 @@ const handleProductionQuantityChange = (e) => {
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/production", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        toast.success("Product created successfully!");
-        navigate("/production");
-      } else {
-        toast.error("Failed to save product");
-      }
+      const res = await api.post("/production", payload);
+      toast.success("Product created successfully!");
+      navigate("/production");
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong");
+      toast.error(err.response?.data?.message || "Something went wrong");
     }
   };
 
@@ -231,7 +195,6 @@ const handleProductionQuantityChange = (e) => {
     fetchRecipes();
     fetchUOMs();
   }, []);
-
   
 
   return (

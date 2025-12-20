@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import '../Invoice.css'; 
+import api from '../../api'; 
 
 const FP_InvoiceDetail = () => {
     const { invoiceNo } = useParams();
@@ -11,7 +12,6 @@ const FP_InvoiceDetail = () => {
     const [invoice, setInvoice] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Fetch Invoice Logic (Data fetching is kept functional)
     useEffect(() => {
         const fetchInvoice = async () => {
             if (!invoiceNo) {
@@ -20,18 +20,18 @@ const FP_InvoiceDetail = () => {
             }
             
             try {
-                // Assuming backend runs on this URL
-                const res = await fetch(`http://localhost:5000/api/fp-invoice/${invoiceNo}`);
+                // Axios GET request - URL base automatically handled by api.js
+                const res = await api.get(`/fp-invoice/${invoiceNo}`);
                 
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    throw new Error(`Failed to fetch invoice. Status: ${res.status}. ${errorText}`);
-                }
-
-                const data = await res.json();
-                setInvoice(data);
+                // Axios mein data direct 'res.data' mein hota hai
+                setInvoice(res.data);
             } catch (err) {
                 console.error("Error fetching invoice details:", err);
+                
+                // Backend se aane wala error message dikhane ke liye
+                const errorMsg = err.response?.data || "Failed to fetch invoice";
+                console.error(`Status: ${err.response?.status}. ${errorMsg}`);
+                
                 setInvoice(null);
             } finally {
                 setLoading(false);

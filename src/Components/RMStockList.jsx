@@ -4,44 +4,38 @@ import NavigationBar from './NavigationBar';
 import Footer from './Footer';
 import { toast } from 'react-toastify';
 import { FaArrowLeft } from 'react-icons/fa';
+import api from "../../api"; 
 
 const RMStockList = () => {
     const [stock, setStock] = useState([]); // Original fetched data
     const [loading, setLoading] = useState(true);
-    // 🛑 NEW STATES for Filtering
+    // 🛑 NEW STATES for Filtering (Logic Same)
     const [materialFilter, setMaterialFilter] = useState('');
     const [supplierFilter, setSupplierFilter] = useState('');
 
     const navigate = useNavigate();
 
-    // ✅ Data Fetching (Runs only once on component mount)
+    // ✅ Data Fetching (Using api.js and Async/Await)
     useEffect(() => {
-        const token = localStorage.getItem("token");
+        const fetchStock = async () => {
+            try {
+                // fetch aur headers ki jagah ab simple api.get
+                const res = await api.get("/rm-stock/list");
+                
+                // Axios automatically JSON parse kar deta hai (res.data)
+                setStock(res.data);
+                setLoading(false);
+            } catch (err) {
+                console.error("Error fetching stock:", err);
+                toast.error("Failed to load stock data.");
+                setLoading(false);
+            }
+        };
 
-        fetch("http://localhost:5000/api/rm-stock/list", {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error("Failed to fetch stock data");
-            }
-            return res.json();
-        })
-        .then(data => {
-            setStock(data);
-            setLoading(false);
-        })
-        .catch(err => {
-            console.error("Error fetching stock:", err);
-            toast.error("Failed to load stock data.");
-            setLoading(false);
-        });
+        fetchStock();
     }, []);
     
-    // ✅ Filtering Logic using useMemo
-    // This hook recalculates filteredStock only when stock, materialFilter, or supplierFilter changes.
+    // ✅ Filtering Logic using useMemo (Bilkul Same - No Changes)
     const filteredStock = useMemo(() => {
         let currentStock = [...stock];
 
@@ -68,7 +62,6 @@ const RMStockList = () => {
     if (loading) {
         return <><NavigationBar /><div className="rm-page">Loading Stock...</div><Footer /></>;
     }
-
     return (
         <>
             <NavigationBar />
@@ -132,6 +125,7 @@ const RMStockList = () => {
                                     <th>Stock ID</th>
                                     <th>Material Name</th>
                                     <th>Supplier Name</th>
+                                    <th>Avg Unit Cost</th>
                                     <th>Current Stock</th>
                                     <th>Current Stock Price</th>
                                     <th>UOM</th> 
@@ -145,6 +139,7 @@ const RMStockList = () => {
                                         <td>{item.material_name}</td> 
                                         <td>{item.supplier_name}</td> 
                                         {/* Display stock with fixed decimal points for better readability */}
+                                        <td>{parseFloat(item.avg_unit_cost).toFixed(2)}</td>
                                         <td>{parseFloat(item.current_stock).toFixed(2)}</td> 
                                         <td>{parseFloat(item.current_stock_price).toFixed(2)}</td>
                                         <td>{item.uom_name}</td> 

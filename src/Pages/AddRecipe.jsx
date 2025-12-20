@@ -4,34 +4,74 @@ import { FaArrowLeft, FaPlus, FaTimes } from "react-icons/fa";
 import { toast } from "react-toastify";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
+import api from "../../api"; 
 
 const AddRecipe = () => {
   const navigate = useNavigate();
-  const { recipe_id, id } = useParams();
+  const { id } = useParams(); // URL se ID nikalne ke liye
 
   const user = JSON.parse(localStorage.getItem("user")); 
-  const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
     name: "",
-    createdby:  user ? user.username : "guest",
+    createdby: user ? user.username : "guest",
     details: [{ rm_id: "", rm_name: "", percentage: "" }],
   });
   const [rawMaterials, setRawMaterials] = useState([]);
-  const [totalPercentage, setTotalPercentage] = useState(0); // 👈 total tracker
+  const [totalPercentage, setTotalPercentage] = useState(0);
 
-  // Fetch raw materials
+  // 1. Fetch raw materials (GET)
   const fetchRawMaterials = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/add-materials");
-      const data = await res.json();
-      setRawMaterials(data);
+      const res = await api.get("/add-materials");
+      setRawMaterials(res.data);
     } catch (err) {
       console.error(err);
+      toast.error("Failed to load raw materials");
     }
   };
 
-  // Add new row
+  // 2. Fetch Recipe for Editing (If ID exists)
+  const fetchRecipeData = async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/recipe/${id}`);
+      const data = res.data;
+      
+      setFormData({
+        name: data.name,
+        createdby: data.createdby,
+        details: data.details.map((d) => ({
+          rm_id: d.rm_id,
+          rm_name: d.rm_name,
+          percentage: d.percentage,
+          uom_id: d.uom_id,
+          uom_name: d.uom_name || "",
+        })),
+      });
+
+      // Total percentage calculate karein for initial load
+      const total = data.details.reduce((sum, d) => sum + Number(d.percentage || 0), 0);
+      setTotalPercentage(total);
+    } catch (err) {
+      console.error("Error fetching recipe:", err);
+      toast.error("Could not load recipe details");
+    }
+  };
+
+  useEffect(() => {
+    fetchRawMaterials();
+  }, []);
+
+  // Jab rawMaterials load ho jayein tabhi recipe data fetch karein (mapping ke liye safer hai)
+  useEffect(() => {
+    if (id && rawMaterials.length > 0) {
+      fetchRecipeData();
+    }
+  }, [id, rawMaterials.length]);
+
+  // --- Logic Functions (addRow, removeRow, handleInputChange same rahega) ---
+
   const addRow = () => {
     setFormData({
       ...formData,
@@ -39,36 +79,34 @@ const AddRecipe = () => {
     });
   };
 
-  // Remove row
   const removeRow = (index) => {
     const newDetails = [...formData.details];
     newDetails.splice(index, 1);
     setFormData({ ...formData, details: newDetails });
+    
+    const total = newDetails.reduce((sum, d) => sum + Number(d.percentage || 0), 0);
+    setTotalPercentage(total);
   };
 
-  // Handle input change
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Updated handleDetailChange with total limit logic
   const handleDetailChange = (index, e) => {
     const { name, value } = e.target;
     const updatedDetails = [...formData.details];
 
     if (name === "rm_id") {
-  const selectedRM = rawMaterials.find((r) => r.rm_id == value);
-  updatedDetails[index].rm_name = selectedRM ? selectedRM.name : "";
-  updatedDetails[index].uom_id = selectedRM ? selectedRM.uom_id : "";
-  updatedDetails[index].uom_name = selectedRM ? selectedRM.uom?.name : "";
-}
-
+      const selectedRM = rawMaterials.find((r) => r.rm_id == value);
+      updatedDetails[index].rm_name = selectedRM ? selectedRM.name : "";
+      updatedDetails[index].uom_id = selectedRM ? selectedRM.uom_id : "";
+      updatedDetails[index].uom_name = selectedRM ? selectedRM.uom?.name : "";
+    }
 
     if (name === "percentage") {
       let val = Number(value);
       if (val < 0) val = 0;
 
-      // total of all other rows
       const totalOther = updatedDetails.reduce(
         (sum, d, i) => (i === index ? sum : sum + Number(d.percentage || 0)),
         0
@@ -76,26 +114,20 @@ const AddRecipe = () => {
 
       const maxAllowed = 100 - totalOther;
       if (val > maxAllowed) {
-        toast.warning(`You can enter maximum ${maxAllowed}% for this material`);
+        toast.warning(`Maximum ${maxAllowed}% allowed`);
         val = maxAllowed;
       }
-
       updatedDetails[index].percentage = val;
     } else {
       updatedDetails[index][name] = value;
     }
 
     setFormData({ ...formData, details: updatedDetails });
-
-    // ✅ Update total percentage instantly
-    const total = updatedDetails.reduce(
-      (sum, d) => sum + Number(d.percentage || 0),
-      0
-    );
+    const total = updatedDetails.reduce((sum, d) => sum + Number(d.percentage || 0), 0);
     setTotalPercentage(total);
   };
 
-  // ✅ Updated submit function
+  // 3. Submit Handler (POST or PUT)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -104,79 +136,31 @@ const AddRecipe = () => {
       return;
     }
 
-    const invalidDetail = formData.details.some(
-      (d) => !d.rm_id || !d.percentage || d.percentage <= 0
-    );
-    if (invalidDetail) {
-      toast.error("Please fill all raw material and percentage fields correctly");
+    if (formData.details.some((d) => !d.rm_id || !d.percentage || d.percentage <= 0)) {
+      toast.error("Please fill all fields correctly");
       return;
     }
 
     if (totalPercentage !== 100) {
-      toast.error(`Total percentage must be exactly 100%. Current: ${totalPercentage}%`);
+      toast.error(`Total percentage must be 100%. Current: ${totalPercentage}%`);
       return;
     }
 
     try {
-      const method = id ? "PUT" : "POST";
-      const url = id
-        ? `http://localhost:5000/api/recipe/${id}`
-        : `http://localhost:5000/api/recipe`;
+      const payload = id ? { ...formData, updatedby: user.username } : formData;
+      
+      // Agar ID hai to PUT warna POST
+      const res = id 
+        ? await api.put(`/recipe/${id}`, payload)
+        : await api.post("/recipe", payload);
 
-      const payload = id
-        ? { ...formData, updatedby: user.username }
-        : formData;
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        toast.success(
-          recipe_id
-            ? "Recipe updated successfully!"
-            : "Recipe created successfully!"
-        );
-        navigate("/recipe");
-      } else {
-        toast.error("Failed to save recipe");
-      }
+      toast.success(id ? "Recipe updated!" : "Recipe created!");
+      navigate("/recipe");
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong");
+      toast.error(err.response?.data?.message || "Failed to save recipe");
     }
   };
-
-  useEffect(() => {
-    fetchRawMaterials();
-  }, []);
-
-  useEffect(() => {
-  if (id) {
-    fetch(`http://localhost:5000/api/recipe/${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setFormData({
-          name: data.name,
-          createdby: data.createdby,
-          details: data.details.map((d) => ({
-            rm_id: d.rm_id,
-            rm_name: d.rm_name,
-            percentage: d.percentage,
-            uom_id: d.uom_id,
-            uom_name: rawMaterials.find((rm) => rm.rm_id === d.rm_id)?.uom?.name || "",
-          })),
-        });
-      })
-      .catch((err) => console.error("Error fetching recipe:", err));
-  }
-}, [recipe_id]);
-
   return (
     <>
       <NavigationBar />

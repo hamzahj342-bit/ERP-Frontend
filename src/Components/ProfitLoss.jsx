@@ -6,55 +6,53 @@ import { FaArrowLeft, FaFileExcel, FaFilePdf, FaChartLine } from "react-icons/fa
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useNavigate } from "react-router-dom";
-
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
+import api from "../../api"; 
 
 const ProfitLoss = () => {
-  const navigate = useNavigate();
-  const reportRef = useRef(null);
+  const navigate = useNavigate();
+  const reportRef = useRef(null);
 
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [report, setReport] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // ------------------------------
-  // FETCH PROFIT & LOSS
-  // ------------------------------
-  const fetchProfitLoss = async () => {
-  if (!fromDate || !toDate) {
-    toast.error("Please select date range");
-    return;
-  }
+  // ------------------------------
+  // FETCH PROFIT & LOSS (Axios Version)
+  // ------------------------------
+  const fetchProfitLoss = async () => {
+    if (!fromDate || !toDate) {
+      toast.error("Please select date range");
+      return;
+    }
 
-  setLoading(true);
-  setReport(null); // Clear previous report
+    setLoading(true);
+    setReport(null); // Clear previous report
 
-  try {
-    const url = `http://localhost:5000/api/reports/profit-loss?fromDate=${fromDate}&toDate=${toDate}`;
+    try {
+      // Query parameters ko clean object mein rakha hai
+      const res = await api.get("/reports/profit-loss", {
+        params: {
+          fromDate: fromDate,
+          toDate: toDate
+        }
+      });
+      setReport(res.data);
+      toast.success("Profit & Loss loaded successfully");
 
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      toast.error(`Failed to load Profit & Loss: ${errorData.message || "Server Error"}`);
-      setLoading(false);
-      return;
-    }
-
-    const data = await res.json();
-    setReport(data);
-    toast.success("Profit & Loss loaded successfully");
-
-  } catch (error) {
-    console.error("Fetch Error:", error);
-    toast.error("Server error while fetching Profit & Loss");
-  }
-
-  setLoading(false);
-};
-
+    } catch (error) {
+      console.error("Fetch Error:", error);
+      
+      // Backend se aane wala exact error message dikhane ke liye
+      const errorMsg = error.response?.data?.message || "Server error while fetching Profit & Loss";
+      toast.error(`Failed to load Profit & Loss: ${errorMsg}`);
+    } finally {
+      // setLoading ko finally mein rakha hai taake success ho ya error, loading band ho jaye
+      setLoading(false);
+    }
+  };
 
 // ------------------------------
 // EXPORT TO EXCEL (Updated for detail breakdown)

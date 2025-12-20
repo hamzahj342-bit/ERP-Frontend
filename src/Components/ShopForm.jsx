@@ -6,6 +6,7 @@ import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
+import api from "../../api";
 
 const ShopForm = () => {
   const navigate = useNavigate();
@@ -22,34 +23,31 @@ const ShopForm = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const payload = {
         ...formData,
-        // 👇 frontend se nahi bhejna, backend set karega createdby
+        // 👇 backend handles created_by via token
       };
 
-      const res = await fetch("http://localhost:5000/api/shops", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // fetch (POST) ki jagah api.post
+      const res = await api.post("/shops", payload);
 
-      if (res.ok) {
-        toast.success("Shop added successfully!");
-        setFormData({ name: "" });
-        navigate("/shops");
-      } else {
-        toast.error("Error adding shop.");
-      }
+      // Axios mein success response 2xx range mein hota hai
+      toast.success("Shop added successfully!");
+      setFormData({ name: "" });
+      navigate("/shops");
+
     } catch (err) {
       console.error("Submit Error:", err);
-      toast.error("Server error occurred.");
+      
+      // Backend error message handle karein
+      const errorMsg = err.response?.data?.message || "Error adding shop.";
+      toast.error(errorMsg);
     }
   };
-
   return (
     <>
       <NavigationBar />

@@ -4,50 +4,46 @@ import { FaArrowLeft, FaPlus } from "react-icons/fa"; // FaTrash, FaEdit removed
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
+import api from "../../api"; 
 
 const ProductionList = () => {
-  const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem('token');
-      
-      const res = await fetch("http://localhost:5000/api/production", { 
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        setProducts(Array.isArray(data) ? data : []);
-      } else {
-        setError(data.message || 'Failed to fetch products.');
-      }
-    } catch (err) {
-      setError('Server connection error.');
-      console.error('Fetch error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // ✅ Fetch ki jagah api.get use kiya, headers khud handle honge
+      const res = await api.get("/production");
+      
+      // Axios mein data direct 'res.data' mein hota hai
+      const data = res.data;
+      
+      setProducts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      // ✅ Error message handle karne ka behtar tarika
+      const errMsg = err.response?.data?.message || 'Server connection error.';
+      setError(errMsg);
+      console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  if (loading) {
-    return <p className="page-container" style={{ textAlign: 'center' }}>Loading products...</p>;
-  }
+  if (loading) {
+    return <p className="page-container" style={{ textAlign: 'center' }}>Loading products...</p>;
+  }
 
-  if (error) {
-    return <p className="page-container" style={{ color: 'red', textAlign: 'center' }}>Error: {error}</p>;
-  }
+  if (error) {
+    return <p className="page-container" style={{ color: 'red', textAlign: 'center' }}>Error: {error}</p>;
+  }
 
   return (
     <>

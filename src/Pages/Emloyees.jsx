@@ -6,6 +6,8 @@ import '../CustomersAndSuppliers.css';
 import NavigationBar from '../Components/NavigationBar';
 import Footer from "../Components/Footer";
 
+import api from "../../api"; 
+
 const Employees = () => {
   const [employees, setEmployees] = useState([]);
   const [onEdit, setOnEdit] = useState(null);
@@ -13,51 +15,48 @@ const Employees = () => {
 
   const navigate = useNavigate();
 
-  // Fetch employees
-  const fetchEmployees = () => {
-    fetch("http://localhost:5000/api/entities")
-      .then(res => res.json())
-      .then(data => {
-        const empData = data.filter(item => item.type === "employee");
-        setEmployees(empData);
-      })
-      .catch(err => console.error("Error fetching employees:", err));
+  // 1. Fetch employees (GET)
+  const fetchEmployees = async () => {
+    try {
+      const res = await api.get("/entities");
+      // Filter logic bilkul same
+      const empData = res.data.filter(item => item.type === "employee");
+      setEmployees(empData);
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+      toast.error("Failed to load employees");
+    }
   };
 
   useEffect(() => {
     fetchEmployees();
   }, []);
 
-  // Update API (Added Swal alerts for success/error)
-  const handleUpdate = (e) => {
+  // 2. Update API (PUT using api.js)
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    fetch(`http://localhost:5000/api/entities/${onEdit.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...formData, type: "employee" })
-    })
-      .then(res => {
-        if (res.ok) {
-          Swal.fire({
-            icon: 'success',
-            title: 'Updated!',
-            text: `Employee ${formData.name} details have been updated.`,
-            showConfirmButton: false,
-            timer: 1500
-          });
-          setOnEdit(null);
-          fetchEmployees();
-        } else {
-            Swal.fire('Error!', 'Failed to update employee.', 'error');
-        }
-      })
-      .catch(err => {
-        console.error("Error updating:", err);
-        Swal.fire('Error!', 'Server error while updating employee.', 'error');
+    try {
+      // payload same rakha hai
+      await api.put(`/entities/${onEdit.id}`, { 
+        ...formData, 
+        type: "employee" 
       });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Updated!',
+        text: `Employee ${formData.name} details have been updated.`,
+        showConfirmButton: false,
+        timer: 1500
+      });
+      setOnEdit(null);
+      fetchEmployees();
+    } catch (err) {
+      console.error("Error updating:", err);
+      Swal.fire('Error!', 'Failed to update employee.', 'error');
+    }
   };
 
-  // On Edit Click
   const handleEditClick = (employee) => {
     setOnEdit(employee);
     setFormData({
@@ -67,49 +66,40 @@ const Employees = () => {
     });
   };
 
-  // Handle Input Change
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // 🗑️ Delete API with SweetAlert2 Confirmation
+  // 3. Delete API (DELETE using api.js)
   const handleDelete = (id, name) => {
     Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to delete employee: ${name}? This action cannot be undone.`,
+        text: `Do you want to delete employee: ${name}?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            // User confirmed, proceed with deletion
-            fetch(`http://localhost:5000/api/entities/${id}`, {
-                method: "DELETE",
-            })
-            .then(res => {
-                if (res.ok) {
-                    // Show success alert
-                    Swal.fire(
-                        'Deleted!',
-                        `Employee ${name} has been deleted.`,
-                        'success'
-                    );
-                    fetchEmployees();
-                } else {
-                    // Handle server error response
-                    Swal.fire('Error!', 'Failed to delete employee.', 'error');
-                }
-            })
-            .catch(err => {
+            try {
+                // Fetch ki jagah api.delete
+                await api.delete(`/entities/${id}`);
+                
+                Swal.fire(
+                    'Deleted!',
+                    `Employee ${name} has been deleted.`,
+                    'success'
+                );
+                fetchEmployees();
+            } catch (err) {
                 console.error("Error deleting:", err);
-                Swal.fire('Error!', 'Server error during deletion.', 'error');
-            });
+                Swal.fire('Error!', 'Failed to delete employee.', 'error');
+            }
         }
     });
   };
-
+  
   return (
     <>
       <NavigationBar />

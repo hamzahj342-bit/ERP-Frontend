@@ -5,38 +5,39 @@ import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination'; // ✅ Imported Pagination component
+import api from "../../api"; 
 
 const FP_SaleReturnList = () => {
-  // ✅ Pagination States
-  const [sales, setSales] = useState([]); 
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false); // Loading state added
+  const [sales, setSales] = useState([]); 
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
 
-  const limit = 10;
-  const navigate = useNavigate();
+  const limit = 10;
+  const navigate = useNavigate();
 
-  // ✅ Fetch Finished Goods Sale Return Master Data
-  useEffect(() => {
+  // ✅ Fetch Finished Goods Sale Return Data (GET using api.js)
+  useEffect(() => {
     const fetchSaleReturns = async () => {
         setLoading(true);
         try {
-            // API call for SaleReturn with page and limit parameters
-            const res = await fetch(`http://localhost:5000/api/fp-sale?type=SaleReturn&page=${page}&limit=${limit}`);
+            // URL params ko 'params' object mein handle karna professional tarika hai
+            const res = await api.get("/fp-sale", {
+              params: {
+                type: "SaleReturn",
+                page: page,
+                limit: limit
+              }
+            });
             
-            if (!res.ok) {
-                throw new Error('Network response was not ok');
-            }
-            
-            const data = await res.json();
+            const data = res.data;
             console.log("FG Sale Return API Response:", data);
 
-            // 💡 Logic matching FP_SaleList: Checking data.data and data.totalPages
+            // Logic matching your original structure
             if (data && Array.isArray(data.data)) {
                 setSales(data.data);
                 setTotalPages(data.totalPages || 1);
             } 
-            // Fallback for older/different structure (e.g., if backend sends {rows: ..., count: ...})
             else if (data && Array.isArray(data.rows)) {
                 setSales(data.rows);
                 setTotalPages(Math.ceil((data.count || 1) / limit));
@@ -46,7 +47,7 @@ const FP_SaleReturnList = () => {
                 setTotalPages(1);
             }
         } catch (error) {
-            console.error("Error fetching FG sales:", error);
+            console.error("Error fetching FG sales returns:", error);
             setSales([]);
             setTotalPages(1);
         } finally {
@@ -55,18 +56,16 @@ const FP_SaleReturnList = () => {
     };
     
     fetchSaleReturns();
-  }, [page]); // Dependency mein 'page' add kiya
-  
-  // Helper function for date formatting
-  const formatDate = (dateString) => {
-    if (!dateString) return "—";
-    return new Date(dateString).toLocaleDateString();
-  };
+  }, [page]); 
+  
+  const formatDate = (dateString) => {
+    if (!dateString) return "—";
+    return new Date(dateString).toLocaleDateString();
+  };
 
-  // 💡 Yeh function tab call hoga jab user list mein kisi row par click karega
-    const handleViewDetails = (invoiceNo) => {
-        navigate(`/fp-invoice-detail/${invoiceNo}`); 
-    };
+  const handleViewDetails = (invoiceNo) => {
+      navigate(`/fp-invoice-detail/${invoiceNo}`); 
+  };
 
   return (
     <>

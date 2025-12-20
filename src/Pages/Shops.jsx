@@ -5,6 +5,7 @@ import '../CustomersAndSuppliers.css';
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
 import Swal from 'sweetalert2';   // 👈 import SweetAlert2
+import api from "../../api"; 
 
 const Shops = () => {
   const [shops, setShops] = useState([]);
@@ -13,50 +14,48 @@ const Shops = () => {
   
   const navigate = useNavigate();
 
-  // Fetch shops
-  const fetchShops = () => {
-    fetch("http://localhost:5000/api/shops")
-      .then(res => res.json())
-      .then(data => {
-        setShops(data);
-      })
-      .catch(err => console.error("Error fetching shops:", err));
+  // ✅ Fetch shops using standardized api.js
+  const fetchShops = async () => {
+    try {
+      const res = await api.get("/shops");
+      setShops(res.data);
+    } catch (err) {
+      console.error("Error fetching shops:", err);
+    }
   };
 
   useEffect(() => {
     fetchShops();
   }, []);
 
-  // Update API
-  const handleUpdate = (e) => {
+  // ✅ Update API using standardized api.js
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    fetch(`http://localhost:5000/api/shops/${onUpdate.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: shopData.name })
-    })
-      .then(res => {
-        if (res.ok) {
-          setOnUpdate(null);
-          fetchShops();
-          Swal.fire("Updated!", "Shop updated successfully.", "success");
-        }
-      })
-      .catch(err => console.error("Error updating:", err));
+    try {
+      const res = await api.put(`/shops/${onUpdate.id}`, { name: shopData.name });
+      
+      if (res.status === 200 || res.status === 204) {
+        setOnUpdate(null);
+        setShopData({ name: "" }); // Reset input
+        fetchShops();
+        Swal.fire("Updated!", "Shop updated successfully.", "success");
+      }
+    } catch (err) {
+      console.error("Error updating:", err);
+      Swal.fire("Error", "Failed to update shop", "error");
+    }
   };
 
-  // On Edit Click
   const handleEditClick = (shop) => {
     setOnUpdate(shop);
     setShopData({ name: shop.name });
   };
 
-  // Handle Input Change
   const handleChange = (e) => {
     setShopData({ name: e.target.value });
   };
 
-  // Delete API with SweetAlert2 confirm
+  // ✅ Delete API using standardized api.js
   const handleDelete = (id) => {
     Swal.fire({
       title: "Are you sure?",
@@ -66,18 +65,16 @@ const Shops = () => {
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!"
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        fetch(`http://localhost:5000/api/shops/${id}`, {
-          method: "DELETE",
-        })
-          .then(res => {
-            if (res.ok) {
-              fetchShops();
-              Swal.fire("Deleted!", "Shop has been deleted.", "success");
-            }
-          })
-          .catch(err => console.error("Error deleting:", err));
+        try {
+          await api.delete(`/shops/${id}`);
+          fetchShops();
+          Swal.fire("Deleted!", "Shop has been deleted.", "success");
+        } catch (err) {
+          console.error("Error deleting:", err);
+          Swal.fire("Error", "Failed to delete shop", "error");
+        }
       }
     });
   };

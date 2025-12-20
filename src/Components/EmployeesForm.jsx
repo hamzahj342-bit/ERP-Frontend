@@ -6,6 +6,7 @@ import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
+import api from "../../api";
 
 const EmployeesForm = () => {
   const navigate = useNavigate();
@@ -32,28 +33,23 @@ const EmployeesForm = () => {
     const payload = {
       ...formData,
       created_by: user ? user.id : null,
-      type: "employee"   // 👈 now employee instead of customer
+      type: "employee"   // 👈 Employee type
     };
 
     try {
-      const res = await fetch("http://localhost:5000/api/entities", {
-        method: "POST",
+      const res = await api.post("/entities", payload, {
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+          Authorization: `Bearer ${token}`, // Token header mein bhej rahe hain
+        }
       });
 
-      if (res.ok) {
-        toast.success("Employee added successfully!");
-        setFormData({ name: "", address: "", contact: "" });
-      } else {
-        toast.error("Error adding employee.");
-      }
+      toast.success("Employee added successfully!");
+      setFormData({ name: "", address: "", contact: "" });
+
     } catch (err) {
       console.error("Submit Error:", err);
-      toast.error("Server error occurred.");
+      const errorMsg = err.response?.data?.message || "Error adding employee.";
+      toast.error(errorMsg);
     }
   };
 

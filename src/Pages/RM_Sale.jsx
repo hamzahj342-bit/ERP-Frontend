@@ -6,41 +6,44 @@ import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination'; // Pagination component import kiya
 
+import api from "../../api"; 
+
 const RM_Sale = () => {
-  const [sales, setSales] = useState([]); // master records
-  // Pagination ke liye states add kiye
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [sales, setSales] = useState([]); // master records
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  // Fetch Sale Master Data with Pagination
-  useEffect(() => {
+  // ✅ Fetch Sale Master Data using api.js
+  useEffect(() => {
     const fetchSales = async () => {
         setLoading(true);
         try {
-            // URL mein page aur limit parameters add kiye
-            const res = await fetch(`http://localhost:5000/api/rm-transactions?type=sale&page=${page}&limit=10`);
+            // URL params ko 'params' object mein handle kiya gaya hai
+            const res = await api.get("/rm-transactions", {
+              params: {
+                type: "sale",
+                page: page,
+                limit: 10
+              }
+            });
             
-            if (!res.ok) {
-                throw new Error('Network response was not ok');
-            }
-            
-            const data = await res.json();
+            const data = res.data;
             console.log("Sale API Response:", data);
 
-            // API Response ko handle karne ka robust tareeka
+            // API Response handle karne ka aapka robust tareeka
             let records = [];
             let total = 1;
 
-            if (data && Array.isArray(data.data)) { // Agar structure { data: [...], totalPages: N } hai
+            if (data && Array.isArray(data.data)) {
                 records = data.data;
                 total = data.totalPages || 1;
-            } else if (data && Array.isArray(data.rows)) { // Agar structure { rows: [...], totalPages: N } hai
+            } else if (data && Array.isArray(data.rows)) {
                 records = data.rows;
                 total = data.totalPages || 1;
-            } else if (Array.isArray(data)) { // Agar simple array hai (non-paginated)
+            } else if (Array.isArray(data)) {
                 records = data;
                 total = 1;
             }
@@ -58,11 +61,11 @@ const RM_Sale = () => {
     };
     
     fetchSales();
-  }, [page]); // Dependency mein 'page' add kiya taaki page change hone par data fetch ho
+  }, [page]); 
 
-   const handleViewDetails = (invoiceNo) => {
-        navigate(`/rm-invoice/${invoiceNo}`); 
-    };
+  const handleViewDetails = (invoiceNo) => {
+    navigate(`/rm-invoice/${invoiceNo}`); 
+  };
     
   return (
     <>

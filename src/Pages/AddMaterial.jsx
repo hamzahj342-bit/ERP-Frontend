@@ -5,104 +5,91 @@ import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2'; // 💡 SweetAlert2 Import
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
+import api from "../../api"; 
 
 const AddMaterial = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate();
 
-  const [rawMaterial, setRawMaterial] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    uom_id: '',
-    unit_quantity: '',
-  });
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editData, setEditData] = useState({
-    rm_id: null,
-    name: '',
-    uom_id: '',
-    unit_quantity: '',
-  });
-  const [uoms, setUoms] = useState([]);
+  const [rawMaterial, setRawMaterial] = useState([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    uom_id: '',
+    unit_quantity: '',
+  });
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState({
+    rm_id: null,
+    name: '',
+    uom_id: '',
+    unit_quantity: '',
+  });
+  const [uoms, setUoms] = useState([]);
 
-  // Fetch all materials
-  const fetchMaterials = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/add-materials');
-      const data = await res.json();
-      // Ensure the data structure is handled correctly
-      const materials = Array.isArray(data) ? data : (data && data.rows) ? data.rows : [];
-      setRawMaterial(materials);
-    } catch (error) {
-      toast.error('Failed to fetch materials');
-    }
-  };
+  // 1. Fetch all materials (GET)
+  const fetchMaterials = async () => {
+    try {
+      const res = await api.get('/add-materials');
+      const data = res.data;
+      // Aapki original data structure logic
+      const materials = Array.isArray(data) ? data : (data && data.rows) ? data.rows : [];
+      setRawMaterial(materials);
+    } catch (error) {
+      toast.error('Failed to fetch materials');
+    }
+  };
 
-  // Fetch all UOMs
-  const fetchUoms = async () => {
-    try {
-      const res = await fetch('http://localhost:5000/api/uoms');
-      const data = await res.json();
-      setUoms(data);
-    } catch (error) {
-      toast.error('Failed to fetch UOMs');
-    }
-  };
+  // 2. Fetch all UOMs (GET)
+  const fetchUoms = async () => {
+    try {
+      const res = await api.get('/uoms');
+      setUoms(res.data);
+    } catch (error) {
+      toast.error('Failed to fetch UOMs');
+    }
+  };
 
-  useEffect(() => {
-    fetchMaterials();
-    fetchUoms();
-  }, []);
+  useEffect(() => {
+    fetchMaterials();
+    fetchUoms();
+  }, []);
 
-  // Handle input change
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  // Handle create new material
-  const handleCreateMaterial = async (e) => {
-  e.preventDefault();
+  // 3. Create new material (POST)
+  const handleCreateMaterial = async (e) => {
+    e.preventDefault();
 
-  // Validation check before submitting
-  if (!formData.name || !formData.uom_id) {
-    toast.error("Please fill all required fields!");
-    return;
-  }
+    if (!formData.name || !formData.uom_id) {
+      toast.error("Please fill all required fields!");
+      return;
+    }
 
-  // Check if UOM requires unit_quantity
-  const selectedUom = uoms.find((u) => u.id == formData.uom_id)?.name;
-  if (["Bag", "Drum", "Piece"].includes(selectedUom) && !formData.unit_quantity) {
-    toast.error("Please enter Unit Quantity for this UOM!");
-    return;
-  }
+    const selectedUom = uoms.find((u) => u.id == formData.uom_id)?.name;
+    if (["Bag", "Drum", "Piece"].includes(selectedUom) && !formData.unit_quantity) {
+      toast.error("Please enter Unit Quantity for this UOM!");
+      return;
+    }
 
-  try {
-    const res = await fetch("http://localhost:5000/api/add-materials", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+    try {
+      // api.post handles headers and JSON stringify automatically
+      await api.post("/add-materials", formData);
+      
+      fetchMaterials(); 
+      setFormData({ name: "", uom_id: "", unit_quantity: "" });
+      toast.success("Raw Material Added Successfully!");
+    } catch (error) {
+      const msg = error.response?.data?.message || "Failed to add material!";
+      toast.error(msg);
+    }
+  };
 
-    if (res.ok) {
-      const newMaterial = await res.json();
-      // Assuming newMaterial structure matches existing data structure (incl. UOM object)
-      // For accurate list update, re-fetching is safer, but pushing the new material for instant feedback:
-      fetchMaterials(); 
-      setFormData({ name: "", uom_id: "", unit_quantity: "" });
-      toast.success("Raw Material Added Successfully!");
-    } else {
-      toast.error("Failed to add material!");
-    }
-  } catch (error) {
-    toast.error("Server error, please try again!");
-    console.error(error);
-  }
-};
-
-  // 🗑️ Handle delete with SweetAlert2
-  const handleDelete = async (rm_id, name) => {
+  // 4. Delete with SweetAlert2 (DELETE)
+  const handleDelete = async (rm_id, name) => {
     Swal.fire({
         title: `Are you sure?`,
-        text: `Do you want to delete material: ${name}? This action cannot be undone.`,
+        text: `Do you want to delete material: ${name}?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -111,81 +98,56 @@ const AddMaterial = () => {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                const res = await fetch(`http://localhost:5000/api/add-materials/${rm_id}`, {
-                    method: 'DELETE',
-                });
-
-                if (res.ok) {
-                    Swal.fire(
-                        'Deleted!',
-                        `Material ${name} has been deleted.`,
-                        'success'
-                    );
-                    fetchMaterials();
-                } else {
-                    Swal.fire('Error!', 'Failed to delete material.', 'error');
-                }
+                await api.delete(`/add-materials/${rm_id}`);
+                Swal.fire('Deleted!', `Material ${name} has been deleted.`, 'success');
+                fetchMaterials();
             } catch (error) {
-                console.error("Error deleting:", error);
-                Swal.fire('Error!', 'Server error during deletion.', 'error');
+                Swal.fire('Error!', 'Failed to delete material.', 'error');
             }
         }
     });
   };
 
-  // Open edit modal
-  const openEditModal = (material) => {
-    setEditData({
-      rm_id: material.rm_id,
-      name: material.name,
-      uom_id: material.uom_id,
-      unit_quantity: material.unit_quantity || '',
-    });
-    setEditModalOpen(true);
-  };
+  const openEditModal = (material) => {
+    setEditData({
+      rm_id: material.rm_id,
+      name: material.name,
+      uom_id: material.uom_id,
+      unit_quantity: material.unit_quantity || '',
+    });
+    setEditModalOpen(true);
+  };
 
-  const handleEditChange = (e) => {
-    setEditData({ ...editData, [e.target.name]: e.target.value });
-  };
+  const handleEditChange = (e) => {
+    setEditData({ ...editData, [e.target.name]: e.target.value });
+  };
 
-  // Handle update
-  const handleUpdateMaterial = async (e) => {
-    e.preventDefault();
+  // 5. Update material (PUT)
+  const handleUpdateMaterial = async (e) => {
+    e.preventDefault();
 
-    const selectedUom = uoms.find((u) => u.id == editData.uom_id)?.name;
+    const selectedUom = uoms.find((u) => u.id == editData.uom_id)?.name;
+    if (['Bag', 'Drum', 'Piece'].includes(selectedUom) && !editData.unit_quantity) {
+      toast.error('Please fill Unit Quantity for Bag, Drum, or Piece.');
+      return;
+    }
 
-    // Validation
-    if (['Bag', 'Drum', 'Piece'].includes(selectedUom) && !editData.unit_quantity) {
-      toast.error('Please fill Unit Quantity for Bag, Drum, or Piece.');
-      return;
-    }
+    try {
+      await api.put(`/add-materials/${editData.rm_id}`, editData);
 
-    try {
-      const res = await fetch(`http://localhost:5000/api/add-materials/${editData.rm_id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editData),
-      });
-
-      if (res.ok) {
-        Swal.fire({
-            icon: 'success',
-            title: 'Updated!',
-            text: `Material ${editData.name} has been updated.`,
-            showConfirmButton: false,
-            timer: 1500
-        });
-        // Re-fetch all materials to ensure UOM name is updated correctly
-        fetchMaterials(); 
-        setEditModalOpen(false);
-      } else {
-        toast.error('Failed to update material');
-      }
-    } catch (error) {
-      toast.error('Error updating material');
-    }
-  };
-
+      Swal.fire({
+          icon: 'success',
+          title: 'Updated!',
+          text: `Material ${editData.name} has been updated.`,
+          showConfirmButton: false,
+          timer: 1500
+      });
+      fetchMaterials(); 
+      setEditModalOpen(false);
+    } catch (error) {
+      toast.error('Error updating material');
+    }
+  };
   return (
     <>
       <NavigationBar />
@@ -255,7 +217,7 @@ const AddMaterial = () => {
                 <th>ID</th>
                 <th>Name</th>
                 <th>UOM</th>
-                <th>Unit Quantity</th>
+                <th>Unit Weight</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -265,7 +227,7 @@ const AddMaterial = () => {
                   <td>{m.rm_id}</td>
                   <td>{m.name}</td>
                   <td>{m.uom?.name}</td>
-                  <td>{m.unit_quantity ? m.unit_quantity : '-'}</td>
+                  <td>{parseFloat(m.unit_quantity ? m.unit_quantity : '-')}</td>
                   <td>
                     <button
                       onClick={() => openEditModal(m)}

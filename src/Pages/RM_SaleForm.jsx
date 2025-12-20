@@ -4,6 +4,7 @@ import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
+import api from "../../api"; 
 
 const RM_SaleForm = () => {
     const navigate = useNavigate();
@@ -17,50 +18,44 @@ const RM_SaleForm = () => {
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
     
-    // 🛑 NEW STATES for Discount Logic
+    // 🛑 States for Discount Logic
     const [subTotal, setSubTotal] = useState(0); 
     const [globalDiscount, setGlobalDiscount] = useState(""); 
     const [grandTotal, setGrandTotal] = useState(0);
-    
 
-    // 🔹 Fetch Invoice No (Made reusable)
+    // 🔹 Fetch Invoice No (Standardized api.js)
     const fetchInvoiceNo = useCallback(async () => {
         try {
-            const res = await fetch("http://localhost:5000/api/rm-transactions/rm-invoice?type=Sale");
-            const data = await res.json();
-            if (res.ok) {
-                setInvoiceNo(data.invoice_no);
-            }
+            const res = await api.get("/rm-transactions/rm-invoice", {
+                params: { type: "Sale" }
+            });
+            setInvoiceNo(res.data.invoice_no);
         } catch (err) {
             console.error("Error fetching invoice number:", err);
         }
     }, []);
 
-    // 🔹 Fetch Initial Data (Customers, Materials, Invoice No)
+    // 🔹 Fetch Initial Data
     useEffect(() => {
         // Fetch Customers
-        fetch("http://localhost:5000/api/entities")
-            .then(res => res.json())
-            .then(data => setCustomers(data.filter(ent => ent.type === "customer")))
+        api.get("/entities")
+            .then(res => setCustomers(res.data.filter(ent => ent.type === "customer")))
             .catch(err => console.error("Error fetching customers:", err));
         
-        // Fetch Materials
-        fetch("http://localhost:5000/api/rm-transactions/materials-with-suppliers")
-            .then(res => res.json())
-            .then(data => {
-                console.log("🔍 Materials Data:", data);
-                setMaterials(data);
+        // Fetch Materials with Supplier Data
+        api.get("/rm-transactions/materials-with-suppliers")
+            .then(res => {
+                console.log("🔍 Materials Data:", res.data);
+                setMaterials(res.data);
             })
             .catch(err => console.error("Error fetching materials:", err));
 
-        // Fetch Invoice No
         fetchInvoiceNo();
     }, [fetchInvoiceNo]);
 
 
-    // 🔹 Grand Total Calculation Logic (Updated for Global Discount)
+    // 🔹 Calculation Logic
     const calculateTotals = (currentRows, discountValue) => {
-        // 1. Calculate Subtotal (Sum of all Qty * Price)
         const currentSubTotal = currentRows.reduce((sum, row) => {
             const qty = parseFloat(row.quantity) || 0;
             const price = parseFloat(row.unitPrice) || 0;
@@ -68,8 +63,6 @@ const RM_SaleForm = () => {
         }, 0);
         
         const discount = parseFloat(discountValue) || 0;
-        
-        // 2. Calculate Grand Total
         let finalGrandTotal = currentSubTotal - discount;
         if (finalGrandTotal < 0) finalGrandTotal = 0;
         
@@ -77,7 +70,7 @@ const RM_SaleForm = () => {
         setGrandTotal(finalGrandTotal.toFixed(2));
     };
 
-    // 🔹 Handle field changes
+    // 🔹 Handlers
     const handleChange = (index, field, value) => {
         const updatedRows = [...rows];
         updatedRows[index][field] = value;
@@ -86,7 +79,7 @@ const RM_SaleForm = () => {
             const qty = parseFloat(updatedRows[index].quantity) || 0;
             const price = parseFloat(updatedRows[index].unitPrice) || 0;
             
-            // Stock Check Logic remains the same
+            // Stock Check
             if (field === "quantity" && qty > updatedRows[index].stock) {
                 toast.error(`Only ${updatedRows[index].stock} units available!`);
                 updatedRows[index].quantity = "";
@@ -97,52 +90,43 @@ const RM_SaleForm = () => {
         }
 
         setRows(updatedRows);
-        // 🛑 Recalculate based on updated rows and current discount
         calculateTotals(updatedRows, globalDiscount);
     };
 
-    // 🔹 Handler for Global Discount Change
     const handleGlobalDiscountChange = (value) => {
         setGlobalDiscount(value);
-        // 🛑 Recalculate based on current rows and new discount
         calculateTotals(rows, value);
     };
 
-    // 🔹 Add Row
     const addRow = () => {
         setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0, entity_supplier_id: "", supplier_id: "" }]);
     };
 
-    // 🔹 Delete Row
     const deleteRow = (index) => {
         const updatedRows = rows.filter((_, i) => i !== index);
         setRows(updatedRows);
-        calculateTotals(updatedRows, globalDiscount); // Recalculate after delete
+        calculateTotals(updatedRows, globalDiscount);
     };
     
-    // 🔹 Fetch Stock (remains the same)
     const fetchStock = async (rm_id, supplier_id, index) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/rm-transactions/stock/${rm_id}/${supplier_id}`);
-            const data = await res.json();
+            const res = await api.get(`/rm-transactions/stock/${rm_id}/${supplier_id}`);
             const updatedRows = [...rows];
-            updatedRows[index].stock = data.stock || 0;
+            updatedRows[index].stock = res.data.stock || 0;
             setRows(updatedRows);
         } catch (err) {
             console.error("Error fetching stock:", err);
         }
     };
 
-
-    // 🔹 Submit Form (Updated to send master_discount)
+    // 🔹 Submit Form
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 🛑 Final Validations
         if (!selectedCustomer) return toast.error("Please select a customer.");
         if (!date) return toast.error("Please select a sale date.");
 
-        const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0 && parseFloat(r.unitPrice) > 0);
+        const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one valid material row.");
         
         const disc = parseFloat(globalDiscount) || 0;
@@ -151,13 +135,12 @@ const RM_SaleForm = () => {
         }
 
         const user = JSON.parse(localStorage.getItem("user"));
-        const token = localStorage.getItem("token");
 
         const saleData = {
-            entityid: selectedCustomer, // customer id
+            entityid: selectedCustomer, 
             grand_total: parseFloat(grandTotal),
-            discount: disc, // 🛑 NEW: Send Global Discount
-            type: "sale", // Lowercase for backend map
+            discount: disc, 
+            type: "sale", 
             createdby: user ? user.username : "guest",
             invoice_no: invoiceNo,
             details: validRows.map(r => ({
@@ -171,39 +154,25 @@ const RM_SaleForm = () => {
             }))
         };
 
-        console.log("Submitting Sale Data:", JSON.stringify(saleData, null, 2));
-
         try {
-            const res = await fetch("http://localhost:5000/api/rm-transactions", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(saleData),
-            });
+            const res = await api.post("/rm-transactions", saleData);
 
-            const data = await res.json();
+            toast.success(`Sale Transaction Successful! Invoice: ${res.data.invoice_no}`);
             
-            if (res.ok) {
-                toast.success(`Sale Transaction Successful! Invoice: ${data.invoice_no}`);
-                // 🛑 Reset Form and Fetch New Invoice No
-                setRows([{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0, entity_supplier_id: "", supplier_id: "" }]);
-                setSelectedCustomer("");
-                setDate("");
-                setSubTotal(0);
-                setGlobalDiscount("");
-                setGrandTotal(0);
-                fetchInvoiceNo(); 
-            } else {
-                toast.error(data.message || "Failed to save sale.");
-            }
+            // Reset Form
+            setRows([{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0, entity_supplier_id: "", supplier_id: "" }]);
+            setSelectedCustomer("");
+            setDate("");
+            setSubTotal(0);
+            setGlobalDiscount("");
+            setGrandTotal(0);
+            fetchInvoiceNo(); 
+            navigate('/rm-sale');
         } catch (err) {
             console.error("Error creating sale:", err);
-            toast.error("Error creating sale transaction!");
+            toast.error(err.response?.data?.message || "Error creating sale transaction!");
         }
     };
-
 
     return (
         <>

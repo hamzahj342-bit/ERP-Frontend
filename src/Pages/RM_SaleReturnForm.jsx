@@ -4,127 +4,121 @@ import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
+import api from "../../api"; 
 
 const RM_SaleReturnForm = () => {
-  const [rows, setRows] = useState([
-    { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }
-  ]);
-  const [materials, setMaterials] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState("");
-  const [invoiceNo, setInvoiceNo] = useState("");
-  const [date, setDate] = useState("");
-  const [grandTotal, setGrandTotal] = useState(0);
-  const navigate = useNavigate();
+  const [rows, setRows] = useState([
+    { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }
+  ]);
+  const [materials, setMaterials] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [date, setDate] = useState("");
+  const [grandTotal, setGrandTotal] = useState(0);
+  const navigate = useNavigate();
 
-  // --- Helper Functions ---
+  // --- Helper Functions ---
 
-  const updateGrandTotal = (currentRows) => {
-    const total = currentRows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
-    setGrandTotal(total);
-  };
+  const updateGrandTotal = (currentRows) => {
+    const total = currentRows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
+    setGrandTotal(total);
+  };
 
-  // Handle row input change
-  const handleChange = (index, field, value) => {
-    const updatedRows = [...rows];
-    updatedRows[index][field] = value;
+  const handleChange = (index, field, value) => {
+    const updatedRows = [...rows];
+    updatedRows[index][field] = value;
 
-    if (field === "quantity" || field === "unitPrice") {
-      const qty = parseFloat(updatedRows[index].quantity) || 0;
-      const price = parseFloat(updatedRows[index].unitPrice) || 0;
-      const maxSoldQty = parseFloat(updatedRows[index].soldQty) || 0;
+    if (field === "quantity" || field === "unitPrice") {
+      const qty = parseFloat(updatedRows[index].quantity) || 0;
+      const price = parseFloat(updatedRows[index].unitPrice) || 0;
+      const maxSoldQty = parseFloat(updatedRows[index].soldQty) || 0;
 
-      if (qty > maxSoldQty) {
-        toast.error(`Customer bought only ${maxSoldQty} units!`);
-        updatedRows[index].quantity = String(maxSoldQty); // Max sold quantity set kar dein
-        updatedRows[index].total = (maxSoldQty * price);
-      } else {
-        updatedRows[index].total = (qty * price);
-      }
-    }
+      // ✅ Validation: Max sold quantity check
+      if (qty > maxSoldQty) {
+        toast.error(`Customer bought only ${maxSoldQty} units!`);
+        updatedRows[index].quantity = String(maxSoldQty); 
+        updatedRows[index].total = (maxSoldQty * price);
+      } else {
+        updatedRows[index].total = (qty * price);
+      }
+    }
 
-    setRows(updatedRows);
-    updateGrandTotal(updatedRows);
-  };
+    setRows(updatedRows);
+    updateGrandTotal(updatedRows);
+  };
 
-  const addRow = () => setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }]);
-  const deleteRow = (i) => { const updated = rows.filter((_, idx) => idx !== i); setRows(updated); updateGrandTotal(updated); };
+  const addRow = () => setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }]);
+  const deleteRow = (i) => { 
+    const updated = rows.filter((_, idx) => idx !== i); 
+    setRows(updated); 
+    updateGrandTotal(updated); 
+  };
 
-  // --- Effects ---
+  // --- Effects (Using standardized api.js) ---
 
-  // Fetch eligible customers (last 3 months)
-  useEffect(() => {
-    fetch("http://localhost:5000/api/rm-transactions/eligible-customers")
-      .then(res => res.json())
-      .then(setCustomers)
-      .catch(err => console.error("Error fetching customers:", err));
-  }, []);
+  // 1. Fetch eligible customers
+  useEffect(() => {
+    api.get("/rm-transactions/eligible-customers")
+      .then(res => setCustomers(res.data))
+      .catch(err => console.error("Error fetching customers:", err));
+  }, []);
 
-  // Fetch sold materials for selected customer
-  useEffect(() => {
-    if (!selectedCustomer) return setMaterials([]);
-    fetch(`http://localhost:5000/api/rm-transactions/sold-materials/${selectedCustomer}`)
-      .then(res => res.json())
-      .then(setMaterials)
-      .catch(err => console.error("Error fetching materials:", err));
-  }, [selectedCustomer]);
+  // 2. Fetch sold materials for selected customer
+  useEffect(() => {
+    if (!selectedCustomer) return setMaterials([]);
+    api.get(`/rm-transactions/sold-materials/${selectedCustomer}`)
+      .then(res => setMaterials(res.data))
+      .catch(err => console.error("Error fetching materials:", err));
+  }, [selectedCustomer]);
 
-  // Fetch SaleReturn invoice no
-  useEffect(() => {
-    fetch("http://localhost:5000/api/rm-transactions/rm-invoice?type=SaleReturn")
-      .then(res => res.json())
-      .then(data => setInvoiceNo(data.invoice_no))
-      .catch(err => console.error("Error fetching invoice number:", err));
-  }, []);
+  // 3. Fetch SaleReturn invoice no
+  useEffect(() => {
+    api.get("/rm-transactions/rm-invoice", { params: { type: "SaleReturn" } })
+      .then(res => setInvoiceNo(res.data.invoice_no))
+      .catch(err => console.error("Error fetching invoice number:", err));
+  }, []);
 
-  // --- Submit Handler ---
+  // --- Submit Handler ---
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedCustomer) return toast.error("Please select a customer.");
-    if (!date) return toast.error("Please select a return date.");
-    const validRows = rows.filter(r => r.rm_id && r.quantity > 0);
-    if (validRows.length === 0) return toast.error("Please add at least one material item with quantity.");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedCustomer) return toast.error("Please select a customer.");
+    if (!date) return toast.error("Please select a return date.");
+    
+    const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
+    if (validRows.length === 0) return toast.error("Please add at least one material item with quantity.");
 
-    const user = JSON.parse(localStorage.getItem("user"));
-    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
 
-    const returnData = {
-      entityid: selectedCustomer,
-      grand_total: grandTotal,
-      type: "SaleReturn",
-      createdby: user ? user.username : "guest",
-      details: validRows.map(r => ({
-        rm_id: r.rm_id,
-        rm_name: r.rm_name,
-        quantity: r.quantity,
-        unit_price: r.unitPrice,
-        uom_id: r.uom_id,
-        date,
-        supplier_name: r.supplier_name,
-        original_supplier_id: r.original_supplier_id // Already stored as string
-      }))
-    };
-    
-    console.log("Submitting SaleReturn:", returnData);
+    const returnData = {
+      entityid: selectedCustomer,
+      grand_total: grandTotal,
+      type: "SaleReturn",
+      createdby: user ? user.username : "guest",
+      invoice_no: invoiceNo,
+      details: validRows.map(r => ({
+        rm_id: r.rm_id,
+        rm_name: r.rm_name,
+        quantity: r.quantity,
+        unit_price: r.unitPrice,
+        uom_id: r.uom_id,
+        date,
+        supplier_name: r.supplier_name,
+        original_supplier_id: r.original_supplier_id
+      }))
+    };
 
-    fetch("http://localhost:5000/api/rm-transactions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(returnData)
-    })
-      .then(res => res.json())
-      .then(() => {
-        toast.success("SaleReturn Transaction Successful");
-        navigate('/rm-sale-return');
-      })
-      .catch(err => console.error("Error creating sale return:", err));
-  };
-
-  // --- Render JSX ---
+    try {
+      await api.post("/rm-transactions", returnData);
+      toast.success("SaleReturn Transaction Successful");
+      navigate('/rm-sale-return');
+    } catch (err) {
+      console.error("Error creating sale return:", err);
+      toast.error(err.response?.data?.message || "Something went wrong!");
+    }
+  };
+ 
 
   return (
     <>

@@ -5,6 +5,7 @@ import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
+import api from "../../api"; 
 
 const AccountCategoryList = () => {
   const [categories, setCategories] = useState([]);
@@ -17,31 +18,27 @@ const AccountCategoryList = () => {
 
   const navigate = useNavigate();
 
-  // Fetch categories
-  const fetchCategories = () => {
+  // 1. Fetch categories (Converted to Async/Await)
+  const fetchCategories = async () => {
     setLoading(true);
-    fetch("http://localhost:5000/api/account-categories")
-      .then((res) => res.json())
-      .then((data) => {
-        setCategories(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching categories:", err);
-        setLoading(false);
-      });
+    try {
+      const res = await api.get("/account-categories");
+      setCategories(res.data);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  // Handle input change
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Edit category
   const handleEdit = (cat) => {
     setOnUpdate(cat);
     setFormData({
@@ -50,31 +47,28 @@ const AccountCategoryList = () => {
     });
   };
 
-
-  const userId = localStorage.getItem("user_id")
+  const userId = localStorage.getItem("user_id");
   
-  // Update category API
-  const handleUpdate = (e) => {
+  // 2. Update category API (PUT method using api.js)
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    fetch(`http://localhost:5000/api/account-categories/${onUpdate.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-         category_name: formData.category_name,
-         updated_by: userId
-      }),
-    })
-      .then((res) => {
-        if (res.ok) {
-          toast.success("Category updated successfully!");
-          setOnUpdate(null);
-          fetchCategories();
-        }
-      })
-      .catch((err) => console.error("Update error:", err));
+    try {
+      const res = await api.put(`/account-categories/${onUpdate.id}`, {
+        category_name: formData.category_name,
+        updated_by: userId
+      });
+
+      // Axios automatically handles success check
+      toast.success("Category updated successfully!");
+      setOnUpdate(null);
+      fetchCategories();
+    } catch (err) {
+      console.error("Update error:", err);
+      toast.error("Failed to update category.");
+    }
   };
 
-  // Delete category
+  // 3. Delete category (DELETE method using api.js)
   const handleDelete = (id) => {
     Swal.fire({
       title: "Are you sure?",
@@ -84,28 +78,24 @@ const AccountCategoryList = () => {
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, delete it!",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        fetch(`http://localhost:5000/api/account-categories/${id}`, {
-          method: "DELETE",
-        })
-          .then((res) => {
-            if (res.ok) {
-              fetchCategories();
-              Swal.fire("Deleted!", "Category has been deleted.", "success");
-            }
-          })
-          .catch((err) => {
-            console.error("Delete error:", err);
-            Swal.fire(
-              "Error!",
-              "Something went wrong while deleting.",
-              "error"
-            );
-          });
+        try {
+          await api.delete(`/account-categories/${id}`);
+          fetchCategories();
+          Swal.fire("Deleted!", "Category has been deleted.", "success");
+        } catch (err) {
+          console.error("Delete error:", err);
+          Swal.fire(
+            "Error!",
+            "Something went wrong while deleting.",
+            "error"
+          );
+        }
       }
     });
   };
+
 
   return (
     <>

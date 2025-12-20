@@ -4,6 +4,7 @@ import '../index.css';
 import { saveAuthData } from '../auth';
 import bgImage from '../assets/Analytical.jpeg'  
 import { FaUser, FaLock } from 'react-icons/fa';
+import api from '../../api'
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -11,23 +12,28 @@ const Login = () => {
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
   
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:5000/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-
-    const data = await res.json();
-    if (res.ok) {
-      saveAuthData(data.token)
-      localStorage.setItem("user", JSON.stringify(data.user));
     
-   setMessage("");
-   navigate("/dashboard");
-  } else {
-      setMessage(data.message);
+    try {
+      // Ab aapko pura URL likhne ki zaroorat nahi, sirf endpoint likhein
+      const response = await api.post('/login', { username, password });
+
+      if (response.status === 200) {
+        const data = response.data;
+        saveAuthData(data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setMessage("");
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      // Axios mein error response.data mein hota hai
+      console.error("Login error:", error);
+      if (error.response) {
+        setMessage(error.response.data.message || "Invalid Credentials");
+      } else {
+        setMessage("Server is not responding");
+      }
     }
   };
 

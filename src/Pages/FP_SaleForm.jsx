@@ -4,6 +4,7 @@ import { FaArrowLeft, FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
+import api from "../../api";
 
 const FP_SaleForm = () => {
   const navigate = useNavigate();
@@ -21,21 +22,56 @@ const FP_SaleForm = () => {
       stock: 0,
     },
   ]);
-  const [products, setProducts] = useState([]); // Products will be recipes
+  const [products, setProducts] = useState([]); 
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [invoiceNo, setInvoiceNo] = useState("");
   const [date, setDate] = useState("");
   
-  // 🛑 NEW STATES for Discount Logic
   const [subTotal, setSubTotal] = useState(0); 
   const [globalDiscount, setGlobalDiscount] = useState(""); 
   const [grandTotal, setGrandTotal] = useState(0); 
 
+  // --- GET DATA FUNCTIONS (Using api.js) ---
 
-  // ✅ Grand Total Calculation Logic (Updated for Global Discount)
+  const fetchCustomers = async () => {
+    try {
+      const res = await api.get("/entities");
+      setCustomers(res.data.filter((ent) => ent.type === "customer"));
+    } catch (err) {
+      console.error("Error fetching customers:", err);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const res = await api.get("/fp-sale/products-for-sale");
+      setProducts(res.data);
+    } catch (err) {
+      console.error("Error fetching products:", err);
+    }
+  };
+
+  const fetchInvoiceNo = async () => {
+    try {
+      const res = await api.get("/fp-sale/invoice-no", {
+        params: { type: "Sale" }
+      });
+      setInvoiceNo(res.data.invoice_no);
+    } catch (err) {
+      console.error("Error fetching invoice number:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+    fetchProducts();
+    fetchInvoiceNo();
+  }, []);
+
+  // --- LOGIC FUNCTIONS (No changes in logic) ---
+
   const calculateTotals = (currentRows, discountValue) => {
-    // 1. Calculate Subtotal (Sum of all Qty * Price)
     const currentSubTotal = currentRows.reduce((sum, row) => {
         const qty = parseFloat(row.quantity) || 0;
         const price = parseFloat(row.unitPrice) || 0;
@@ -43,141 +79,18 @@ const FP_SaleForm = () => {
     }, 0);
     
     const discount = parseFloat(discountValue) || 0;
-    
-    // 2. Calculate Grand Total
     let finalGrandTotal = currentSubTotal - discount;
     if (finalGrandTotal < 0) finalGrandTotal = 0;
     
     setSubTotal(currentSubTotal.toFixed(2));
     setGrandTotal(finalGrandTotal.toFixed(2));
   };
-  
-  // 🔹 Handler for Global Discount Change
+
   const handleGlobalDiscountChange = (value) => {
       setGlobalDiscount(value);
-      // 🛑 Recalculate based on current rows and new discount
       calculateTotals(rows, value);
   };
 
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!selectedCustomer) {
-      toast.error("Please select a customer.");
-      return;
-    }
-    if (!date) {
-      toast.error("Please select a sale date.");
-      return;
-    }
-
-    const validRows = rows.filter((r) => r.product_master_id);
-    if (validRows.length === 0) {
-      toast.error("Please add at least one product item.");
-      return;
-    }
-    
-    // 🛑 Discount validation
-    const disc = parseFloat(globalDiscount) || 0;
-    if (disc > parseFloat(subTotal)) {
-        toast.error("Global Discount cannot exceed the Total Sub Amount.");
-        return;
-    }
-
-    const user = JSON.parse(localStorage.getItem("user"));
-    const token = localStorage.getItem("token");
-
-    // Final data structure for backend (SaleMaster & SaleDetail)
-    const saleData = {
-      entity_customer_id: selectedCustomer, // Customer ID
-      grand_total: Number(grandTotal),       // Use state's final Grand Total
-      discount: disc,                        // 🛑 ADDED: Discount to payload
-      type: "Sale",
-      date: date,
-      createdby: user ? user.username : "guest",
-      invoice_no: invoiceNo,
-      details: validRows.map((r) => ({
-        product_master_id: r.product_master_id,
-        product_name: r.product_name,
-        recipe_id: r.recipe_id, // Important for stock update
-        quantity: Number(r.quantity),
-        unit_price: Number(r.unitPrice),
-        total_price: Number(r.total), 
-        uom_id: r.uom_id,
-      })),
-    };
-
-    console.log("Submitting FG Sale Data:", JSON.stringify(saleData, null, 2));
-
-    try {
-      // 🛑 API call to the new Finished Goods Sale Route
-      const res = await fetch("http://localhost:5000/api/fp-sale", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(saleData),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(`Finished Goods Sale Transaction Successful! Invoice: ${data.invoice_no}`);
-        // 🛑 Reset Form and Fetch New Invoice No
-        setRows([{ product_master_id: "", product_name: "", recipe_id: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }]);
-        setSelectedCustomer("");
-        setDate("");
-        setSubTotal(0);
-        setGlobalDiscount("");
-        setGrandTotal(0);
-        fetchInvoiceNo(); 
-
-      } else {
-        // Display error message from backend
-        toast.error(data.message || "Error creating sale transaction!");
-      }
-    } catch (err) {
-      console.error("Error creating sale:", err);
-      toast.error("Network or Server error!");
-    }
-  };
-  
-  // ✅ Fetch Customers
-  useEffect(() => {
-    fetch("http://localhost:5000/api/entities")
-      .then((res) => res.json())
-      .then((data) =>
-        setCustomers(data.filter((ent) => ent.type === "customer"))
-      )
-      .catch((err) => console.error("Error fetching customers:", err));
-  }, []); 
-  
-  // ✅ Fetch Products (Recipes)
-  useEffect(() => {
-    // 🛑 This endpoint needs to be created on the backend
-    fetch("http://localhost:5000/api/fp-sale/products-for-sale")
-      .then((res) => res.json())
-      .then((data) => {
-        // Assuming data is an array of recipes with recipe_id, name, uom_id, current_stock
-        setProducts(data);
-      })
-      .catch((err) => console.error("Error fetching products:", err));
-  }, []); 
-  
-  // ✅ Fetch Invoice No
-  const fetchInvoiceNo = () => {
-      fetch("http://localhost:5000/api/fp-sale/invoice-no?type=Sale")
-        .then((res) => res.json())
-        .then((data) => setInvoiceNo(data.invoice_no))
-        .catch((err) => console.error("Error fetching invoice number:", err));
-  };
-  
-  useEffect(() => {
-      fetchInvoiceNo();
-  }, []);
-  
-  // ✅ Handle field changes
   const handleChange = (index, field, value) => {
     const updatedRows = [...rows];
     updatedRows[index][field] = value;
@@ -185,27 +98,22 @@ const FP_SaleForm = () => {
     if (field === "quantity" || field === "unitPrice") {
       const qty = parseFloat(updatedRows[index].quantity) || 0;
       const price = parseFloat(updatedRows[index].unitPrice) || 0;
-      const stock = parseFloat(updatedRows[index].stock) || 0; // 🛑 Stock availability check
+      const stock = parseFloat(updatedRows[index].stock) || 0; 
 
       if (qty > stock) {
-        toast.error(
-          `Only ${stock} units of ${updatedRows[index].product_name} available!`
-        );
-        updatedRows[index].quantity = ""; // Reset quantity if it exceeds stock
+        toast.error(`Only ${stock} units available!`);
+        updatedRows[index].quantity = ""; 
         updatedRows[index].total = 0;
       } else {
-        // Recalculate total after potential quantity change
         const finalQty = parseFloat(updatedRows[index].quantity) || 0;
         updatedRows[index].total = (finalQty * price).toFixed(2);
       }
     }
-
     setRows(updatedRows);
-    // 🛑 Recalculate totals based on new rows and current discount
     calculateTotals(updatedRows, globalDiscount);
   };
-  
-  // ✅ Add Row
+
+   // ✅ Add Row
   const addRow = () => {
     setRows([
       ...rows,
@@ -228,6 +136,63 @@ const FP_SaleForm = () => {
     const updatedRows = rows.filter((_, i) => i !== index);
     setRows(updatedRows);
     calculateTotals(updatedRows, globalDiscount); // Recalculate after delete
+  };
+
+
+  // --- SUBMIT FUNCTION ---
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!selectedCustomer || !date) {
+      toast.error("Please fill customer and date.");
+      return;
+    }
+
+    const validRows = rows.filter((r) => r.product_master_id);
+    const disc = parseFloat(globalDiscount) || 0;
+
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    const saleData = {
+      entity_customer_id: selectedCustomer,
+      grand_total: Number(grandTotal),
+      discount: disc,
+      type: "Sale",
+      date: date,
+      createdby: user ? user.username : "guest",
+      invoice_no: invoiceNo,
+      details: validRows.map((r) => ({
+        product_master_id: r.product_master_id,
+        product_name: r.product_name,
+        recipe_id: r.recipe_id, 
+        quantity: Number(r.quantity),
+        unit_price: Number(r.unitPrice),
+        total_price: Number(r.total), 
+        uom_id: r.uom_id,
+      })),
+    };
+
+    try {
+      // POST using api.js
+      const res = await api.post("/fp-sale", saleData);
+
+      toast.success(`Sale Successful! Invoice: ${res.data.invoice_no}`);
+      
+      // Reset States
+      setRows([{ product_master_id: "", product_name: "", recipe_id: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }]);
+      setSelectedCustomer("");
+      setDate("");
+      setSubTotal(0);
+      setGlobalDiscount("");
+      setGrandTotal(0);
+      fetchInvoiceNo(); 
+      navigate("/fp-sale-list");
+
+    } catch (err) {
+      console.error("Error creating sale:", err);
+      toast.error(err.response?.data?.message || "Error creating sale transaction!");
+    }
   };
 
   return (

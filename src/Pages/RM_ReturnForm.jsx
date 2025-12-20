@@ -4,6 +4,7 @@ import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import {toast} from 'react-toastify';
+import api from "../../api"; 
 
 const RM_ReturnForm = () => {
   const [rows, setRows] = useState([
@@ -17,103 +18,50 @@ const RM_ReturnForm = () => {
   const [grandTotal, setGrandTotal] = useState(0);
   const navigate = useNavigate();
 
-  // Form submit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // 1. Fetch eligible suppliers (those with previous purchases)
+  useEffect(() => {
+    api.get("/rm-transactions/eligible-suppliers")
+      .then((res) => setSuppliers(res.data))
+      .catch((err) => console.error("Error fetching eligible suppliers:", err));
+  }, []);
 
-    if (!selectedSupplier) {
-      toast.error("Please select a supplier.");
-      return;
+  // 2. Fetch materials of selected supplier only
+  useEffect(() => {
+    if (selectedSupplier) {
+      api.get(`/rm-transactions/materials/${selectedSupplier}`)
+        .then((res) => {
+          if (Array.isArray(res.data)) setMaterials(res.data);
+          else setMaterials([]);
+        })
+        .catch((err) => {
+          console.error("Error fetching supplier materials:", err);
+          setMaterials([]);
+        });
+    } else {
+      setMaterials([]);
     }
-    if (!date) {
-      toast.error("Please select a return date.");
-      return;
+  }, [selectedSupplier]);
+
+  // 3. Fetch Next Invoice Number
+  useEffect(() => {
+    api.get("/rm-transactions/rm-invoice", { params: { type: "Return" } })
+      .then(res => setInvoiceNo(res.data.invoice_no))
+      .catch(err => console.error("Error fetching invoice number:", err));
+  }, []);
+
+  // 4. Fetch Stock (Supplier-specific)
+  const fetchStock = async (rm_id, index) => {
+    try {
+      const res = await api.get(`/rm-transactions/stock/${rm_id}/${selectedSupplier}`);
+      const updatedRows = [...rows];
+      updatedRows[index].stock = res.data.stock || 0;
+      setRows(updatedRows);
+    } catch (err) {
+      console.error("Error fetching stock:", err);
     }
-    if (handleSubmit) {
-      toast.success("Purchase Return Transaction Successfull")
-    }
-    const validRows = rows.filter(r => r.rm_id); 
-
-if (validRows.length === 0) {
-  toast.error("Please add at least one material item.");
-  return;
-}
-
-    const user = JSON.parse(localStorage.getItem("user"));
-    const token = localStorage.getItem("token");
-
-    const returnData = {
-      entityid: selectedSupplier,
-      grand_total: grandTotal,
-      type: "PurchaseReturn",
-      createdby: user ? user.username : "guest",
-      invoice_no: invoiceNo,
-      details: rows.map(r => ({
-        rm_id: r.rm_id,
-        rm_name: r.rm_name,
-        quantity: r.quantity,
-        unit_price: r.unitPrice,
-        uom_id: r.uom_id,
-        date: date
-      }))
-    };
-
-    console.log("Submitting Return Data:", returnData);
-
-    fetch("http://localhost:5000/api/rm-transactions", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(returnData)
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Return created:", data);
-        navigate('/rm-return');
-      })
-      .catch((err) => console.error("Error creating return:", err));
   };
 
-  // ✅ Fetch only eligible suppliers (those with previous Purchase entries)
-useEffect(() => {
-  fetch("http://localhost:5000/api/rm-transactions/eligible-suppliers")
-    .then((res) => res.json())
-    .then((data) => {
-      setSuppliers(data); // data already in { id, name } format
-    })
-    .catch((err) => console.error("Error fetching eligible suppliers:", err));
-}, []);
-
-  // Fetch materials of selected supplier only
-  useEffect(() => {
-  if (selectedSupplier) {
-    fetch(`http://localhost:5000/api/rm-transactions/materials/${selectedSupplier}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setMaterials(data);
-        else {
-          console.error("Unexpected API response:", data);
-          setMaterials([]); // prevent .map error
-        }
-      })
-      .catch((err) => {
-        console.error("Error fetching supplier materials:", err);
-        setMaterials([]);
-      });
-  } else {
-    setMaterials([]);
-  }
-}, [selectedSupplier]); 
- useEffect(() => {
-   fetch("http://localhost:5000/api/rm-transactions/rm-invoice?type=Return")
-     .then(res => res.json())
-     .then(data => setInvoiceNo(data.invoice_no))
-     .catch(err => console.error("Error fetching invoice number:", err));
- }, []);
-
-  // Handle input changes
+  // --- Handlers ---
   const handleChange = (index, field, value) => {
     const updatedRows = [...rows];
     updatedRows[index][field] = value;
@@ -122,7 +70,6 @@ useEffect(() => {
       const qty = parseFloat(updatedRows[index].quantity) || 0;
       const price = parseFloat(updatedRows[index].unitPrice) || 0;
 
-      // check stock (supplier-specific)
       if (qty > updatedRows[index].stock) {
         toast.error(`Only ${updatedRows[index].stock} units available from this supplier!`);
         updatedRows[index].quantity = "";
@@ -135,37 +82,56 @@ useEffect(() => {
     updateGrandTotal(updatedRows);
   };
 
-  // Update Grand Total
   const updateGrandTotal = (rows) => {
-    const total = rows.reduce(
-      (sum, row) => sum + (parseFloat(row.total) || 0),
-      0
-    );
+    const total = rows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
     setGrandTotal(total);
   };
 
-  // Add new row
   const addRow = () => {
     setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }]);
   };
 
-  // Delete row
   const deleteRow = (index) => {
     const updatedRows = rows.filter((_, i) => i !== index);
     setRows(updatedRows);
     updateGrandTotal(updatedRows);
   };
 
-  // Fetch stock when material selected (supplier-specific)
-  const fetchStock = async (rm_id, index) => {
+  // 5. Form Submit (POST using api.js)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!selectedSupplier) return toast.error("Please select a supplier.");
+    if (!date) return toast.error("Please select a return date.");
+
+    const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0); 
+    if (validRows.length === 0) return toast.error("Please add at least one material item.");
+
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    const returnData = {
+      entityid: selectedSupplier,
+      grand_total: grandTotal,
+      type: "PurchaseReturn",
+      createdby: user ? user.username : "guest",
+      invoice_no: invoiceNo,
+      details: validRows.map(r => ({
+        rm_id: r.rm_id,
+        rm_name: r.rm_name,
+        quantity: r.quantity,
+        unit_price: r.unitPrice,
+        uom_id: r.uom_id,
+        date: date
+      }))
+    };
+
     try {
-      const res = await fetch(`http://localhost:5000/api/rm-transactions/stock/${rm_id}/${selectedSupplier}`);
-      const data = await res.json();
-      const updatedRows = [...rows];
-      updatedRows[index].stock = data.stock || 0;
-      setRows(updatedRows);
+      await api.post("/rm-transactions", returnData);
+      toast.success("Purchase Return Transaction Successful");
+      navigate('/rm-return');
     } catch (err) {
-      console.error("Error fetching stock:", err);
+      console.error("Error creating return:", err);
+      toast.error(err.response?.data?.message || "Error creating return!");
     }
   };
 

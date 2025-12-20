@@ -5,6 +5,7 @@ import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
+  import api from "../../api"; // Import axios instance
 
 const SupplierForm = () => {
   const navigate = useNavigate();
@@ -28,53 +29,53 @@ const SupplierForm = () => {
   const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user"));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    const finalShopId = formData.shop_id === "" ? null : formData.shop_id;
 
-    const payload = {
-      name: formData.name, 
+const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const finalShopId = formData.shop_id === "" ? null : formData.shop_id;
+
+    // Payload bilkul same rakha hai
+    const payload = {
+      name: formData.name, 
       address: formData.address,
       contact: formData.contact,
-      shop_id: finalShopId, 
-      created_by: user ? user.username : "guest", // Use username as per backend
-      type: "supplier" 
-    };
+      shop_id: finalShopId, 
+      created_by: user ? user.username : "guest", 
+      type: "supplier" 
+    };
 
-    try {
-      const res = await fetch("http://localhost:5000/api/entities", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+    try {
+      // POST request using api.js
+      const res = await api.post("/entities", payload);
 
-      if (res.ok) {
-        toast.success("Supplier added successfully!");
-        setFormData({ name: "", address: "", contact: "", shop_id: "" }); // Reset shop_id
-       navigate("/suppliers");
-      } else {
-        const errorData = await res.json();
-        toast.error(errorData.error || "Error adding supplier.");
-      }
-    } catch (err) {
-      console.error("Submit Error:", err);
-      toast.error("Server error occurred.");
-    }
-  };
+      // Axios success (200-299 status codes)
+      toast.success("Supplier added successfully!");
+      setFormData({ name: "", address: "", contact: "", shop_id: "" }); 
+      navigate("/suppliers");
+      
+    } catch (err) {
+      console.error("Submit Error:", err);
+      // Backend error message extract karein
+      const errorMsg = err.response?.data?.error || "Error adding supplier.";
+      toast.error(errorMsg);
+    }
+  };
 
-   useEffect(() => {
-    fetch("http://localhost:5000/api/shops")
-      .then((res) => res.json())
-      .then((data) => {
-        setShops(data);
-      })
-      .catch((err) => console.error("Error fetching shops:", err));
-  }, []);
-
+  // Fetching Shops (Converted to Async/Await with api.js)
+  useEffect(() => {
+    const fetchShops = async () => {
+      try {
+        const res = await api.get("/shops");
+        setShops(res.data);
+      } catch (err) {
+        console.error("Error fetching shops:", err);
+      }
+    };
+    
+    fetchShops();
+  }, []);
   return (
     <>
     <NavigationBar />

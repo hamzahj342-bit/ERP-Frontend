@@ -5,6 +5,7 @@ import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
+import api from "../../api"; 
 
 const AccountList = () => {
   const [accounts, setAccounts] = useState([]);
@@ -17,24 +18,24 @@ const AccountList = () => {
   const navigate = useNavigate();
   const userId = localStorage.getItem("user_id");
 
-  // Fetch only user-created accounts
-  const fetchAccounts = () => {
-    fetch("http://localhost:5000/api/accounts")
-      .then(res => res.json())
-      .then(data => setAccounts(data))
-      .catch(err => console.error("Error fetching accounts:", err));
+  // 1. Fetch Accounts (Converted to Async/Await)
+  const fetchAccounts = async () => {
+    try {
+      const res = await api.get("/accounts");
+      setAccounts(res.data);
+    } catch (err) {
+      console.error("Error fetching accounts:", err);
+    }
   };
 
   useEffect(() => {
     fetchAccounts();
   }, []);
 
-  // Handle change
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Edit click
   const handleEdit = (acc) => {
     setOnUpdate(acc);
     setFormData({
@@ -43,66 +44,59 @@ const AccountList = () => {
     });
   };
 
-  // Update API
-  const handleUpdate = (e) => {
+  // 2. Update API (Using api.put)
+  const handleUpdate = async (e) => {
     e.preventDefault();
 
-    fetch(`http://localhost:5000/api/accounts/${onUpdate.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    try {
+      // Headers ab api.js handle karega
+      await api.put(`/accounts/${onUpdate.id}`, {
         account_name: formData.account_name,
         account_code: formData.account_code,
-          category_id: formData.category_id,
-          updated_by: userId
-      })
-    })
-      .then(res => {
-        if (res.ok) {
-          setOnUpdate(null);
-          fetchAccounts();
-        }
-        toast.success("Account Info Updated Successfully")
-      })
-      .catch(err => console.error("Update error:", err));
+        category_id: formData.category_id,
+        updated_by: userId
+      });
+
+      setOnUpdate(null);
+      fetchAccounts();
+      toast.success("Account Info Updated Successfully");
+    } catch (err) {
+      console.error("Update error:", err);
+      toast.error("Failed to update account");
+    }
   };
 
- const handleDelete = (id) => {
-  Swal.fire({
-    title: 'Are you sure?',
-    text: "You won't be able to revert this!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Yes, delete it!'
-  }).then((result) => {
-    if (result.isConfirmed) {
-      fetch(`http://localhost:5000/api/accounts/${id}`, {
-        method: "DELETE"
-      })
-        .then(res => {
-          if (res.ok) {
-            fetchAccounts();
-            Swal.fire(
-              'Deleted!',
-              'Account has been deleted.',
-              'success'
-            );
-          }
-        })
-        .catch(err => {
+  // 3. Delete API (Using api.delete inside Swal)
+  const handleDelete = (id) => {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await api.delete(`/accounts/${id}`);
+          fetchAccounts();
+          Swal.fire(
+            'Deleted!',
+            'Account has been deleted.',
+            'success'
+          );
+        } catch (err) {
           console.error("Delete error:", err);
           Swal.fire(
             'Error!',
             'Something went wrong while deleting.',
             'error'
           );
-        });
-    }
-  });
-};
-
+        }
+      }
+    });
+  };
 
   return (
     <>

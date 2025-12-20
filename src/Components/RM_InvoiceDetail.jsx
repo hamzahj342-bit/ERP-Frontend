@@ -5,139 +5,107 @@ import Footer from "./Footer";
 import { FaArrowLeft } from "react-icons/fa";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf"; 
+import api from "../../api"; 
 
-// API Endpoints
-const RM_API_URL = "http://localhost:5000/api/rm-invoice";
-const FP_API_URL = "http://localhost:5000/api/fp-invoice"; 
-
-// --- 💡 CORRECTED HELPER FUNCTION: To standardize the data structure ---
+// --- HELPER FUNCTION: Same to Same (No Changes) ---
 const standardizeInvoice = (data, type) => {
     let detailArray;
     if (type === "RAW MATERIAL") {
-        // RM data has 'RmDetails'
         detailArray = data.RmDetails || [];
     } else if (type === "FINISHED PRODUCT") {
-        // FP data has 'details'
         detailArray = data.details || []; 
     } else {
         detailArray = [];
     }
     
-    // Map array to standardize item keys
     const items = detailArray.map(item => ({
-        // Set the correct name field for display
         display_name: type === "RAW MATERIAL" 
                         ? item.rm_name 
-                        : (item.product_name || item.fp_name), // Using product_name for FP
+                        : (item.product_name || item.fp_name),
         quantity: item.quantity,
         uom: item.uom,
         unit_price: item.unit_price,
         total_price: item.total_price,
     }));
 
-    // Find the date
     const dateSource = data.date || detailArray[0]?.date;
 
     return {
         ...data,
         type: type, 
-        items: items, // Standardized key for the item array
-        date: dateSource // Standardized date field
+        items: items, 
+        date: dateSource 
     };
 };
-// --- END HELPER FUNCTION ---
-
 
 const RM_InvoiceDetail = () => {
     const [invoiceNo, setInvoiceNo] = useState("");
     const [invoice, setInvoice] = useState(null);
     const [error, setError] = useState("");
-
     const navigate = useNavigate();
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
-
         const date = new Date(dateString);
-
-        if (isNaN(date.getTime())) {
-            console.error("Invalid date string received:", dateString);
-            return 'Invalid Date Format'; 
-        }
-
+        if (isNaN(date.getTime())) return 'Invalid Date Format'; 
         return date.toLocaleDateString('en-GB', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+            year: 'numeric', month: 'short', day: 'numeric' 
         });
     };
 
     const generatePdf = () => {
         const input = document.getElementById("invoice-detail");
-        if (!input) {
-            console.error("Invoice content element not found.");
-            return;
-        }
+        if (!input) return;
         const option = {
-            scale: 2,
-            useCORS: true,
+            scale: 2, useCORS: true,
             ignoreElements: (element) => element.classList.contains("no-print")
         }
-
-        html2canvas(input, option)
-        .then((canvas) => {
+        html2canvas(input, option).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4'); 
             const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             pdf.save(`Invoice-${invoice.invoice_no}.pdf`); 
-        })
-        .catch(err => {
-            console.error("PDF generation failed:", err);
         });
     }
 
+    // --- HANDLE SEARCH (Using api.js) ---
     const handleSearch = async () => {
         setError("");
         setInvoice(null); 
 
         // 1. Try to fetch RM Invoice first
         try {
-            const rmRes = await fetch(`${RM_API_URL}/${invoiceNo}`);
-            if (rmRes.ok) {
-                const rmData = await rmRes.json();
-                // Check agar RM data mein items hain
-                if (rmData.RmDetails && rmData.RmDetails.length > 0) {
-                    setInvoice(standardizeInvoice(rmData, "RAW MATERIAL")); 
-                    return; 
-                }
+            // fetch ki jagah api.get
+            const rmRes = await api.get(`/rm-invoice/${invoiceNo}`);
+            const rmData = rmRes.data; 
+
+            if (rmData.RmDetails && rmData.RmDetails.length > 0) {
+                setInvoice(standardizeInvoice(rmData, "RAW MATERIAL")); 
+                return; 
             }
         } catch (err) {
-             console.log("RM API error or Invoice not found, trying FP API...");
+             console.log("RM Invoice not found, trying FP...");
         }
 
-        // 2. Try to fetch FP Invoice (If RM failed or returned no details)
+        // 2. Try to fetch FP Invoice
         try {
-            const fpRes = await fetch(`${FP_API_URL}/${invoiceNo}`);
-            if (fpRes.ok) {
-                const fpData = await fpRes.json();
-                // 💡 CRITICAL CHECK: FP data field 'details'
-                if (fpData.details && fpData.details.length > 0) { 
-                    setInvoice(standardizeInvoice(fpData, "FINISHED PRODUCT"));
-                    return; 
-                }
+            const fpRes = await api.get(`/fp-invoice/${invoiceNo}`);
+            const fpData = fpRes.data;
+
+            if (fpData.details && fpData.details.length > 0) { 
+                setInvoice(standardizeInvoice(fpData, "FINISHED PRODUCT"));
+                return; 
             }
         } catch (err) {
             console.error("FP API call failed:", err);
         }
 
-        // 3. If neither is found
         setError("Invoice not found in Raw Material or Finished Product records.");
     };
-
+    
     const invoiceDateSource = invoice?.date;
 
 

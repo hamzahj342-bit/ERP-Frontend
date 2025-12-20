@@ -4,6 +4,7 @@ import NavigationBar from '../Components/NavigationBar'; // Assuming path
 import Footer from '../Components/Footer';             // Assuming path
 import { toast } from 'react-toastify';
 import { FaArrowLeft } from 'react-icons/fa';
+import api from "../../api"; 
 
 const ProductBatchList = () => {
     const [batches, setBatches] = useState([]);
@@ -11,33 +12,25 @@ const ProductBatchList = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
+        const fetchBatches = async () => {
+            try {
+                // headers ab api.js handle karega (interceptors ke zariye)
+                const res = await api.get("/product-batches");
 
-        // 🛑 Assumes a backend endpoint: http://localhost:5000/api/product-batches
-        fetch("http://localhost:5000/api/product-batches", {
-            headers: {
-                Authorization: `Bearer ${token}`
+                // Jo data backend se join ke saath aa raha hai, wahi batches mein jayega
+                setBatches(res.data);
+                setLoading(false);
+            } catch (err) {
+                console.error("Error fetching batches:", err);
+                toast.error("Failed to load product batch data.");
+                setLoading(false);
             }
-        })
-        .then(res => {
-            if (!res.ok) {
-                throw new Error("Failed to fetch product batch data");
-            }
-            return res.json();
-        })
-        .then(data => {
-            // NOTE: If your backend joins ProductMaster, the data structure might need adjustment
-            setBatches(data);
-            setLoading(false);
-        })
-        .catch(err => {
-            console.error("Error fetching batches:", err);
-            toast.error("Failed to load product batch data.");
-            setLoading(false);
-        });
+        };
+
+        fetchBatches();
     }, []);
 
-    // Helper to format date
+    // Format date logic same to same
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString();

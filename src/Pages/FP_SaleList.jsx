@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
+import api from '../../api';
 
 const FP_SaleList = () => {
   const [sales, setSales] = useState([]);
@@ -15,9 +16,18 @@ const FP_SaleList = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/fp-sale?type=Sale&page=${page}&limit=${limit}`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchSales = async () => {
+      try {
+        // Query parameters ko 'params' object mein bhej rahe hain
+        const res = await api.get("/fp-sale", {
+          params: {
+            type: "Sale",
+            page: page,
+            limit: limit
+          }
+        });
+
+        const data = res.data;
         console.log("FG Sale API Response:", data);
 
         if (data.data) {
@@ -26,17 +36,19 @@ const FP_SaleList = () => {
         } else {
           setSales([]);
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("Error fetching FG sales:", error);
         setSales([]);
-      });
+      }
+    };
+
+    fetchSales();
   }, [page]);
 
   const handleViewDetails = (invoiceNo) => {
     navigate(`/fp-invoice-detail/${invoiceNo}`);
   };
-
+  
   return (
     <>
       <NavigationBar />

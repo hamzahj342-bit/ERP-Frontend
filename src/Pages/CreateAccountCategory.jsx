@@ -5,6 +5,7 @@ import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
+import api from "../../api"; 
 
 const CreateAccountCategory = () => {
   const navigate = useNavigate();
@@ -14,14 +15,12 @@ const CreateAccountCategory = () => {
     category_code: "", // read-only, auto from backend
   });
 
-  // Fetch next category code from backend on load
+  // 1. Fetch next category code (GET)
   const fetchNextCategoryCode = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/account-categories/next-code");
-      if (res.ok) {
-        const data = await res.json();
-        setFormData(prev => ({ ...prev, category_code: data.next_code }));
-      }
+      const res = await api.get("/account-categories/next-code");
+      // Axios automatically parses JSON into res.data
+      setFormData(prev => ({ ...prev, category_code: res.data.next_code }));
     } catch (err) {
       console.error("Error fetching next category code:", err);
     }
@@ -39,8 +38,9 @@ const CreateAccountCategory = () => {
     }));
   };
 
-  const userId = localStorage.getItem("user_id")
+  const userId = localStorage.getItem("user_id");
 
+  // 2. Handle Submit (POST)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -50,30 +50,25 @@ const CreateAccountCategory = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/account-categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-           category_name: formData.category_name,
-           category_code: formData.category_code,
-           created_by: userId
-        }),
+      // api.post handles JSON stringify and headers automatically
+      const res = await api.post("/account-categories", {
+        category_name: formData.category_name,
+        category_code: formData.category_code,
+        created_by: userId
       });
 
-      if (res.ok) {
-        toast.success("Category created successfully!");
-        setFormData({ category_name: "", category_code: "" });
-        fetchNextCategoryCode(); // get next code for new entry
-        navigate("/account-categories");
-      } else {
-        toast.error("Error creating category.");
-      }
+      toast.success("Category created successfully!");
+      setFormData({ category_name: "", category_code: "" });
+      fetchNextCategoryCode(); // get next code for new entry
+      navigate("/account-categories");
+
     } catch (err) {
       console.error("Submit Error:", err);
-      toast.error("Server error occurred.");
+      // Backend error message handle karein
+      const errorMsg = err.response?.data?.message || "Error creating category.";
+      toast.error(errorMsg);
     }
   };
-
   return (
     <>
       <NavigationBar />

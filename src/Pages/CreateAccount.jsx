@@ -5,6 +5,7 @@ import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
+import api from "../../api"; 
 
 const AccountForm = () => {
   const navigate = useNavigate();
@@ -17,14 +18,11 @@ const AccountForm = () => {
 
   const [categories, setCategories] = useState([]);
 
-  // Fetch user-created categories
+  // 1. Fetch categories (GET using api.js)
   const fetchCategories = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/account-categories");
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data);
-      }
+      const res = await api.get("/account-categories");
+      setCategories(res.data);
     } catch (err) {
       console.error("Error fetching categories:", err);
     }
@@ -34,15 +32,15 @@ const AccountForm = () => {
     fetchCategories();
   }, []);
 
-  // Fetch next account code for selected category
+  // 2. Fetch next account code (GET with params)
   const fetchNextCode = async (category_id) => {
     if (!category_id) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/accounts/next-code?category_id=${category_id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFormData(prev => ({ ...prev, account_code: data.next_code }));
-      }
+      // Axios mein query params 'params' object se bheje jate hain
+      const res = await api.get("/accounts/next-code", {
+        params: { category_id }
+      });
+      setFormData(prev => ({ ...prev, account_code: res.data.next_code }));
     } catch (err) {
       console.error("Error fetching next account code:", err);
     }
@@ -51,7 +49,6 @@ const AccountForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // If category changes, fetch new account code
     if (name === "category_id") {
       setFormData(prev => ({ ...prev, category_id: value, account_code: "" }));
       fetchNextCode(value);
@@ -60,8 +57,9 @@ const AccountForm = () => {
     }
   };
 
-  const token = localStorage.getItem("token");
- const userId = localStorage.getItem("user_id");
+  const userId = localStorage.getItem("user_id");
+
+  // 3. Handle Submit (POST using api.js)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -71,29 +69,20 @@ const AccountForm = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/accounts", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-         },
-        body: JSON.stringify({
-          account_name: formData.account_name,
-          category_id: formData.category_id,
-          created_by: userId // replace with dynamic user if needed
-        })
+      // Headers (token) automatic interceptor se handle honge
+      const res = await api.post("/accounts", {
+        account_name: formData.account_name,
+        category_id: formData.category_id,
+        created_by: userId
       });
 
-      if (res.ok) {
-        toast.success("Account created successfully!");
-        setFormData({ account_name: "", category_id: "", account_code: "" });
-        navigate("/accounts");
-      } else {
-        toast.error("Error creating account.");
-      }
+      toast.success("Account created successfully!");
+      setFormData({ account_name: "", category_id: "", account_code: "" });
+      navigate("/accounts");
     } catch (err) {
       console.error("Submit Error:", err);
-      toast.error("Server error occurred.");
+      const errorMsg = err.response?.data?.message || "Error creating account.";
+      toast.error(errorMsg);
     }
   };
 
