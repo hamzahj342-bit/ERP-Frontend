@@ -130,12 +130,12 @@ const Dashboard = () => {
   return (
     <div>
       <MainLayout />
-      <div className="dashboard">
+      <div className="dashboard ">
         <div className="dashboard-title">Dashboard</div>
 
         <div className="dashboard-content">
         {/* 📊 Charts Section */}
-<div className="chart-section">
+<div className="chart-section ">
   {/* 🟩 Bar Chart */}
   <div className="chart-box">
     <h3>Raw Material vs Finished Product Sales</h3>

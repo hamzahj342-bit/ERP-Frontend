@@ -268,11 +268,11 @@ const FP_SaleReturnForm = () => {
                   onChange={(e) => handleProductSelectChange(e, index)} 
                 >
                   <option value="">Select Product</option> 
-                  {products.map((p, pIndex) => (
-                    <option key={`${p.recipe_id}-${pIndex}`} value={p.recipe_id}>
-                      {p.name}
-                    </option>
-                  ))}
+                  {Array.from(new Map(products.map(p => [p.recipe_id, p])).values()).map((p) => (
+    <option key={p.recipe_id} value={p.recipe_id}>
+      {p.name}
+    </option>
+  ))}
                 </select>
                 <input
                   type="text"
