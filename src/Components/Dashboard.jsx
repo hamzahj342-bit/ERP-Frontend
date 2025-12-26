@@ -149,8 +149,8 @@ const Dashboard = () => {
         <YAxis />
         <Tooltip />
         <Legend />
-        <Bar dataKey="rawMaterial" fill="#4caf50" barSize={30} />
-        <Bar dataKey="finishedProductSales" fill="#f44336" barSize={30} />
+        <Bar dataKey="rawMaterial" fill="#4caf50" barSize={100} />
+        <Bar dataKey="finishedProductSales" fill="#f44336" barSize={100} />
       </BarChart>
     </ResponsiveContainer>
   </div>

@@ -115,9 +115,10 @@ const menuSections = [
         { icon: <FaTools />, label: "FP Production", path: "/fp-production" }, // Light Steel Blue for process
         { icon: <FaExchangeAlt  />, label: "FP Transactions", path: "/fp-transactions" }, // Orange-Red for flow/transactions
         { icon: <FaLayerGroup /> , label: "Product Batches", path: "/product-batches" },
+        { icon: <FaHistory /> , label: "FP History", path: "/finished-products" }, // Darker Blue for History
       ],
     },
-    
+     
     // --- ACCOUNTS (Theme: Gold/Orange for Money/Finance) ---
     {
       type: "heading",

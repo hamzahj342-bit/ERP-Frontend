@@ -58,6 +58,7 @@ import Reports from './Layout/Reports';
 import ProfitLoss from './Components/ProfitLoss';
 import AccountLedger from './Components/AccountsLedger';
 import ProductBatchList from './Components/ProductBatchList';
+import Finished_ProductList from './Pages/Finished_ProductList';
 
 
 const App = () => {
@@ -109,6 +110,7 @@ const App = () => {
         <Route path="/fp-salereturn-form" element={<ProtectedRoute> <FP_SaleReturnForm /> </ProtectedRoute>} />
         <Route path="/fp-invoice-detail/:invoiceNo" element={<ProtectedRoute> <FP_InvoiceDetail /> </ProtectedRoute>} />
         <Route path="/product-batches" element={<ProtectedRoute> <ProductBatchList /> </ProtectedRoute>} />
+        <Route path="/finished-products" element={<ProtectedRoute> <Finished_ProductList /> </ProtectedRoute>} />
         
         <Route path="/account-categories" element={<ProtectedRoute> <AccountCategoryList/> </ProtectedRoute>} />
         <Route path="/create-category" element={<ProtectedRoute> <CreateAccountCategory /> </ProtectedRoute>} />

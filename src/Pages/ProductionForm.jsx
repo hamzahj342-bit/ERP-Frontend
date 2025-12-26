@@ -184,7 +184,7 @@ const ProductionForm = () => {
     try {
       const res = await api.post("/production", payload);
       toast.success("Product created successfully!");
-      navigate("/production");
+      navigate("/finished-products");
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Something went wrong");
