@@ -148,6 +148,7 @@ const RM_SaleForm = () => {
                 rm_name: r.rm_name,
                 quantity: r.quantity,
                 unit_price: r.unitPrice,
+                total_price: r.total,
                 uom_id: r.uom_id,
                 supplier_id: r.supplier_id, 
                 date: date

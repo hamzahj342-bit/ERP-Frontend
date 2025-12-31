@@ -102,6 +102,7 @@ const RM_SaleReturnForm = () => {
         rm_name: r.rm_name,
         quantity: r.quantity,
         unit_price: r.unitPrice,
+        total_price: r.total,
         uom_id: r.uom_id,
         date,
         supplier_name: r.supplier_name,
