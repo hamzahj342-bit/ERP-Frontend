@@ -240,7 +240,7 @@ const AccountLedger = () => {
                 <thead>
                   <tr className="bg-gray-200">
                     <th className="border p-2">Date</th>
-                    <th className="border p-2">Narration</th>
+                    <th className="border p-2">Description</th>
                     <th className="border p-2 text-right">Debit</th>
                     <th className="border p-2 text-right">Credit</th>
                     <th className="border p-2 text-right">Balance</th>
@@ -255,7 +255,7 @@ const AccountLedger = () => {
                   {transactionsWithRunningBalance.map((t) => (
                     <tr key={t.id}>
                       <td className="border p-2">{t.date.split('T')[0]}</td>
-                      <td className="border p-2">{t.narration}</td>
+                      <td className="border p-2">{t.description}</td>
                       <td className="border p-2 text-right">{t.debit > 0 ? formatCurrency(t.debit) : ''}</td>
                       <td className="border p-2 text-right">{t.credit > 0 ? formatCurrency(t.credit) : ''}</td>
                       <td className="border p-2 text-right font-medium">{formatCurrency(t.displayBalance)}</td>
