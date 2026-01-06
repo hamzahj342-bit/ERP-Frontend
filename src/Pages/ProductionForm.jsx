@@ -9,7 +9,6 @@ import api from "../../api";
 
 const ProductionForm = () => {
   const navigate = useNavigate();
-
   const user = JSON.parse(localStorage.getItem("user"));
 
   const [formData, setFormData] = useState({
@@ -24,7 +23,7 @@ const ProductionForm = () => {
   const [grandTotal, setGrandTotal] = useState(0);
   const [uoms, setUoms] = useState([]);
 
-  // ✅ Fetch all recipes for dropdown
+  // 1. Fetch all recipes
   const fetchRecipes = async () => {
     try {
       const res = await api.get("/recipe");
@@ -34,6 +33,7 @@ const ProductionForm = () => {
     }
   };
 
+  // 2. Fetch UOMs
   const fetchUOMs = async () => {
     try {
       const res = await api.get("/uoms/uoms"); 
@@ -43,21 +43,19 @@ const ProductionForm = () => {
     }
   };
 
-  // ✅ Fetch recipe materials + stock when recipe selected
+  // 3. Fetch Materials & Sub-Products with Stock
   const fetchRecipeDetails = async (recipeId) => {
     try {
-      console.log("Fetching recipe details for ID:", recipeId);
       const res = await api.get(`/production/${recipeId}/materials`);
-      
       const data = res.data;
-      console.log("📦 Recipe details:", data);
 
-      // Set initial editable material rows
-      const filled = data.map((mat) => ({
-        ...mat,
-        unit_price: mat.unit_price || 0,
-        quantity: mat.quantity || 0,
+      const filled = data.map((item) => ({
+        ...item,
+        display_name: item.name, // Uniform name for RM and FP
+        unit_price: item.unit_price || 0,
+        quantity: 0,
         total_price: 0,
+        type: item.type // RM or FP
       }));
       setMaterials(filled);
     } catch (err) {
@@ -66,109 +64,65 @@ const ProductionForm = () => {
     }
   };
 
-  // ✅ Handle product name & recipe dropdown
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ✅ Handle recipe select
   const handleRecipeSelect = (e) => {
     const recipeId = e.target.value;
-    // Aapka original column name recipe_master_id hi rakha hai
     setFormData({ ...formData, recipe_master_id: recipeId });
     if (recipeId) fetchRecipeDetails(recipeId);
     else setMaterials([]);
   };
 
-  // ✅ Update unit price or quantity & auto calculate totals
-  const handleMaterialChange = (index, field, value) => {
-    const updated = [...materials];
-    updated[index][field] = parseFloat(value) || 0;
-    
-    // --- 🛑 Stock Validation ---
-    if (field === "quantity" && updated[index].quantity > updated[index].total_available_stock) {
-      toast.error(`Stock: Sirf ${updated[index].total_available_stock} units available hain!`);
-      updated[index].quantity = updated[index].total_available_stock;
-    }
-    
-    // --- ✅ NEW: Percentage Validation ---
-    const matPercentage = parseFloat(updated[index].percentage) || 0;
-    const productionQty = parseFloat(formData.production_quantity) || 0;
-
-    if (field === "quantity" && productionQty > 0) {
-        const requiredQty = (productionQty * matPercentage) / 100;
-        if (updated[index].quantity !== requiredQty) {
-            toast.error(
-                `Percentage Error: ${updated[index].rm_name} ki required quantity ${requiredQty} ${updated[index].uom_name} hai.`
-            );
-        }
-    }
-
-    updated[index].total_price = (updated[index].unit_price * updated[index].quantity);
-    setMaterials(updated);
-  };
-
-  // ✅ Handle production quantity change
+  // 4. Auto-calculate everything when Production Quantity changes
   const handleProductionQuantityChange = (e) => {
     const newQty = parseFloat(e.target.value) || 0;
-    setFormData({ ...formData, production_quantity: newQty });
+    setFormData({ ...formData, production_quantity: e.target.value });
+
+    if (!materials.length) return;
 
     const updated = materials.map(mat => {
-        const matPercentage = parseFloat(mat.percentage) || 0;
-        const requiredQty = (newQty * matPercentage) / 100;
+      const matPercentage = parseFloat(mat.percentage) || 0;
+      const requiredQty = (newQty * matPercentage) / 100;
 
-        // Assuming calculateDynamicFIFOCost is available in your scope
-        const dynamicFIFOCost = typeof calculateDynamicFIFOCost === 'function' 
-            ? calculateDynamicFIFOCost(mat.fifo_batches, requiredQty) 
-            : mat.unit_price;
-        
-        if (requiredQty > mat.total_available_stock) {
-            toast.error(`Stock Error: ${mat.rm_name} required qty exceeds available stock.`);
-            mat.quantity = mat.total_available_stock;
-        } else {
-            mat.quantity = requiredQty;
-        }
-
-        mat.unit_price = dynamicFIFOCost;
-        mat.total_price = (mat.unit_price * mat.quantity);
-        return mat;
+      // Calculate FIFO Cost based on batches
+      let dynamicFIFOCost = mat.unit_price;
+      if (typeof calculateDynamicFIFOCost === 'function' && mat.fifo_batches?.length > 0) {
+        dynamicFIFOCost = calculateDynamicFIFOCost(mat.fifo_batches, requiredQty);
+      }
+      
+      return {
+        ...mat,
+        quantity: requiredQty,
+        unit_price: dynamicFIFOCost,
+        total_price: (dynamicFIFOCost * requiredQty)
+      };
     });
     setMaterials(updated);
   };
 
-  // ✅ Recalculate grand total
+  // 5. Recalculate grand total
   useEffect(() => {
-    const total = materials.reduce(
-      (sum, mat) => sum + parseFloat(mat.total_price || 0),
-      0
-    );
+    const total = materials.reduce((sum, mat) => sum + parseFloat(mat.total_price || 0), 0);
     setGrandTotal(total);
   }, [materials]);
 
-  // ✅ Submit form (Using api.js POST)
+  // 6. Final Submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.product_name.trim()) {
-      toast.error("Please enter product name");
-      return;
-    }
-    if (!formData.recipe_master_id) {
-      toast.error("Please select a recipe");
-      return;
+    if (!formData.product_name.trim() || !formData.recipe_master_id || !formData.uom_id) {
+      return toast.error("Please fill all product header fields");
     }
 
     if (parseFloat(formData.production_quantity) <= 0) {
-      toast.error("Please enter a valid production quantity.");
-      return;
+      return toast.error("Enter a valid production quantity.");
     }
 
-    const insufficientStock = materials.some(mat => 
-        parseFloat(mat.quantity) > parseFloat(mat.total_available_stock)
-    );
-
-    if (insufficientStock) {
-        toast.error("One or more materials have insufficient stock.");
-        return;
+    // Stock check before saving
+    const outOfStock = materials.filter(mat => mat.quantity > mat.total_available_stock);
+    if (outOfStock.length > 0) {
+      return toast.error(`Insufficient stock for: ${outOfStock.map(i => i.display_name).join(", ")}`);
     }
 
     const payload = {
@@ -182,12 +136,11 @@ const ProductionForm = () => {
     };
 
     try {
-      const res = await api.post("/production", payload);
-      toast.success("Product created successfully!");
+      await api.post("/production", payload);
+      toast.success("Production saved successfully!");
       navigate("/finished-products");
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Something went wrong");
+      toast.error(err.response?.data?.message || "Production failed to save");
     }
   };
 
@@ -195,159 +148,58 @@ const ProductionForm = () => {
     fetchRecipes();
     fetchUOMs();
   }, []);
-  
 
   return (
     <>
       <NavigationBar />
       <div className="rm-page">
-        <button
-          className="back-btn"
-          style={{ marginTop: "30px" }}
-          onClick={() => navigate("/production")}
-        >
+        <button className="back-btn" style={{ marginTop: "30px" }} onClick={() => navigate("/production")}>
           <FaArrowLeft />
         </button>
 
         <div className="rm-card">
-          <h2>Production Form</h2>
+          <h2>Production Form (Sub-Assembly Ready)</h2>
           <form onSubmit={handleSubmit}>
-            {/* ✅ Product Name */}
-            <input
-              className="input"
-              type="text"
-              name="product_name"
-              placeholder="Product Name"
-              value={formData.product_name}
-              onChange={handleInputChange}
-            />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+              <input className="input" type="text" name="product_name" placeholder="Finished Product Name" value={formData.product_name} onChange={handleInputChange} />
+              <select className="input" name="recipe_master_id" value={formData.recipe_master_id} onChange={handleRecipeSelect}>
+                <option value="">Select Recipe</option>
+                {recipes.map((r) => <option key={r.recipe_id} value={r.recipe_id}>{r.name}</option>)}
+              </select>
+              <select className="input" name="uom_id" value={formData.uom_id} onChange={handleInputChange}>
+                <option value="">Select UOM</option>
+                {uoms.map((u) => <option key={u.id} value={u.id}>{u.uom_name}</option>)}
+              </select>
+              <input className="input" type="number" name="production_quantity" placeholder="Quantity to Produce" value={formData.production_quantity} onChange={handleProductionQuantityChange} />
+            </div>
 
-            {/* ✅ Select Recipe */}
-            <select
-              className="input"
-              name="recipe_id"
-              value={formData.recipe_id}
-              onChange={handleRecipeSelect}
-            >
-              <option value="">Select Recipe</option>
-              {recipes.map((r) => (
-                <option key={r.recipe_id} value={r.recipe_id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-            {/* ✅ Select Product UOM (KG / LITRE) */}
-<select
-  className="input"
-  name="uom_id" // State key is: uom_id
-  value={formData.uom_id}
-  onChange={handleInputChange} 
->
-  <option value="">Select Product UOM (Kg/Litre)</option>
-  {uoms.map((u) => (
-    <option key={u.id} value={u.id}>
-      {u.uom_name}
-    </option>
-  ))}
-</select>
-            {/* ✅ NEW: Production Quantity */}
-            <input
-              className="input"
-              type="number"
-              name="production_quantity"
-              placeholder="Production Quantity (Finished Product)"
-              value={formData.production_quantity}
-              onChange={handleProductionQuantityChange} // ✅ Naya handler use kia
-              />
-
-            <h3 style={{ marginTop: "20px" }}>Recipe Materials</h3>
-
-            {/* ✅ Auto-filled materials section */}
-            <div style={{ marginTop: "20px" }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1fr 1fr",
-                  fontWeight: "bold",
-                  background: "#f5f5f5",
-                  padding: "10px",
-                  borderRadius: "8px",
-                  marginBottom: "10px",
-                }}
-              >
-                <span>Material Name</span>
-                <span>Stock</span>
-                <span>UOM</span>
-                <span>% Percentage</span>
-                <span>Unit Price</span>
-                <span>Quantity</span>
-                <span>Total Price</span>
+            <h3 style={{ marginTop: "30px" }}>Material & Sub-Product Requirements</h3>
+            <div style={{ marginTop: "10px", overflowX: "auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2.5fr 1fr 1fr 1fr 1.2fr 1fr 1.2fr", fontWeight: "bold", background: "#eee", padding: "10px", borderRadius: "5px" }}>
+                <span>Item</span><span>Stock</span><span>UOM</span><span>%</span><span>Cost</span><span>Required</span><span>Total</span>
               </div>
 
-              {materials.length === 0 ? (
-                <p style={{ color: "#888" }}>Select a recipe to view its materials</p>
-              ) : (
-                materials.map((mat, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 1fr 1fr",
-                      gap: "10px",
-                      marginBottom: "10px",
-                      alignItems: "center",
-                    }}
-                  >
-                    <input className="input" value={mat.rm_name || ""} readOnly />
-                    <input className="input" value={mat.total_available_stock || ""} readOnly />
-                    <input className="input" value={mat.uom_name || ""} readOnly />
-                    <input className="input" value={parseFloat(mat.percentage || "").toFixed(4)} readOnly />
-
-                    {/* Editable unit price */}
-                    <input
-                      className="input"
-                      placeholder="Unit Price"
-                      type="number"
-                      value={parseFloat(mat.unit_price || "")}
-                      onChange={(e) =>
-                        handleMaterialChange(index, "unit_price", e.target.value)
-                      }
-                      readOnly
-                    />
-
-                    {/* Editable quantity */}
-                    <input
-                      className="input"
-                      placeholder="Quantity"
-                      type="number"
-                      value={mat.quantity || ""}
-                      onChange={(e) =>
-                        handleMaterialChange(index, "quantity", e.target.value)
-                      }
-                      readOnly
-                    />
-
-                    {/* Auto total */}
-                    <input
-                      className="input"
-                      value={mat.total_price || 0}
-                      readOnly
-                    />
+              {materials.map((mat, index) => {
+                const isShort = mat.quantity > mat.total_available_stock;
+                return (
+                  <div key={index} style={{ 
+                    display: "grid", gridTemplateColumns: "2.5fr 1fr 1fr 1fr 1.2fr 1fr 1.2fr", gap: "10px", padding: "10px 5px", borderBottom: "1px solid #ddd",
+                    background: isShort ? "#fff1f1" : "transparent"
+                  }}>
+                    <span style={{ fontWeight: "500" }}>{mat.type === 'FP' ? '📦 ' : '🧪 '}{mat.display_name}</span>
+                    <span style={{ color: isShort ? "red" : "inherit" }}>{mat.total_available_stock}</span>
+                    <span>{mat.uom_name}</span>
+                    <span>{mat.percentage.toFixed(4)}%</span>
+                    <span>{mat.unit_price.toFixed(2)}</span>
+                    <span style={{ fontWeight: "bold", color: isShort ? "red" : "blue" }}>{mat.quantity.toFixed(2)}</span>
+                    <span>{mat.total_price.toFixed(2)}</span>
                   </div>
-                ))
-              )}
+                );
+              })}
             </div>
 
-            {/* ✅ Grand total display */}
-            <h3 style={{ marginTop: "20px", textAlign: "right" }}>
-              Grand Total: {grandTotal}
-            </h3>
-
-            <div className="form-actions" style={{ marginTop: "20px" }}>
-              <button type="submit" className="save-btn">
-                Save Product
-              </button>
-            </div>
+            <h3 style={{ textAlign: "right", marginTop: "20px", color: "#2c3e50" }}>Grand Total Cost: {grandTotal.toFixed(2)}</h3>
+            <div className="form-actions"><button type="submit" className="save-btn">Complete Production</button></div>
           </form>
         </div>
       </div>

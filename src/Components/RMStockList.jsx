@@ -126,6 +126,8 @@ const RMStockList = () => {
                                     <th>Material Name</th>
                                     <th>Supplier Name</th>
                                     <th>Avg Unit Cost</th>
+                                    <th>Sold Qty</th>
+                                    <th>Consumed Qty</th>
                                     <th>Current Stock</th>
                                     <th>Current Stock Price</th>
                                     <th>UOM</th> 
@@ -140,7 +142,12 @@ const RMStockList = () => {
                                         <td>{item.supplier_name}</td> 
                                         {/* Display stock with fixed decimal points for better readability */}
                                         <td>{parseFloat(item.avg_unit_cost).toFixed(2)}</td>
-                                        <td>{parseFloat(item.current_stock).toFixed(4)}</td> 
+                                        <td style={{ textAlign: 'center', color: '#e74c3c' }}>
+                                                {parseFloat(item.sold_qty).toFixed(4)}
+                                        </td>
+                                        <td>{parseFloat(item.consumed_qty).toFixed(4)}</td>
+                                        <td style={{fontWeight: 'bold', color: '#27ae60'}}
+                                        >{parseFloat(item.current_stock).toFixed(4)}</td> 
                                         <td>{parseFloat(item.current_stock_price).toFixed(2)}</td>
                                         <td>{item.uom_name}</td> 
                                     </tr>

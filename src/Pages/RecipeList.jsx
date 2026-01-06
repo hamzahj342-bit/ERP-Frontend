@@ -109,8 +109,9 @@ const RecipeList = () => {
                     <td>{parseFloat(r.current_stock ?? "-")}</td>
                     <td>{parseFloat(r.current_stock_price ?? "-")}</td>
                     <td>
-                      <button className="edit-btn" disabled={isDisabled} 
-                      style={{ cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
+                      <button className="edit-btn" 
+                      // disabled={isDisabled} 
+                      // style={{ cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
                       onClick={() => navigate(`/add-recipe/${r.recipe_id}`)} >
                          {/* <FaEdit /> */}
                          Edit

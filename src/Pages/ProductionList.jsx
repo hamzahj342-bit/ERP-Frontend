@@ -94,7 +94,7 @@ const ProductionList = () => {
                     <td>{p.uom ? p.uom.name : 'N/A'}</td>  
                     <td>{parseFloat(p.unit_price) ?? "—"}</td>
                     <td>{parseFloat(p.current_stock) ?? "-"}</td>
-                    <td>{parseFloat(p.current_stock_price) ?? "-"}</td>
+                    <td>{parseFloat(p.current_stock_price).toFixed(2) ?? "-"}</td>
                   </tr>
                 ))
               ) : (

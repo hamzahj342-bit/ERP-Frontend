@@ -73,6 +73,7 @@ const FinishedProductList = () => {
                                     <th style={{ textAlign: 'center' }}>Original Qty</th>
                                     <th style={{ textAlign: 'center' }}>Sold Qty</th>
                                     <th style={{ textAlign: 'center' }}>Available Stock</th>
+                                    <th style={{textAlign: 'center' }}>Consumed Qty</th>
                                     <th>Unit Cost</th>
                                     <th>Production Date</th>
                                 </tr>
@@ -99,6 +100,7 @@ const FinishedProductList = () => {
                                             }}>
                                                 {currentStock.toFixed(3)}
                                             </td>
+                                            <td style={{ textAlign: 'center' }}>{parseFloat(item.consumed_qty || 0).toFixed(3)}</td>
                                             <td>{parseFloat(item.unit_cost).toFixed(2)}</td>
                                             <td>{formatDate(item.createdat)}</td>
                                         </tr>
