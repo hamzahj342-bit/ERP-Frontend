@@ -23,7 +23,7 @@ const PaymentTransactionForm = () => {
         to_account_id: "",
         debit: "",
         credit: "",
-        transaction_date: new Date().toISOString().split("T")[0],
+        transaction_date: "",
         description: "",
         entity_id: ""
     });
@@ -123,6 +123,10 @@ const PaymentTransactionForm = () => {
         // Validation logic same hai jo aapne di thi
         if (!formData.from_account_id || !formData.to_account_id) {
             toast.error("Please select both accounts.");
+            return;
+        }
+        if (formData.transaction_date === "") {
+            toast.error("Please select a transaction date.");
             return;
         }
 

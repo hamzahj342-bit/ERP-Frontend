@@ -140,7 +140,7 @@ const RMStockList = () => {
                                         <td>{item.supplier_name}</td> 
                                         {/* Display stock with fixed decimal points for better readability */}
                                         <td>{parseFloat(item.avg_unit_cost).toFixed(2)}</td>
-                                        <td>{parseFloat(item.current_stock).toFixed(2)}</td> 
+                                        <td>{parseFloat(item.current_stock).toFixed(4)}</td> 
                                         <td>{parseFloat(item.current_stock_price).toFixed(2)}</td>
                                         <td>{item.uom_name}</td> 
                                     </tr>

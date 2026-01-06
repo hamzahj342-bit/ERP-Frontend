@@ -100,7 +100,7 @@ const menuSections = [
       label: "RAW MATERIAL",
       icon: <FaSeedling  />, // White for Heading
       children: [
-        { icon: <MdScience /> , label: "Add Materials", path: "/add-materials" }, // Light Green for New Entry
+        { icon: <MdScience /> , label: "Materials List", path: "/materials-list" }, // Light Green for New Entry
         { icon: <FaBoxes />, label: "RM Stocks", path: "/rm-stock" }, // Cyan for Inventory/Stock
         { icon: <FaExchangeAlt /> , label: "RM Transactions", path: "/rm-transactions" }, // Orange-Red for flow/transactions
       ],

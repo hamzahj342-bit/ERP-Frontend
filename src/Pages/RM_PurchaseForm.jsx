@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import '../Model.css'
 
 const RM_PurchaseForm = () => {
     const navigate = useNavigate();
@@ -20,6 +21,9 @@ const RM_PurchaseForm = () => {
     const [subTotal, setSubTotal] = useState(0); 
     const [globalDiscount, setGlobalDiscount] = useState(""); 
     const [grandTotal, setGrandTotal] = useState(0);
+    const [showSupplierModal, setShowSupplierModal] = useState(false);
+    const [showMaterialModal, setShowMaterialModal] = useState(false);
+    const [uoms, setUoms] = useState([]);
 
     // 🔹 Fetch Next Invoice Number (Using api.js)
     const fetchInvoiceNo = useCallback(async () => {
@@ -154,6 +158,87 @@ const RM_PurchaseForm = () => {
         }
     };
 
+    const handleQuickSupplierAdd = async () => {
+    const name = document.getElementById('new_sup_name').value;
+    const contact = document.getElementById('new_sup_contact').value;
+    const address = document.getElementById('new_sup_address').value;
+
+    if (!name) return toast.error("Supplier name is required");
+
+    try {
+        const payload = { 
+            name, 
+            contact, 
+            address, 
+            type: "supplier" // Aapke backend ke mutabiq
+        };
+        
+        const res = await api.post("/entities", payload); // Check your endpoint
+
+        if (res.status === 201 || res.status === 200) {
+            toast.success("Supplier Added Successfully!");
+            
+            // 1. Dropdown list ko update karein (List mein naya supplier add karein)
+            const newSupplier = res.data; 
+            setSuppliers(prev => [...prev, newSupplier]);
+            
+            // 2. Naye supplier ko automatically select kar lein
+            setSelectedSupplier(newSupplier.id);
+            
+            // 3. Modal band kar dein
+            setShowSupplierModal(false);
+        }
+    } catch (err) {
+        console.error("Error adding supplier:", err);
+        toast.error("Failed to add supplier");
+    }
+};
+
+const handleQuickMaterialAdd = async () => {
+    const name = document.getElementById('new_rm_name').value;
+    const uom_id = document.getElementById('new_rm_uom').value;
+
+    if (!name || !uom_id) {
+        return toast.error("Please fill all material fields");
+    }
+
+    try {
+        const payload = { 
+            name: name,
+            uom_id: parseInt(uom_id)
+        };
+        
+        const res = await api.post("/add-materials", payload);
+
+        if (res.status === 201 || res.status === 200) {
+            toast.success("Material Added!");
+
+            // 1. API se aya naya material state mein add karein
+            const newMaterial = res.data; 
+            setMaterials(prev => [...prev, newMaterial]);
+
+            // 2. Modal band karein
+            setShowMaterialModal(false);
+        }
+    } catch (err) {
+        console.error("Error adding material:", err);
+        toast.error(err.response?.data?.message || "Failed to add material");
+    }
+};
+
+const fetchUoms = async () => {
+    try {
+      const res = await api.get('/uoms');
+      setUoms(res.data);
+    } catch (error) {
+      toast.error('Failed to fetch UOMs');
+    }
+  };
+
+  useEffect(() => {
+    fetchUoms();
+  })
+
     return (
         <>
             <NavigationBar />
@@ -190,9 +275,10 @@ const RM_PurchaseForm = () => {
                             ))}
                         </select>
 
-                        <button className="add-sup-cust" type="button" onClick={() => navigate("/add-suppliers")}>
+                        <button className="add-sup-cust" type="button" onClick={() => setShowSupplierModal(true)}>
                             Add Supplier
                         </button>
+                       
 
                         <label><b>Purchase Date:</b></label>
                         <input
@@ -224,10 +310,14 @@ const RM_PurchaseForm = () => {
                                     ))}
                                 </select>
 
-                                <button className="add-more" type="button" onClick={() => navigate("/add-materials")}>
+                                <button className="add-more" type="button" onClick={() => setShowMaterialModal(true)}>
                                     Add Material
                                 </button>
 
+                           
+
+
+                                {/* UOM Display */}
                                 <input type="text" className="input" placeholder="UOM" value={row.uom_name || ""} readOnly />
 
                                 {/* Quantity */}
@@ -312,6 +402,96 @@ const RM_PurchaseForm = () => {
                 </div>
             </div>
             <Footer />
+
+             {showSupplierModal && (
+    <div className="modal-overlay" onClick={() => setShowSupplierModal(false)}>
+        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowSupplierModal(false)}>×</button>
+            
+            <div className="modal-form-content">
+                <h3>Add New Supplier</h3>
+                <div className="form-group">
+                    <label><b>Supplier Name</b></label>
+                    <input type="text" id="new_sup_name" className="input" placeholder="Enter name" />
+                </div>
+                <div className="form-group">
+                    <label><b>Address</b></label>
+                    <textarea id="new_sup_address" className="input" placeholder="Enter address"></textarea>
+                </div>
+                <div className="form-group">
+                    <label><b>Phone / Contact</b></label>
+                    <input type="text" id="new_sup_contact" className="input" placeholder="Enter contact" />
+                </div>
+                
+                
+                <div className="modal-actions" style={{marginTop: '20px'}}>
+                    <button 
+                        type="button" 
+                        className="save-btn" 
+                        onClick={handleQuickSupplierAdd}
+                    >
+                        Save Supplier
+                    </button>
+                    <button 
+                        type="button" 
+                        className="del-btn" 
+                        onClick={() => setShowSupplierModal(false)}
+                        style={{marginLeft: '10px'}}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
+
+                  {showMaterialModal && (
+    <div className="modal-overlay" onClick={() => setShowMaterialModal(false)}>
+        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowMaterialModal(false)}>×</button>
+            
+            <div className="modal-form-content">
+                <h3>Add New Raw Material</h3>
+                <hr />
+                <div className="form-group">
+                    <label>Material Name</label>
+                    <input type="text" id="new_rm_name" className="input" placeholder="e.g. Cotton, Steel" />
+                </div>
+                
+                <div className="form-group">
+                    <label>Unit of Measure (UOM)</label>
+                    <select id="new_rm_uom" className="input">
+                        <option value="">Select UOM</option>
+                       {uoms.map((uom) => (
+                <option key={uom.id} value={uom.id}>
+                  {uom.name}
+                </option>
+              ))}
+                    </select>
+                </div>
+
+                <div className="modal-actions" style={{marginTop: '20px'}}>
+                    <button 
+                        type="button" 
+                        className="save-btn" 
+                        onClick={handleQuickMaterialAdd}
+                    >
+                        Save Material
+                    </button>
+                    <button 
+                        type="button" 
+                        className="del-btn" 
+                        onClick={() => setShowMaterialModal(false)}
+                        style={{marginLeft: '10px'}}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
         </>
     );
 };

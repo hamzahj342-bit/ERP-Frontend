@@ -59,6 +59,7 @@ import ProfitLoss from './Components/ProfitLoss';
 import AccountLedger from './Components/AccountsLedger';
 import ProductBatchList from './Components/ProductBatchList';
 import Finished_ProductList from './Pages/Finished_ProductList';
+import MaterialsList from './Pages/MaterialsList';
 
 
 const App = () => {
@@ -85,6 +86,7 @@ const App = () => {
         <Route path="/transactions" element={<ProtectedRoute> <TransactionHistory/> </ProtectedRoute>} />
 
         <Route path="/add-materials" element={<ProtectedRoute> <AddMaterial/> </ProtectedRoute>} />
+        <Route path='/materials-list' element={<ProtectedRoute> <MaterialsList /> </ProtectedRoute>} />
         <Route path="/rm-purchase" element={<ProtectedRoute> <RM_Purchase/> </ProtectedRoute>} />
         <Route path="/rm-purchase-form" element={<ProtectedRoute> <RM_PurchaseForm/> </ProtectedRoute>} />
         <Route path="/rm-sale" element={<ProtectedRoute> <RM_Sale/> </ProtectedRoute>} />

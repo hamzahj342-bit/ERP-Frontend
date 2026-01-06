@@ -53,7 +53,6 @@ const handleSubmit = async (e) => {
       // Axios success (200-299 status codes)
       toast.success("Supplier added successfully!");
       setFormData({ name: "", address: "", contact: "", shop_id: "" }); 
-      navigate("/suppliers");
       
     } catch (err) {
       console.error("Submit Error:", err);

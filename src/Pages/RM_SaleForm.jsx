@@ -22,6 +22,7 @@ const RM_SaleForm = () => {
     const [subTotal, setSubTotal] = useState(0); 
     const [globalDiscount, setGlobalDiscount] = useState(""); 
     const [grandTotal, setGrandTotal] = useState(0);
+    const [showCustomerModal, setShowCustomerModal] = useState(false);
 
     // 🔹 Fetch Invoice No (Standardized api.js)
     const fetchInvoiceNo = useCallback(async () => {
@@ -175,6 +176,40 @@ const RM_SaleForm = () => {
         }
     };
 
+    const handleQuickCustomerAdd = async () => {
+    const name = document.getElementById('new_cust_name').value;
+    const phone = document.getElementById('new_cust_phone').value;
+    const address = document.getElementById('new_cust_address').value;
+
+    if (!name) return toast.error("Customer name is required");
+
+    try {
+        const payload = { 
+            name, 
+            phone, 
+            address, 
+            type: "customer" // Important: Entity type must be customer
+        };
+        
+        const res = await api.post("/entities", payload);
+
+        if (res.status === 201 || res.status === 200) {
+            toast.success("Customer Added Successfully!");
+            
+            const newCustomer = res.data; 
+            setCustomers(prev => [...prev, newCustomer]);
+            
+            setSelectedCustomer(newCustomer.id);
+            
+            // 3. Close Modal
+            setShowCustomerModal(false);
+        }
+    } catch (err) {
+        console.error("Error adding customer:", err);
+        toast.error(err.response?.data?.message || "Failed to add customer");
+    }
+};
+
     return (
         <>
             <NavigationBar />
@@ -215,7 +250,7 @@ const RM_SaleForm = () => {
                                 </option>
                             ))}
                         </select>
-                        <button className="add-sup-cust" type="button" onClick={() => navigate("/add-customers")}>
+                        <button className="add-sup-cust" type="button" onClick={() => setShowCustomerModal(true)}>
                             Add Customer
                         </button>
 
@@ -339,6 +374,51 @@ const RM_SaleForm = () => {
                 </div>
             </div>
             <Footer />
+            {showCustomerModal && (
+    <div className="modal-overlay" onClick={() => setShowCustomerModal(false)}>
+        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowCustomerModal(false)}>×</button>
+            
+            <div className="modal-form-content">
+                <h3>Add New Customer</h3>
+                <div className="form-group" style={{marginBottom: '15px'}}>
+                    <label><b>Customer Name *</b></label>
+                    <input type="text" id="new_cust_name" className="input" placeholder="Full Name" style={{width: '100%'}} />
+                </div>
+                <div className="form-group" style={{marginBottom: '15px'}}>
+                    <label><b>Address</b></label>
+                    <input type="text" id="new_cust_address" className="input" placeholder="City, Area" style={{width: '100%'}} />
+                </div>
+                
+                <div className="form-group" style={{marginBottom: '15px'}}>
+                    <label><b>Phone / Contact</b></label>
+                    <input type="text" id="new_cust_phone" className="input" placeholder="03xx-xxxxxxx" style={{width: '100%'}} />
+                </div>
+
+                
+
+                <div className="modal-actions" style={{marginTop: '25px', display: 'flex', gap: '10px'}}>
+                    <button 
+                        type="button" 
+                        className="save-btn" 
+                        onClick={handleQuickCustomerAdd}
+                        // style={{flex: 1}}
+                    >
+                        Save Customer
+                    </button>
+                    <button 
+                        type="button" 
+                        className="del-btn" 
+                        onClick={() => setShowCustomerModal(false)}
+                        // style={{flex: 1}}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
         </>
     );
 };
