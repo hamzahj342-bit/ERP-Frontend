@@ -334,7 +334,7 @@ const FP_SaleForm = () => {
                     // Populate fields from selected product/recipe
                     handleChange(index, "product_master_id", selected.product_master_id);
                     handleChange(index, "recipe_id", selected.recipe_id);
-                    handleChange(index, "product_name", selected.name);
+                    handleChange(index, "product_name", selected.product_name);
                     handleChange(index, "uom_id", selected.uom_id);
                     handleChange(index, "uom_name", selected.uom_name);
                     handleChange(index, "stock", Number(selected.current_stock) || 0);
@@ -349,7 +349,7 @@ const FP_SaleForm = () => {
 
                   {products.map((p, index) => (
                     <option key={`${p.recipe_id}-${index}`} value={p.recipe_id}>
-                      {p.name}
+                      {p.display_name}
                     </option>
                   ))}
                 </select>
