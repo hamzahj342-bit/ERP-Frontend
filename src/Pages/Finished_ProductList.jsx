@@ -80,7 +80,7 @@ const FinishedProductList = () => {
                             </thead>
                             <tbody>
                                 {products.map((item) => {
-                                    const currentStock = Number(item.quantity) - Number(item.sold);
+                                    const currentStock = Number(item.quantity) - Number(item.sold) - Number(item.consumed_qty || 0);
                                     return (
                                         <tr key={item.id}>
                                             <td>#{item.id}</td>

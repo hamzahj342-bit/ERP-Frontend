@@ -159,7 +159,7 @@ const PaymentTransactionForm = () => {
             }).then(() => {
                 setFormData({
                     from_account_id: "", to_account_id: "", debit: "", credit: "",
-                    transaction_date: new Date().toISOString().split("T")[0],
+                    transaction_date: "",
                     description: "", entity_id: ""
                 });
                 setSelectedEntityId("");

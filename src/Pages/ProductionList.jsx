@@ -80,7 +80,7 @@ const ProductionList = () => {
                 <th>ID</th>
                 <th>Product Name</th>
                 <th>UOM</th>
-                <th>Unit Price (Cost)</th>
+{/*                 <th>Unit Price (Cost)</th> */}
                 <th>Quantity</th>
                 <th>Grand Total</th>
               </tr>
@@ -92,7 +92,7 @@ const ProductionList = () => {
                     <td>{p.id}</td>
                     <td>{p.name}</td>
                     <td>{p.uom ? p.uom.name : 'N/A'}</td>  
-                    <td>{parseFloat(p.unit_price) ?? "—"}</td>
+{/*                     <td>{parseFloat(p.unit_price) ?? "—"}</td> */}
                     <td>{parseFloat(p.current_stock) ?? "-"}</td>
                     <td>{parseFloat(p.current_stock_price).toFixed(2) ?? "-"}</td>
                   </tr>
