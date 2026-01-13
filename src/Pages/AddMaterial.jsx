@@ -59,8 +59,8 @@ const AddMaterial = () => {
     }
 
     const selectedUom = uoms.find((u) => u.id == formData.uom_id)?.name;
-    if (["Bag", "Drum", "Piece"].includes(selectedUom) && !formData.unit_quantity) {
-      toast.error("Please enter Unit Quantity for this UOM!");
+    if (["Bag", "Drum", "Piece", "Bottle Piece", "Cap Piece"].includes(selectedUom) && !formData.unit_quantity) {
+      toast.error("Please enter Unit Weight for this UOM!");
       return;
     }
 
@@ -119,13 +119,13 @@ const AddMaterial = () => {
             </select>
 
             {/* Conditional input for Bag, Drum, Piece */}
-            {['Bag', 'Drum', 'Piece'].includes(
+            {['Bag', 'Drum', 'Piece', 'Bottle Piece', 'Cap Piece'].includes(
               uoms.find((u) => u.id == formData.uom_id)?.name
             ) && (
               <input
                 type="number"
                 name="unit_quantity"
-                placeholder="Enter quantity per unit (e.g. 25 kg)"
+                placeholder="Enter Weight per unit"
                 value={formData.unit_quantity}
                 onChange={handleInputChange}
                 required // Added required if conditional is true
