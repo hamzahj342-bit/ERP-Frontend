@@ -206,7 +206,7 @@ const ProductionForm = () => {
                     <span>{mat.uom_name}</span>
                     <span style={{color: "#666"}}>{mat.recipe_qty}</span>
                     <span>{mat.unit_price.toFixed(2)}</span>
-                    <span style={{ fontWeight: "bold", color: isShort ? "red" : "#27ae60" }}>{mat.required_qty.toFixed(3)}</span>
+                    <span style={{ fontWeight: "bold", color: isShort ? "red" : "#27ae60" }}>{mat.required_qty.toFixed(6)}</span>
                     <span>{mat.total_price.toFixed(2)}</span>
                   </div>
                 );

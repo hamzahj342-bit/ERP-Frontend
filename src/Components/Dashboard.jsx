@@ -16,12 +16,14 @@ import {
   BarChart,
   LineChart,
   XAxis,
-  YAxis,
+  YAxis, 
   Tooltip,
   Legend,
   Bar,
   Line,
   CartesianGrid
+  ,AreaChart, Area
+  ,Cell
 } from 'recharts';
 import MainLayout from '../Layout/MainLayout';
 import api from '../../api';
@@ -36,6 +38,13 @@ const Dashboard = () => {
   const [employeeCount, setEmployeeCount] = useState(null);
   const [barChartData, setBarChartData] = useState([]);
   const [lineChartData, setLineChartData] = useState([]);
+  const [trendData, setTrendData] = useState([]);
+  const [stats, setStats] = useState({
+    revenue: 0,
+    profit: 0,
+    expenses: 0,
+    equity: 0,
+  });
 
   // Fetch counts using Axios (api.js)
   useEffect(() => {
@@ -63,6 +72,12 @@ const Dashboard = () => {
 
         const line = await api.get('/dashboard/line-chart');
         setLineChartData(line.data);
+
+        const stats = await api.get('/dashboard/stats-cards');
+        setStats(stats.data);
+
+        const trend = await api.get('/dashboard/revenue-expense-trend');
+        setTrendData(trend.data);
       } catch (err) {
         console.error("Dashboard data fetch error:", err);
       }
@@ -136,29 +151,68 @@ const Dashboard = () => {
         <div className="dashboard-content">
         {/* 📊 Charts Section */}
 <div className="chart-section ">
-  {/* 🟩 Bar Chart */}
-  <div className="chart-box">
-    <h3>Raw Material vs Finished Product Sales</h3>
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart
-        data={barChartData}
-        margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Bar dataKey="rawMaterial" fill="#4caf50" barSize={100} />
-        <Bar dataKey="finishedProductSales" fill="#f44336" barSize={100} />
-      </BarChart>
-    </ResponsiveContainer>
-  </div>
+  {/* 🟩 Professional Bar Chart */}
+<div className="chart-box">
+  <h3>Raw Material vs Finished Product Sales</h3>
+  <ResponsiveContainer width="100%" height={280}>
+    <BarChart
+      data={barChartData}
+      margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
+      barGap={10} // Bars ke darmiyan thora gap
+    >
+      <defs>
+        {/* Green Gradient for Raw Material */}
+        <linearGradient id="barGradientGreen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#66bb6a" stopOpacity={1}/>
+          <stop offset="100%" stopColor="#43a047" stopOpacity={1}/>
+        </linearGradient>
+        
+        {/* Red Gradient for Finished Product */}
+        <linearGradient id="barGradientRed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ef5350" stopOpacity={1}/>
+          <stop offset="100%" stopColor="#e53935" stopOpacity={1}/>
+        </linearGradient>
+      </defs>
+
+      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+      <XAxis 
+        dataKey="name" 
+        axisLine={false} 
+        tickLine={false} 
+        tick={{fill: '#666', fontSize: 12}} 
+      />
+      <YAxis 
+        axisLine={false} 
+        tickLine={false} 
+        tick={{fill: '#666', fontSize: 12}} 
+      />
+      <Tooltip 
+        cursor={{fill: '#f8f9fa'}} 
+        contentStyle={{borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}
+      />
+      <Legend iconType="circle" wrapperStyle={{paddingTop: '10px'}} />
+
+      {/* Rounded Bars with Gradients */}
+      <Bar 
+        dataKey="rawMaterial" 
+        fill="url(#barGradientGreen)" 
+        barSize={40} 
+        radius={[10, 10, 0, 0]} // Sirf top corners round
+      />
+      <Bar 
+        dataKey="finishedProductSales" 
+        fill="url(#barGradientRed)" 
+        barSize={40} 
+        radius={[10, 10, 0, 0]} 
+      />
+    </BarChart>
+  </ResponsiveContainer>
+</div>
 
   {/* 📈 Line Chart */}
-  <div className="chart-box">
+  <div className="chart-box" >
     <h3>Sales & Purchases Trend</h3>
-    <ResponsiveContainer width="100%" height={280} className='chart-color'> 
+    <ResponsiveContainer width="800" height={280} className='chart-color'> 
       <LineChart
         data={lineChartData}
         margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
@@ -175,9 +229,125 @@ const Dashboard = () => {
   </div>
 </div>
 
+{/* 📋 Quick Stats Section */}
+<div className="stats-grid">
+  {/* 1. Revenue Card */}
+  <div className="stat-card blue">
+    <div className="stat-icon">💰</div>
+    <div className="stat-info">
+      <p>Total Revenue</p>
+      <h3>Rs. {stats.revenue.toLocaleString()}</h3>
+    </div>
+  </div>
+  
+  {/* 2. Net Profit (Revenue - Expense) */}
+  <div className="stat-card green">
+    <div className="stat-icon">📈</div>
+    <div className="stat-info">
+      <p>Net Profit</p>
+      <h3 style={{ color: stats.profit >= 0 ? '#4caf50' : '#f44336' }}>
+        Rs. {stats.profit.toLocaleString()}
+      </h3>
+    </div>
+  </div>
+
+  {/* 3. Total Expenses Card */}
+  <div className="stat-card orange">
+    <div className="stat-icon">💸</div>
+    <div className="stat-info">
+      <p>Total Expenses</p>
+      <h3>Rs. {stats.expenses.toLocaleString()}</h3>
+    </div>
+  </div>
+
+  {/* 4. Total Equity Card */}
+  <div className="stat-card purple">
+    <div className="stat-icon">🏦</div>
+    <div className="stat-info">
+      <p>Total Equity</p>
+      <h3>Rs. {stats.equity.toLocaleString()}</h3>
+    </div>
+  </div>
+</div>
+
+{/* --- Area Chart with Gradients --- */}
+<div className="bottom-chart-section">
+  <div className="chart-box full-width">
+    <h3>Revenue vs Expenses Trend</h3>
+    <ResponsiveContainer width="100%" height={320}>
+      <AreaChart data={lineChartData}>
+        <defs>
+          {/* Green Gradient for Sales */}
+          <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#4caf50" stopOpacity={0.3}/>
+            <stop offset="95%" stopColor="#4caf50" stopOpacity={0}/>
+          </linearGradient>
+          {/* Red/Orange Gradient for Purchases */}
+          <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#f44336" stopOpacity={0.3}/>
+            <stop offset="95%" stopColor="#f44336" stopOpacity={0}/>
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+        <XAxis dataKey="date" />
+        <YAxis />
+        <Tooltip />
+        <Area 
+          type="monotone" 
+          dataKey="purchases" 
+          stroke="#4caf50" 
+          strokeWidth={3} 
+          fillOpacity={1} 
+          fill="url(#colorSales)" 
+        />
+        <Area 
+          type="monotone" 
+          dataKey="sales" 
+          stroke="#f44336" 
+          strokeWidth={3} 
+          fillOpacity={1} 
+          fill="url(#colorPurchases)" 
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  </div>
+</div>
+
+{/* --- Top Performing Products (Horizontal Bar Chart) --- */}
+<div className="top-products-section">
+  <div className="chart-box full-width">
+    <h3>Top Performing Products</h3>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart
+        layout="vertical" // Isse chart horizontal ho jayega
+        data={[
+          { name: 'Product A', sales: 4000 },
+          { name: 'Product B', sales: 3000 },
+          { name: 'Product C', sales: 2000 },
+          { name: 'Product D', sales: 1500 },
+        ]}
+        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+        <XAxis type="number" hide /> 
+        <YAxis dataKey="name" type="category" stroke="#666" />
+        <Tooltip cursor={{fill: '#f5f5f5'}} />
+        {/* Gradient Bars for Products */}
+        <Bar dataKey="sales" radius={[0, 10, 10, 0]} barSize={30}>
+          {
+            [0, 1, 2, 3].map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={index === 0 ? '#4caf50' : '#81c784'} />
+            ))
+          }
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+</div>
 
 
-        <div className="card-section">
+
+        {/* <div className="card-section">
         <div className="card-grid">
           {cards.map((card, index) => (
             <div
@@ -197,9 +367,9 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
-        </div>
-        </div>
-          
+        </div> */}
+
+        </div>  
       </div>
       <Footer className='footer-dashboard'/>
     </div>
