@@ -60,6 +60,9 @@ import AccountLedger from './Components/AccountsLedger';
 import ProductBatchList from './Components/ProductBatchList';
 import Finished_ProductList from './Pages/Finished_ProductList';
 import MaterialsList from './Pages/MaterialsList';
+import RM_Adjustment from './Components/RM_Adjustment';
+import FP_Adjustment from './Components/FP_Adjustment';
+import InventoryAdjustment from './Layout/InventoryAdjustment';
 
 
 const App = () => {
@@ -98,6 +101,7 @@ const App = () => {
         <Route path="/rm-stock"element={<ProtectedRoute> <RMStockList/> </ProtectedRoute>} />
         <Route path="/rm-invoice-detail" element={<ProtectedRoute> <RM_InvoiceDetail/> </ProtectedRoute>} />
          <Route path="/rm-invoice/:invoiceNo" element={<ProtectedRoute> <RM_Invoice/> </ProtectedRoute>} />
+         <Route path='/rm-adjustment' element={<ProtectedRoute> <RM_Adjustment /> </ProtectedRoute>} />
 
         <Route path="/recipe"element={<ProtectedRoute> <RecipeList/> </ProtectedRoute>} />
         <Route path="/add-recipe"element={<ProtectedRoute> <AddRecipe/> </ProtectedRoute>} />
@@ -113,6 +117,7 @@ const App = () => {
         <Route path="/fp-invoice-detail/:invoiceNo" element={<ProtectedRoute> <FP_InvoiceDetail /> </ProtectedRoute>} />
         <Route path="/product-batches" element={<ProtectedRoute> <ProductBatchList /> </ProtectedRoute>} />
         <Route path="/finished-products" element={<ProtectedRoute> <Finished_ProductList /> </ProtectedRoute>} />
+        <Route path="/fp-adjustment" element={<ProtectedRoute> <FP_Adjustment /> </ProtectedRoute>} />
         
         <Route path="/account-categories" element={<ProtectedRoute> <AccountCategoryList/> </ProtectedRoute>} />
         <Route path="/create-category" element={<ProtectedRoute> <CreateAccountCategory /> </ProtectedRoute>} />
@@ -134,7 +139,7 @@ const App = () => {
         <Route path='/entity-ledger' element={<ProtectedRoute> <EntityLedgerReport /> </ProtectedRoute>} />
         <Route path='/profit-loss' element={<ProtectedRoute> <ProfitLoss /> </ProtectedRoute>} />
         <Route path='/accounts-report' element={<ProtectedRoute> <AccountLedger /> </ProtectedRoute>} />
-      </Routes>  
+        <Route path='/inventory-adjustment' element={<ProtectedRoute > <InventoryAdjustment /> </ProtectedRoute>} />      </Routes>  
     </Router>
   );
 };

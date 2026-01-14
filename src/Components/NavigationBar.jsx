@@ -21,7 +21,8 @@ import {
   FaHandshake,
   FaShoppingBag,
   FaFileAlt,
-  FaLayerGroup
+  FaLayerGroup,
+  FaSlidersH
 } from "react-icons/fa";
 import "../Bar.css";
 import { MdScience } from "react-icons/md";
@@ -87,6 +88,13 @@ const menuSections = [
       label: "Employees", 
       path: "/employees" 
     },
+    {
+      type: "link",
+      icon: <FaSlidersH />,
+      label: "Adjustments",
+      path: "/inventory-adjustment"
+    },
+
     {
       type: "link",
       icon: <FaFileAlt />,
