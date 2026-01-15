@@ -271,42 +271,58 @@ const Dashboard = () => {
 </div>
 
 {/* --- Area Chart with Gradients --- */}
+{/* --- Area Chart with Gradients --- */}
 <div className="bottom-chart-section">
   <div className="chart-box full-width">
     <h3>Revenue vs Expenses Trend</h3>
     <ResponsiveContainer width="100%" height={320}>
-      <AreaChart data={lineChartData}>
+      <AreaChart data={trendData}>
         <defs>
           {/* Green Gradient for Sales */}
           <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#4caf50" stopOpacity={0.3}/>
             <stop offset="95%" stopColor="#4caf50" stopOpacity={0}/>
           </linearGradient>
-          {/* Red/Orange Gradient for Purchases */}
+          
+          {/* Red Gradient for Purchases */}
           <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#f44336" stopOpacity={0.3}/>
             <stop offset="95%" stopColor="#f44336" stopOpacity={0}/>
           </linearGradient>
         </defs>
+        
         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-        <XAxis dataKey="date" />
+        <XAxis 
+          dataKey="date" 
+          tickFormatter={(str) => {
+            // Agar date "2026-01-15" hai to usey "Jan 15" dikhane ke liye
+            const date = new Date(str);
+            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          }}
+        />
         <YAxis />
         <Tooltip />
+        
+        {/* Sales - Green Area */}
         <Area 
           type="monotone" 
-          dataKey="purchases" 
+          dataKey="sales" 
           stroke="#4caf50" 
           strokeWidth={3} 
           fillOpacity={1} 
           fill="url(#colorSales)" 
+          name="Revenue/Sales"
         />
+        
+        {/* Purchases - Red Area */}
         <Area 
           type="monotone" 
-          dataKey="sales" 
+          dataKey="purchases" 
           stroke="#f44336" 
           strokeWidth={3} 
           fillOpacity={1} 
           fill="url(#colorPurchases)" 
+          name="Expenses/Purchases"
         />
       </AreaChart>
     </ResponsiveContainer>
