@@ -2,11 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdScience } from 'react-icons/md';
 import {
-  FaBoxes, FaBoxOpen, FaChartLine, FaShoppingCart, FaCashRegister, FaUsers,
-  FaTruck, FaUndoAlt, FaCartPlus, FaExchangeAlt, FaCartArrowDown, FaFlask,
-  FaStore, FaHistory,FaWallet, FaMoneyCheckAlt, FaMoneyBillWave,
-  FaPiggyBank,
-  FaLayerGroup,
+  FaStore,
 } from 'react-icons/fa';
 // import NavigationBar from './NavigationBar';
 import Footer from './Footer';
@@ -39,6 +35,8 @@ const Dashboard = () => {
   const [barChartData, setBarChartData] = useState([]);
   const [lineChartData, setLineChartData] = useState([]);
   const [trendData, setTrendData] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [trendingMaterials, setTrendingMaterials] = useState([]);
   const [stats, setStats] = useState({
     revenue: 0,
     profit: 0,
@@ -78,6 +76,10 @@ const Dashboard = () => {
 
         const trend = await api.get('/dashboard/revenue-expense-trend');
         setTrendData(trend.data);
+
+        const trendingData = await api.get('/dashboard/trending-products');
+        setTrendingProducts(trendingData.data.products);
+        setTrendingMaterials(trendingData.data.materials); // Materials array
       } catch (err) {
         console.error("Dashboard data fetch error:", err);
       }
@@ -336,12 +338,7 @@ const Dashboard = () => {
     <ResponsiveContainer width="100%" height={300}>
       <BarChart
         layout="vertical" // Isse chart horizontal ho jayega
-        data={[
-          { name: 'Product A', sales: 4000 },
-          { name: 'Product B', sales: 3000 },
-          { name: 'Product C', sales: 2000 },
-          { name: 'Product D', sales: 1500 },
-        ]}
+        data={trendingProducts}
         margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -350,11 +347,36 @@ const Dashboard = () => {
         <Tooltip cursor={{fill: '#f5f5f5'}} />
         {/* Gradient Bars for Products */}
         <Bar dataKey="sales" radius={[0, 10, 10, 0]} barSize={30}>
-          {
-            [0, 1, 2, 3].map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={index === 0 ? '#4caf50' : '#81c784'} />
-            ))
-          }
+          {trendingProducts.map((entry, index) => (
+          <Cell 
+            key={`cell-${index}`} 
+            fill={index === 0 ? '#4caf50' : '#81c784'} 
+           />
+         ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+</div>
+
+{/* --- Top Raw Materials Usage --- */}
+<div className="top-materials-section" style={{ marginTop: '20px' }}>
+  <div className="chart-box full-width">
+    <h3 style={{ color: '#1976d2' }}>High Usage Raw Materials</h3>
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart
+        layout="vertical"
+        data={trendingMaterials}
+        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+        <XAxis type="number" hide />
+        <YAxis dataKey="name" type="category" stroke="#666" width={100} />
+        <Tooltip cursor={{ fill: '#f5f5f5' }} />
+        <Bar dataKey="usage" radius={[0, 10, 10, 0]} barSize={30}>
+          {trendingMaterials.map((entry, index) => (
+            <Cell key={`cell-m-${index}`} fill={index === 0 ? '#1976d2' : '#64b5f6'} />
+          ))}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
