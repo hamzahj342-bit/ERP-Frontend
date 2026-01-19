@@ -24,7 +24,7 @@ const RM_Adjustment = () => {
     });
 
     useEffect(() => {
-        api.get("/rm-stock/list").then(res => setMaterials(res.data));
+        api.get("/inventory-adjustment/rm-stock").then(res => setMaterials(res.data));
     }, []);
 
     const handleMaterialChange = (id) => {

@@ -3,151 +3,150 @@ import { useNavigate } from 'react-router-dom';
 import NavigationBar from './NavigationBar';
 import Footer from './Footer';
 import { toast } from 'react-toastify';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaBoxes, FaUserTag } from 'react-icons/fa';
 import api from "../../api"; 
 
 const RMStockList = () => {
-    const [stock, setStock] = useState([]); // Original fetched data
+    const [stock, setStock] = useState([]);
     const [loading, setLoading] = useState(true);
-    // 🛑 NEW STATES for Filtering (Logic Same)
     const [materialFilter, setMaterialFilter] = useState('');
     const [supplierFilter, setSupplierFilter] = useState('');
+    
+    // 🛑 NEW STATE: View Mode toggle karne ke liye
+    // 'entity' = Purana route (/list), 'material' = Naya route (/material-list)
+    const [viewMode, setViewMode] = useState('entity'); 
 
     const navigate = useNavigate();
 
-    // ✅ Data Fetching (Using api.js and Async/Await)
-    useEffect(() => {
-        const fetchStock = async () => {
-            try {
-                // fetch aur headers ki jagah ab simple api.get
-                const res = await api.get("/rm-stock/list");
-                
-                // Axios automatically JSON parse kar deta hai (res.data)
-                setStock(res.data);
-                setLoading(false);
-            } catch (err) {
-                console.error("Error fetching stock:", err);
-                toast.error("Failed to load stock data.");
-                setLoading(false);
-            }
-        };
+    // Data Fetching Function (Ab ye viewMode par depend karega)
+    const fetchStock = async (mode) => {
+        setLoading(true);
+        try {
+            const endpoint = mode === 'entity' ? "/rm-stock/list" : "/rm-stock/material-list";
+            const res = await api.get(endpoint);
+            setStock(res.data);
+            setLoading(false);
+        } catch (err) {
+            console.error("Error fetching stock:", err);
+            toast.error(`Failed to load ${mode} stock data.`);
+            setLoading(false);
+        }
+    };
 
-        fetchStock();
-    }, []);
-    
-    // ✅ Filtering Logic using useMemo (Bilkul Same - No Changes)
+    // Jab viewMode change ho, data dubara fetch karein
+    useEffect(() => {
+        fetchStock(viewMode);
+        // Reset filters when switching views
+        setMaterialFilter('');
+        setSupplierFilter('');
+    }, [viewMode]);
+
+    // Filtering Logic (No changes needed, handles both data structures)
     const filteredStock = useMemo(() => {
         let currentStock = [...stock];
-
-        // 1. Filter by Material Name
         if (materialFilter) {
             const lowerCaseFilter = materialFilter.toLowerCase();
             currentStock = currentStock.filter(item => 
                 item.material_name && item.material_name.toLowerCase().includes(lowerCaseFilter)
             );
         }
-
-        // 2. Filter by Supplier Name
         if (supplierFilter) {
             const lowerCaseFilter = supplierFilter.toLowerCase();
             currentStock = currentStock.filter(item => 
                 item.supplier_name && item.supplier_name.toLowerCase().includes(lowerCaseFilter)
             );
         }
-
         return currentStock;
     }, [stock, materialFilter, supplierFilter]);
 
-
-    if (loading) {
-        return <><NavigationBar /><div className="rm-page">Loading Stock...</div><Footer /></>;
-    }
     return (
         <>
             <NavigationBar />
             <div className="rm-page">
-                <button
-                    className="back-btn"
-                    style={{ marginTop: "30px" }}
-                    onClick={() => navigate('/dashboard')}
-                >
-                    <FaArrowLeft />
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: "30px" }}>
+                    <button className="back-btn" onClick={() => navigate('/dashboard')}>
+                        <FaArrowLeft />
+                    </button>
+
+                    {/* 🛑 NEW: Toggle Buttons Section */}
+                    <div className="view-toggle-buttons">
+                        <button 
+                            className={`toggle-btn ${viewMode === 'entity' ? 'active' : ''}`}
+                            onClick={() => setViewMode('entity')}
+                            style={toggleStyles(viewMode === 'entity')}
+                        >
+                            <FaUserTag /> Entity-wise Stock
+                        </button>
+                        <button 
+                            className={`toggle-btn ${viewMode === 'material' ? 'active' : ''}`}
+                            onClick={() => setViewMode('material')}
+                            style={toggleStyles(viewMode === 'material')}
+                        >
+                            <FaBoxes /> Material-wise Stock
+                        </button>
+                    </div>
+                </div>
+
                 <div className="rm-card">
-                    <h2>Raw Material Stock Ledger</h2>
+                    <h2>Raw Material Stock ({viewMode === 'entity' ? 'By Supplier' : 'By Material Summary'})</h2>
                     
-                    {/* 🛑 NEW: Filter Inputs Section */}
-                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderRadius: '5px' }}>
-                        
-                        {/* Material Name Filter */}
+                    {/* Filters */}
+                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
                         <input
                             type="text"
-                            placeholder="Filter by Material Name"
+                            placeholder="Filter by Material"
                             value={materialFilter}
                             onChange={(e) => setMaterialFilter(e.target.value)}
                             className="input"
-                            
                         />
-
-                        {/* Supplier Name Filter */}
-                        <input
-                            type="text"
-                            placeholder="Filter by Supplier Name"
-                            value={supplierFilter}
-                            onChange={(e) => setSupplierFilter(e.target.value)}
-                            className="input"
-                            
-                        />
-                        
-                        {/* Clear Filter Button (Optional but helpful) */}
-                        {(materialFilter || supplierFilter) && (
-                            <button 
-                                onClick={() => { 
-                                    setMaterialFilter(''); 
-                                    setSupplierFilter(''); 
-                                }}
-                                style={{ padding: '8px 15px', cursor: 'pointer', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '8px' }}
-                            >
-                                Clear Filters
-                            </button>
+                        {/* Hide Supplier Filter in Material-wise view if needed */}
+                        {viewMode === 'entity' && (
+                            <input
+                                type="text"
+                                placeholder="Filter by Supplier"
+                                value={supplierFilter}
+                                onChange={(e) => setSupplierFilter(e.target.value)}
+                                className="input"
+                            />
                         )}
                     </div>
-                    {/* 🛑 END Filter Section */}
-                    
-                    {filteredStock.length === 0 && (materialFilter || supplierFilter) ? (
-                        <p>No stock records found matching the current filters.</p>
-                    ) : filteredStock.length === 0 && !loading ? (
-                        <p>No stock records found.</p>
+
+                    {loading ? (
+                        <p>Loading {viewMode} stock data...</p>
+                    ) : filteredStock.length === 0 ? (
+                        <p>No records found.</p>
                     ) : (
                         <table className="product-table">
                             <thead>
                                 <tr>
-                                    <th>Stock ID</th>
+                                    {/* Stock ID sirf entity-wise mein hota hai */}
+                                    {viewMode === 'entity' && <th>Stock ID</th>}
                                     <th>Material Name</th>
-                                    <th>Supplier Name</th>
+                                    <th>Supplier</th>
                                     <th>Avg Unit Cost</th>
                                     <th>Sold Qty</th>
                                     <th>Consumed Qty</th>
                                     <th>Current Stock</th>
-                                    <th>Current Stock Price</th>
+                                    <th>Total Price</th>
                                     <th>UOM</th> 
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* 🛑 Use filteredStock here */}
-                                {filteredStock.map((item) => (
-                                    <tr key={item.stock_id}>
-                                        <td>{item.stock_id}</td>
+                                {filteredStock.map((item, index) => (
+                                    <tr key={viewMode === 'entity' ? item.stock_id : index}>
+                                        {viewMode === 'entity' && <td>{item.stock_id}</td>}
                                         <td>{item.material_name}</td> 
-                                        <td>{item.supplier_name}</td> 
-                                        {/* Display stock with fixed decimal points for better readability */}
+                                        <td>
+                                            <span style={{ color: viewMode === 'material' ? '#7f8c8d' : 'inherit' }}>
+                                                {item.supplier_name}
+                                            </span>
+                                        </td> 
                                         <td>{parseFloat(item.avg_unit_cost).toFixed(2)}</td>
-                                        <td style={{ textAlign: 'center', color: '#e74c3c' }}>
-                                                {parseFloat(item.sold_qty).toFixed(4)}
-                                        </td>
-                                        <td>{parseFloat(item.consumed_qty).toFixed(4)}</td>
-                                        <td style={{fontWeight: 'bold', color: '#27ae60'}}
-                                        >{parseFloat(item.current_stock).toFixed(4)}</td> 
+                                        <td style={{ color: '#e74c3c' }}>{parseFloat(item.sold_qty).toFixed(2)}</td>
+                                        <td>{parseFloat(item.consumed_qty).toFixed(2)}</td>
+                                        <td style={{ fontWeight: 'bold', color: '#27ae60' }}>
+                                            {parseFloat(item.current_stock).toFixed(2)}
+                                        </td> 
                                         <td>{parseFloat(item.current_stock_price).toFixed(2)}</td>
                                         <td>{item.uom_name}</td> 
                                     </tr>
@@ -161,5 +160,18 @@ const RMStockList = () => {
         </>
     );
 };
+
+// Simple inline styles for buttons
+const toggleStyles = (isActive) => ({
+    padding: '10px 20px',
+    cursor: 'pointer',
+    backgroundColor: isActive ? '#3498db' : '#ecf0f1',
+    color: isActive ? 'white' : '#2c3e50',
+    border: '1px solid #bdc3c7',
+    borderRadius: isActive ? '5px' : '5px',
+    marginRight: '10px',
+    fontWeight: 'bold',
+    transition: 'all 0.3s ease'
+});
 
 export default RMStockList;
