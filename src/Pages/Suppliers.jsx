@@ -225,7 +225,7 @@ const Suppliers = () => {
           <table className="entity-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th>Id</th>
                 <th>Name</th>
                 <th>Address</th>
                 <th>Contact</th>
@@ -237,7 +237,7 @@ const Suppliers = () => {
             <tbody>
               {suppliers.map((sup, index) => (
                 <tr key={sup.id}>
-                  <td>{index + 1}</td>
+                  <td>{sup.id}</td>
                   <td>{sup.name}</td>
                   <td>{sup.address}</td>
                   <td>{sup.contact || "N/A"}</td>

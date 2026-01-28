@@ -14,7 +14,8 @@ const EmployeesForm = () => {
   const [formData, setFormData] = useState({
     name: "",
     address: "",
-    contact: ""
+    contact: "",
+    salary: "",
   });
 
   const handleChange = (e) => {
@@ -44,7 +45,7 @@ const EmployeesForm = () => {
       });
 
       toast.success("Employee added successfully!");
-      setFormData({ name: "", address: "", contact: "" });
+      setFormData({ name: "", address: "", contact: "", salary: "" });
 
     } catch (err) {
       console.error("Submit Error:", err);
@@ -93,6 +94,14 @@ const EmployeesForm = () => {
               name="contact"
               placeholder="Contact (Optional)"
               value={formData.contact}
+              onChange={handleChange}
+            />
+
+            <input
+              type="number"
+              name="salary"
+              placeholder="Monthly Salary (Optional)"
+              value={formData.salary}
               onChange={handleChange}
             />
 

@@ -334,7 +334,7 @@ const Dashboard = () => {
 {/* --- Top Performing Products (Horizontal Bar Chart) --- */}
 <div className="top-products-section">
   <div className="chart-box full-width">
-    <h3>Top Performing Products</h3>
+    <h3 style={{color : '#81c784'}}>Top Performing Products</h3>
     <ResponsiveContainer width="100%" height={300}>
       <BarChart
         layout="vertical" // Isse chart horizontal ho jayega

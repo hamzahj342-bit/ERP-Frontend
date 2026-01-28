@@ -23,6 +23,40 @@ const EntityLedgerReport = () => {
   const [loading, setLoading] = useState(false);
   const reportRef = React.useRef(null); 
 
+
+  // report state ke niche ya Result section mein ye logic add karein
+const renderSalaryAnalytics = () => {
+    if (report.entity.type !== 'employee' || !report.entity.salary) return null;
+
+    const monthlySalary = parseFloat(report.entity.salary) || 0;
+    const totalPaid = report.totals.debit; // Jo payments aapne di hain
+
+    const start = new Date(fromDate);
+    const end = new Date(toDate);
+    
+    // Total months calculate karein
+    let monthsCount = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+
+    // 🚨 Aapki Condition: Agar 20 days se zyada ho chuke hain mahine ko
+    if (end.getDate() >= 20) {
+        monthsCount += 1; // Is mahine ki salary bhi banti hai
+    }
+
+    const totalEarned = monthlySalary * monthsCount;
+    const balanceStatus = totalEarned - totalPaid;
+
+    return (
+        <div className="salary-analysis-card" style={{ padding: '15px', border: '1px solid #ddd', marginBottom: '20px' }}>
+            <h4>Salary Calculation ({monthsCount} Months Considered)</h4>
+            <p><strong>Total Payable (Salary):</strong> PKR {totalEarned}</p>
+            <p><strong>Total Paid (Advances/Salary):</strong> PKR {totalPaid}</p>
+            <hr />
+            <h5 style={{ color: balanceStatus >= 0 ? 'green' : 'red' }}>
+                {balanceStatus >= 0 ? `Net Payable: ${balanceStatus}` : `Advance: ${Math.abs(balanceStatus)}`}
+            </h5>
+        </div>
+    );
+};
   // --- 1. Load Entities (Using api.js) ---
   useEffect(() => {
     const fetchEntities = async () => {
@@ -138,7 +172,7 @@ const EntityLedgerReport = () => {
     });
   };
 
-
+  
   return (
     <>
     <NavigationBar />
@@ -216,6 +250,8 @@ const EntityLedgerReport = () => {
             Ledger: {report.entity.name}
           </h3>
 
+          {renderSalaryAnalytics()}
+          
           <p className="text-lg mb-3">
             <strong>Opening Balance:</strong>{" "}
             <span className="text-blue-700">{report.openingBalance}</span>

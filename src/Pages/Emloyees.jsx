@@ -11,7 +11,7 @@ import api from "../../api";
 const Employees = () => {
   const [employees, setEmployees] = useState([]);
   const [onEdit, setOnEdit] = useState(null);
-  const [formData, setFormData] = useState({ name: "", address: "", contact: "" });
+  const [formData, setFormData] = useState({ name: "", address: "", contact: "", salary: "" });
 
   const navigate = useNavigate();
 
@@ -63,6 +63,7 @@ const Employees = () => {
       name: employee.name,
       address: employee.address,
       contact: employee.contact || "",
+      salary: employee.salary || "",
     });
   };
 
@@ -164,6 +165,15 @@ const Employees = () => {
                     placeholder="Contact"
                   />
 
+                  <input
+                    className="input"
+                    type="number"
+                    name="salary"
+                    placeholder="Monthly Salary (Optional)"
+                    value={formData.salary}
+                    onChange={handleChange}
+                  />
+
                   <button type="submit" className="primary-btn">Update</button>
                   <button type="button" className="primary-btn" onClick={() => setOnEdit(null)}>Cancel</button>
                 </form>
@@ -175,10 +185,11 @@ const Employees = () => {
           <table className="entity-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th>Id</th>
                 <th>Name</th>
                 <th>Address</th>
                 <th>Contact</th>
+                <th>Salary</th>
                 {/* <th>Account No</th> */}
                 <th>Actions</th>
               </tr>
@@ -186,10 +197,11 @@ const Employees = () => {
             <tbody>
               {employees.map((emp, index) => (
                 <tr key={emp.id}>
-                  <td>{index + 1}</td>
+                  <td>{emp.id}</td>
                   <td>{emp.name}</td>
                   <td>{emp.address}</td>
                   <td>{emp.contact || "N/A"}</td>
+                  <td>{parseFloat(emp.salary || "N/A")}</td>
                   {/* <td>{emp.account?.account_code || "Not Created"}</td> */}
                   <td>
                     <button className="edit-btn" onClick={() => handleEditClick(emp)}>Edit</button>

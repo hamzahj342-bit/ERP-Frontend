@@ -16,6 +16,7 @@ const PaymentTransactionForm = () => {
     const [fromBalance, setFromBalance] = useState(0);
     const [suppliers, setSuppliers] = useState([]);
     const [customers, setCustomers] = useState([]);
+    const [employees, setEmployees] = useState([]);
     const [selectedEntityId, setSelectedEntityId] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false); 
     const [formData, setFormData] = useState({
@@ -76,25 +77,66 @@ const PaymentTransactionForm = () => {
         }
     };
 
+    const fetchEmployees = async () => {
+    try {
+        const res = await api.get("/entities"); // Assuming employees are in entities or a separate /employees route
+        const data = res.data;
+        const employeeData = data.filter(item => item.type === "employee");
+        setEmployees(employeeData);
+    } catch (err) {
+        console.error("Error fetching employees:", err);
+    }
+};
+
     useEffect(() => {
         fetchSuppliers();
         fetchCustomers();
+        fetchEmployees();
         fetchAccounts();
         fetchInvoiceNo();
     }, [fetchInvoiceNo]);
 
     // --- Baqi logic (getControlAccType, handleChange etc.) same rahega ---
     
-    const getControlAccType = (accountId) => {
-        const acc = accounts.find(a => a.id == accountId);
-        if (acc?.account_code === '0002-0001') return 'Payable'; 
-        if (acc?.account_code === '0001-0004') return 'Receivable'; 
-        return null;
-    };
+    // const getControlAccType = (accountId) => {
+    //     const acc = accounts.find(a => a.id == accountId);
+    //     if (acc?.account_code === '0002-0001') return 'Payable'; 
+    //     if (acc?.account_code === '0001-0004') return 'Receivable'; 
+    //     return null;
+    // };
 
-    const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
-    const entityList = activeControlAcc === 'Payable' ? suppliers : (activeControlAcc === 'Receivable' ? customers : []);
-    const entityTypeLabel = activeControlAcc === 'Payable' ? 'Supplier' : (activeControlAcc === 'Receivable' ? 'Customer' : 'Entity');
+    // const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
+    // const entityList = activeControlAcc === 'Payable' ? suppliers : (activeControlAcc === 'Receivable' ? customers : []);
+    // const entityTypeLabel = activeControlAcc === 'Payable' ? 'Supplier' : (activeControlAcc === 'Receivable' ? 'Customer' : 'Entity');
+
+    const getControlAccType = (accountId) => {
+    const acc = accounts.find(a => a.id == accountId);
+    if (!acc) return null;
+    
+    const name = acc.account_name.toLowerCase();
+    
+    if (name.includes('payable')) return 'Payable'; 
+    if (name.includes('receivable')) return 'Receivable'; 
+    if (name.includes('salary')) return 'Salary'; // Salary detection logic
+    return null;
+};
+
+// Dropdown list decide karne ka logic
+const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
+
+let entityList = [];
+let entityTypeLabel = "Entity";
+
+if (activeControlAcc === 'Payable') {
+    entityList = suppliers;
+    entityTypeLabel = "Supplier";
+} else if (activeControlAcc === 'Receivable') {
+    entityList = customers;
+    entityTypeLabel = "Customer";
+} else if (activeControlAcc === 'Salary') {
+    entityList = employees;
+    entityTypeLabel = "Employee";
+}
     
     const handleChange = (field, value) => {
         setFormData(prev => {

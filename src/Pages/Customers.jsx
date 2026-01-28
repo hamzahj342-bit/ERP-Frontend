@@ -162,7 +162,7 @@ const Customers = () => {
         <table className="entity-table">
           <thead>
             <tr>
-              <th>#</th>
+              <th>Id</th>
               <th>Name</th>
               <th>Address</th>
               <th>Contact</th>
@@ -173,7 +173,7 @@ const Customers = () => {
           <tbody>
             {customers.map((cust, index) => (
               <tr key={cust.id}>
-                <td>{index + 1}</td>
+                <td>{cust.id}</td>
                 <td>{cust.name}</td>
                 <td>{cust.address}</td>
                 <td>{cust.contact || "N/A"}</td>
