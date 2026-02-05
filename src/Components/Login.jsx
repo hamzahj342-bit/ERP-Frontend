@@ -4,7 +4,7 @@ import '../index.css';
 import { saveAuthData } from '../auth';
 import bgImage from '../assets/Analytical.jpeg';
 import logo from '../assets/CNDlogo.jpeg'; 
-import { FaUser, FaLock, FaEnvelope, FaShieldAlt, FaArrowLeft } from 'react-icons/fa';
+import { FaUser, FaLock, FaEnvelope, FaShieldAlt, FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
 import api from '../../api';
 
 // Notifications
@@ -24,6 +24,8 @@ const Login = () => {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Login ke liye
+  const [showNewPass, setShowNewPass] = useState(false);   // Reset mode ke liye
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -127,7 +129,18 @@ const Login = () => {
                   <FaUser className="icon" />
                 </div>
                 <div className="input-box">
-                  <input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} required />
+                  <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Password" value={password} 
+                  onChange={(e)=>setPassword(e.target.value)} 
+                  required />
+                  <div 
+                   className="password-toggle-icon" 
+                   onClick={() => setShowPassword(!showPassword)}
+                   style={{ position: 'absolute', right: '45px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#888' }}
+                  >
+                   {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </div>
                   <FaLock className="icon" />
                 </div>
                 <div className="options">
@@ -175,7 +188,14 @@ const Login = () => {
               {step === 3 && (
                 <form onSubmit={handleResetPassword}>
                   <div className="input-box">
-                    <input type="password" placeholder="New Password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} required />
+                    <input type={showNewPass ? "text" : "password"} placeholder="New Password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} required />
+                    <div 
+                     className="password-toggle-icon" 
+                     onClick={() => setShowNewPass(!showNewPass)}
+                     style={{ position: 'absolute', right: '45px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#888' }}
+                     >
+                     {showNewPass ? <FaEyeSlash /> : <FaEye />}
+                     </div>
                     <FaLock className="icon" />
                   </div>
                   <div className="input-box">
