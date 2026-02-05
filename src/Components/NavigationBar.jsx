@@ -13,7 +13,7 @@ import {
   FaTools,
   FaReceipt,
   FaClipboardCheck,
-  FaClipboardList,
+  FaClipboardList, 
   FaExclamationCircle,
   FaStackExchange,
   FaUserTie,
@@ -243,7 +243,9 @@ const menuSections = [
         </ul>
       </div>
 
-      {sidebarOpen && !isDashboard && <div className="overlay"></div>}
+      {sidebarOpen && (
+  <div className="overlay" onClick={() => setSidebarOpen(false)}></div>
+)}
     </>
   );
 };

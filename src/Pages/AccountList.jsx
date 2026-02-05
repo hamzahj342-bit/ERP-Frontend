@@ -200,7 +200,7 @@ const AccountList = () => {
             <tbody>
               {accounts.map((acc, index) => (
                 <tr key={acc.id}>
-                  <td>{index + 1}</td>
+                  <td>{acc.id}</td>
                   <td>{acc.account_code}</td>
                   <td>{acc.account_name}</td>
                   <td>

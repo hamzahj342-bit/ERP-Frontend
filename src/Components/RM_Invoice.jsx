@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import '../Invoice.css'; 
 import api from "../../api"; 
+// import CNDlogo from '../assets/CNDlogo.jpeg'
 
 const RM_InvoiceDetail = () => {
     const { invoiceNo } = useParams();
@@ -102,6 +103,11 @@ const RM_InvoiceDetail = () => {
                    <div id="invoice-detail" className="invoice-box shadow-lg">
           <header className="invoice-header">
                     <div className="company-info">
+                        {/* <img 
+                            src={CNDlogo} 
+                            alt="Company Logo" 
+                            style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
+                        /> */}
                         <p className="title text">CHEMICAL & DETERGENTS TRADER</p>
                         <h4 className="subtitle">RAW MATERIAL  INVOICE</h4>
                     </div>
