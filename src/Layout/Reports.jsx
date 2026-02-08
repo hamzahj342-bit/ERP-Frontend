@@ -84,6 +84,14 @@ const Reports = () => {
                         path="/accounts-report" // Assuming this is your target route
                         color="#00a3ccff" // Orange/Brown for Financial Statement
                     />
+
+                    <ReportCard 
+                       title="📊 Sales Detail Report"
+                       description="Analyze your sales performance by Customer and Items. Track both Finished Products and Raw Material sales in one place."
+                       icon={<FaFileInvoiceDollar size={40} />}
+                       path="/sales-report" // Jo bhi aapka route name hai
+                       color="#4caf50" // Professional Green color for Sales/Growth
+                    />
                     
                     {/* Add more reports here if needed, e.g., Trial Balance, Balance Sheet */}
 

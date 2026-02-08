@@ -63,6 +63,7 @@ import MaterialsList from './Pages/MaterialsList';
 import RM_Adjustment from './Components/RM_Adjustment';
 import FP_Adjustment from './Components/FP_Adjustment';
 import InventoryAdjustment from './Layout/InventoryAdjustment';
+import SalesReport from './Components/SalesReport';
 
 
 const App = () => {
@@ -139,7 +140,9 @@ const App = () => {
         <Route path='/entity-ledger' element={<ProtectedRoute> <EntityLedgerReport /> </ProtectedRoute>} />
         <Route path='/profit-loss' element={<ProtectedRoute> <ProfitLoss /> </ProtectedRoute>} />
         <Route path='/accounts-report' element={<ProtectedRoute> <AccountLedger /> </ProtectedRoute>} />
-        <Route path='/inventory-adjustment' element={<ProtectedRoute > <InventoryAdjustment /> </ProtectedRoute>} />      </Routes>  
+        <Route path='sales-report' element={<ProtectedRoute> <SalesReport /> </ProtectedRoute>} />
+        <Route path='/inventory-adjustment' element={<ProtectedRoute > <InventoryAdjustment /> </ProtectedRoute>} /> 
+      </Routes>  
     </Router>
   );
 };
