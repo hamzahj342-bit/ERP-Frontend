@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../index.css';
 import { saveAuthData } from '../auth';
 import bgImage from '../assets/Analytical.jpeg';
 import logo from '../assets/CNDlogo.jpeg'; 
-import { FaUser, FaLock, FaEnvelope, FaShieldAlt, FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
+import {FaBuilding, FaUser, FaLock, FaEnvelope, FaShieldAlt, FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
 import api from '../../api';
 
 // Notifications
@@ -15,6 +15,8 @@ import Swal from 'sweetalert2';
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [companies, setCompanies] = useState([]); // Companies list state
+  const [selectedCompany, setSelectedCompany] = useState(''); // Selected ID state
   const [message, setMessage] = useState('');
   
   // States for Switching Views
@@ -30,11 +32,37 @@ const Login = () => {
 
   const navigate = useNavigate();
 
+  // --- 1. Fetch Companies on Load ---
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await api.get('/companies'); // Aapka naya route
+        setCompanies(response.data);
+      } catch (error) {
+        console.error("Error fetching companies", error);
+        toast.error("Failed to load companies");
+      }
+    };
+    fetchCompanies();
+  }, []);
+
+  // --- Login Handler ---
   // --- Login Handler ---
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedCompany) {
+      toast.warning("Please select a company!");
+      return;
+    }
+
     try {
-      const response = await api.post('/login', { username, password });
+      // Backend ko username, password aur selected company_id bhej rahe hain
+      const response = await api.post('/login', { 
+        username, 
+        password, 
+        company_id: selectedCompany 
+      });
+
       if (response.status === 200) {
         saveAuthData(response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
@@ -143,6 +171,25 @@ const Login = () => {
                   </div>
                   <FaLock className="icon" />
                 </div>
+
+                {/* --- COMPANY SELECT DROPDOWN --- */}
+                <div className="input-box">
+  <select 
+    value={selectedCompany} 
+    onChange={(e) => setSelectedCompany(e.target.value)} 
+    required
+    className="company-select-field"
+  >
+    <option value="" disabled>Select Company</option>
+    {companies.map((comp) => (
+      <option key={comp.id} value={comp.id}>
+        {comp.name}
+      </option>
+    ))}
+  </select>
+  {/* building icon exactly where the others are */}
+  <FaBuilding className="icon" /> 
+</div>
                 <div className="options">
                   <label><input type="checkbox" /> Remember me</label>
                   <span className="forgot-link" onClick={() => setIsForgotMode(true)}>Forgot Password?</span>
