@@ -31,8 +31,14 @@ const EmployeesForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+     if (!user || !user.company_id) {
+          toast.error("User session expired or Company not selected. Please login again.");
+          return;
+        }
+
     const payload = {
       ...formData,
+      company_id: user.company_id,
       created_by: user ? user.id : null,
       type: "employee"   // 👈 Employee type
     };

@@ -6,6 +6,7 @@ import {
     FaArrowRight, 
     FaArrowLeft,
 } from 'react-icons/fa';
+import { MdPrecisionManufacturing } from 'react-icons/md';
 import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
 import Footer from '../Components/Footer';
 import NavigationBar from '../Components/NavigationBar';
@@ -93,6 +94,13 @@ const Reports = () => {
                        color="#4caf50" // Professional Green color for Sales/Growth
                     />
                     
+                    <ReportCard 
+                       title="🏭 Production Analytics Report"
+                       description="Monitor manufacturing output and material consumption. Track finished goods produced and raw materials utilized per batch."
+                       icon={<MdPrecisionManufacturing size={40} />}
+                       path="/production-report" 
+                       color="#3f51b5" // Professional Indigo/Blue color for Manufacturing/Industry
+                     />
                     {/* Add more reports here if needed, e.g., Trial Balance, Balance Sheet */}
 
                 </div>

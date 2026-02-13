@@ -49,9 +49,18 @@ const AddMaterial = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+   const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user"));
+
+
   // 3. Create new material (POST)
   const handleCreateMaterial = async (e) => {
     e.preventDefault();
+
+     if (!user || !user.company_id) {
+          toast.error("User session expired or Company not selected. Please login again.");
+          return;
+        }
 
     if (!formData.name || !formData.uom_id) {
       toast.error("Please fill all required fields!");
@@ -63,10 +72,15 @@ const AddMaterial = () => {
       toast.error("Please enter Unit Weight for this UOM!");
       return;
     }
-
+       
+    const payload = {
+      ...formData,
+      company_id: user.company_id,
+      created_by: user ? user.id : null,
+    };
     try {
       // api.post handles headers and JSON stringify automatically
-      await api.post("/add-materials", formData);
+      await api.post("/add-materials", payload);
       
       fetchMaterials(); 
       setFormData({ name: "", uom_id: "", unit_quantity: "" });

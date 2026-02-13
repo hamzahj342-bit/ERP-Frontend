@@ -36,12 +36,18 @@ const handleSubmit = async (e) => {
 
     const finalShopId = formData.shop_id === "" ? null : formData.shop_id;
 
+     if (!user || !user.company_id) {
+          toast.error("User session expired or Company not selected. Please login again.");
+          return;
+        }
+
     // Payload bilkul same rakha hai
     const payload = {
       name: formData.name, 
       address: formData.address,
       contact: formData.contact,
       shop_id: finalShopId, 
+      company_id: user.company_id,
       created_by: user ? user.username : "guest", 
       type: "supplier" 
     };
