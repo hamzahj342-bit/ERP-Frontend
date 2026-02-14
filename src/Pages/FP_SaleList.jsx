@@ -12,7 +12,7 @@ const FP_SaleList = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const limit = 10;
+  const limit = 50;
   const navigate = useNavigate();
 
   useEffect(() => {

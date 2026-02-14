@@ -23,7 +23,7 @@ const RM_Purchase = () => {
           params: {
             type: "purchase",
             page: page,
-            limit: 10
+            limit: 50
           }
         });
 

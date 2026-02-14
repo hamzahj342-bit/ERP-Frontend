@@ -25,7 +25,7 @@ const RM_SaleReturn = () => {
               params: {
                 type: "SaleReturn",
                 page: page,
-                limit: 10
+                limit: 50
               }
             });
             

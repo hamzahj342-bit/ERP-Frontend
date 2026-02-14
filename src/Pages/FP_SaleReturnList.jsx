@@ -13,7 +13,7 @@ const FP_SaleReturnList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  const limit = 10;
+  const limit = 50;
   const navigate = useNavigate();
 
   // ✅ Fetch Finished Goods Sale Return Data (GET using api.js)
