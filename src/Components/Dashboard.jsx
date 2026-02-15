@@ -325,7 +325,7 @@ const Dashboard = () => {
 
         </div>  
       </div>
-      <Footer className='footer-dashboard'/>
+      <Footer/>
     </div>
   );
 };

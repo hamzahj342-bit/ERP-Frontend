@@ -9,6 +9,8 @@
 /* 🔵 TOPBAR */
 .topbar {
   position: fixed;
+  top: 0;
+  left: 0;
   display: flex;
   background: linear-gradient(to left, #1666c5, #3479d2, #719cce);
   width: 100%;
@@ -20,44 +22,56 @@
   box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
 }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
 .select-arrow {
-  border: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
   font-weight: bold;
   border-radius: 5px;
-  background: transparent;
-  color: #fff; /* ✅ white label text */
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
   outline: none;
   cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
 }
 
 .select-arrow option {
-  color: #1a73e8; /* dropdown options blue */
-  background-color: #ffffff; /* white dropdown background */
+  color: #1a73e8;
+  background-color: #ffffff;
   font-weight: bold;
 }
+
 .user-info {
   display: flex;
   cursor: pointer;
-  z-index: 4000;
-  gap: 8px;
+  gap: 10px;
   font-weight: 600;
   color: #ffffff;
   align-items: center;
   position: relative;
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: background 0.3s;
+}
+
+.user-info:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .user-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  border: 2px solid #fff;
+  object-fit: cover;
 }
 
-.option-open {
-  color: #1a73e8;
-  font-weight: bold;
-}
-
-/* 📂 SIDEBAR */
+/* 📂 SIDEBAR (Original Colors & Design) */
 .sidebar {
   position: fixed;
   top: 0;
@@ -65,16 +79,12 @@
   width: 260px;
   height: 100%;
   background: linear-gradient(to right, #1666c5, #3479d2, #719cce);
-  
   padding: 20px;
   transition: all 0.3s ease;
   z-index: 1200;
   box-shadow: 0 6px 20px rgba(26, 115, 232, 0.2);
-
   max-height: 100vh;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #ffffff #4a90e2;
 }
 
 /* ✅ OPEN SIDEBAR */
@@ -82,28 +92,19 @@
   left: 0;
 }
 
-/* ✅ static mode (Dashboard page) */
-.sidebar-static {
-  left: 0 !important;
-  top: 0;
+/* ✅ static mode (Desktop Dashboard) */
+@media (min-width: 769px) {
+  .sidebar-static {
+    left: 0 !important;
+    top: 0;
+  }
+  
+  .dashboard-page .main-content {
+    margin-left: 260px;
+  }
 }
 
-/* ✅ SIDEBAR SCROLLBAR */
-.sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-.sidebar::-webkit-scrollbar-track {
-  background: #0d0d0d;
-}
-.sidebar::-webkit-scrollbar-thumb {
-  background-color: #1a73e8;
-  border-radius: 10px;
-}
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background-color: #3b8cff;
-}
-
-/* SIDEBAR TEXT */
+/* SIDEBAR TEXT & LIST (Original Styling) */
 .sidebar h2 {
   text-align: center;
   font-size: 22px;
@@ -127,10 +128,12 @@
   margin: 5px;
   width: 100%;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
 }
 
 .sidebar li span {
-  margin: 15px;
+  margin-left: 15px;
   color: #fff;
 }
 
@@ -142,7 +145,6 @@
   transform: translateX(5px);
 }
 
-/* ✅ ACTIVE LINK (highlight current route) */
 .sidebar li.active {
   background: rgba(255, 255, 255, 0.3);
   border-left: 4px solid #ffffff;
@@ -158,36 +160,43 @@
   height: 100%;
   backdrop-filter: blur(4px);
   background-color: rgba(48, 132, 211, 0.1);
-  z-index: 500;
+  z-index: 1100;
 }
 
-/* ✅ MAIN CONTENT AREA */
+/* ✅ MAIN CONTENT */
 .main-content {
   padding: 20px;
+  margin-top: 50px; /* Adjust for Topbar */
   transition: margin-left 0.3s ease;
 }
 
-/* ✅ DASHBOARD PAGE (STATIC SIDEBAR) */
-.dashboard-page .main-content {
-  margin-left: 260px;
-  margin-top: 60px; /* Topbar height */
-}
-
-/* ✅ OTHER PAGES (TOGGLE SIDEBAR) */
-.non-dashboard .main-content {
-  margin-top: 60px;
-}
-
-/* ✅ RESPONSIVE FIX */
+/* ✅ RESPONSIVE FIX (Mobile) */
 @media (max-width: 768px) {
   .sidebar-static {
-    position: fixed;
-    left: -260px;
+    left: -260px !important; /* Mobile pe Dashboard ka sidebar bhi hide rhega jab tak click na ho */
   }
+  
   .sidebar.open {
-    left: 0;
+    left: 0 !important;
   }
+
   .main-content {
     margin-left: 0 !important;
   }
+
+  .topbar-right span {
+    display: none; /* Mobile pe user name hide, sirf avatar dikhega spacing ke liye */
+  }
+}
+
+/* Custom Scrollbar (Original Style) */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
 }
