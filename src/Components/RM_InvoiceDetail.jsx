@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import NavigationBar from "./NavigationBar"; 
 import Footer from "./Footer"; 
@@ -7,7 +7,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf"; 
 import api from "../../api"; 
 
-// --- HELPER FUNCTION: Same to Same (No Changes) ---
+// --- HELPER FUNCTION: Standardizing Data ---
 const standardizeInvoice = (data, type) => {
     let detailArray;
     if (type === "RAW MATERIAL") {
@@ -42,7 +42,28 @@ const RM_InvoiceDetail = () => {
     const [invoiceNo, setInvoiceNo] = useState("");
     const [invoice, setInvoice] = useState(null);
     const [error, setError] = useState("");
+    const [companies, setCompanies] = useState([]);
     const navigate = useNavigate();
+
+    // ✅ Configuration for Images & User
+    const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    // ✅ Fetch Companies to get dynamic name
+    useEffect(() => {
+        const fetchCompanies = async () => {
+            try {
+                const res = await api.get('/companies');
+                setCompanies(res.data);
+            } catch (err) {
+                console.error("Error fetching companies", err);
+            }
+        };
+        fetchCompanies();
+    }, []);
+
+    // ✅ Current Company Name logic
+    const currentCompanyName = companies.find(c => c.id === Number(user?.company_id))?.name || "CHEMICAL & DETERGENTS TRADER";
 
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
@@ -53,94 +74,100 @@ const RM_InvoiceDetail = () => {
         });
     };
 
+    // 📄 PDF Download
     const generatePdf = () => {
         const input = document.getElementById("invoice-detail");
         if (!input) return;
-        const option = {
-            scale: 2, useCORS: true,
-            ignoreElements: (element) => element.classList.contains("no-print")
-        }
-        html2canvas(input, option).then((canvas) => {
+        html2canvas(input, { scale: 2, useCORS: true, ignoreElements: (el) => el.classList.contains("no-print") })
+        .then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4'); 
-            const imgProps = pdf.getImageProperties(imgData);
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             pdf.save(`Invoice-${invoice.invoice_no}.pdf`); 
         });
     }
 
-    // --- HANDLE SEARCH (Using api.js) ---
+    // 🖼️ PNG Download
+    const generateImage = () => {
+        const input = document.getElementById("invoice-detail");
+        if (!input) return;
+        html2canvas(input, { scale: 3, useCORS: true, ignoreElements: (el) => el.classList.contains("no-print") })
+        .then((canvas) => {
+            const link = document.createElement('a');
+            link.download = `Invoice-${invoice.invoice_no}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+
     const handleSearch = async () => {
         setError("");
         setInvoice(null); 
-
-        // 1. Try to fetch RM Invoice first
         try {
-            // fetch ki jagah api.get
             const rmRes = await api.get(`/rm-invoice/${invoiceNo}`);
-            const rmData = rmRes.data; 
-
-            if (rmData.RmDetails && rmData.RmDetails.length > 0) {
-                setInvoice(standardizeInvoice(rmData, "RAW MATERIAL")); 
+            if (rmRes.data.RmDetails) {
+                setInvoice(standardizeInvoice(rmRes.data, "RAW MATERIAL")); 
                 return; 
             }
-        } catch (err) {
-             console.log("RM Invoice not found, trying FP...");
-        }
+        } catch (err) { console.log("Searching in FP..."); }
 
-        // 2. Try to fetch FP Invoice
         try {
             const fpRes = await api.get(`/fp-invoice/${invoiceNo}`);
-            const fpData = fpRes.data;
-
-            if (fpData.details && fpData.details.length > 0) { 
-                setInvoice(standardizeInvoice(fpData, "FINISHED PRODUCT"));
+            if (fpRes.data.details) { 
+                setInvoice(standardizeInvoice(fpRes.data, "FINISHED PRODUCT"));
                 return; 
             }
-        } catch (err) {
-            console.error("FP API call failed:", err);
-        }
+        } catch (err) { console.error("Not found in both."); }
 
-        setError("Invoice not found in Raw Material or Finished Product records.");
+        setError("Invoice not found in our records.");
     };
-    
-    const invoiceDateSource = invoice?.date;
-
 
     return (
         <>
         <NavigationBar />
         <div className="page-container">
-             <button
-            className="back-btn"
-            style={{ marginTop: "30px" }}
-            onClick={() => navigate('/dashboard')}
-            >
-            <FaArrowLeft />
+            <button className="back-btn" style={{ marginTop: "30px" }} onClick={() => navigate('/dashboard')}>
+                <FaArrowLeft />
             </button>
             <div className="rm-card">
                 <h2>🔍 Search Invoice</h2>
-                <input
-                className="input"
-                    type="text"
-                    placeholder="Enter Invoice No (e.g. INV-00123)"
-                    value={invoiceNo}
-                    onChange={(e) => setInvoiceNo(e.target.value)}
-                />
-                <button onClick={handleSearch}>Search</button>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                    <input
+                        className="input"
+                        type="text"
+                        placeholder="Enter Invoice No (e.g. INV-001)"
+                        value={invoiceNo}
+                        onChange={(e) => setInvoiceNo(e.target.value)}
+                    />
+                    <button onClick={handleSearch} style={{ padding: '0 25px' }}>Search</button>
+                </div>
 
-                {error && <p style={{ color: "red" }}>{error}</p>}
+                {error && <p style={{ color: "red", textAlign: 'center' }}>{error}</p>}
 
                 {invoice && (
-                    <>
                     <div className="invoice-container">
                         <div id="invoice-detail" className="invoice-box shadow-lg">
                             <header className="invoice-header">
-                                <div className="company-info">
-                                    <p className="title text">CHEMICAL & DETERGENTS TRADER</p>
-                                    <h4 className="subtitle">{invoice.type} INVOICE</h4>
+                                <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                    {/* ✅ Dynamic Logo */}
+                                    {user?.profile_image ? (
+                                        <img 
+                                            src={`${IMAGE_BASE_URL}/uploads/${user.profile_image}`} 
+                                            alt="Logo" 
+                                            style={{ width: '70px', height: '70px', borderRadius: '5px', objectFit: 'cover' }} 
+                                        />
+                                    ) : (
+                                        <div style={{ width: '70px', height: '70px', background: '#eee', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888' }}>NO LOGO</div>
+                                    )}
+                                    <div>
+                                        {/* ✅ Dynamic Company Name */}
+                                        <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.1rem', margin: 0 }}>
+                                            {currentCompanyName}
+                                        </p>
+                                        <h4 className="subtitle">{invoice.type} INVOICE</h4>
+                                    </div>
                                 </div>
                                 <div className="invoice-id">
                                     <p className="title">INVOICE NO.</p>
@@ -152,16 +179,15 @@ const RM_InvoiceDetail = () => {
                                 <div className="details-row">
                                     <div className="billed-to">
                                         <p className="label">Billed To</p>
-                                        <h5 className="customer-name"><b>Name: </b>{invoice.entity?.name || 'Name N/A'}</h5>
-                                        <p className="customer-detail"><b>Address: </b>{invoice.entity?.address || 'Address N/A'}</p>
-                                        <p className="customer-detail"><b>Contact: </b>{invoice.entity?.contact || 'Contact N/A'}</p>
-                                        <p className="customer-detail"><b>Type:</b> {invoice.type}</p>
+                                        <h5 className="customer-name"><b>Name: </b>{invoice.entity?.name || invoice.customer?.name || 'N/A'}</h5>
+                                        <p className="customer-detail"><b>Address: </b>{invoice.entity?.address || invoice.customer?.address || 'N/A'}</p>
+                                        <p className="customer-detail"><b>Contact: </b>{invoice.entity?.contact || invoice.customer?.contact || 'N/A'}</p>
                                     </div>
 
                                     <div className="invoice-dates">
                                         <div className="date-item">
                                             <p className="label">Date Issued</p>
-                                            <p className="value">{formatDate(invoiceDateSource)}</p> 
+                                            <p className="value">{formatDate(invoice.date)}</p> 
                                         </div>
                                         <div className="date-item">
                                             <p className="label">Created By</p>
@@ -171,70 +197,57 @@ const RM_InvoiceDetail = () => {
                                 </div>
                             </section>
 
-                            {/* 3. Item Details Table */}
                             <section className="item-table-section">
-                                <h5 className="section-title">Item Details</h5>
-                                <div className="table-responsive">
-                                    <table className="item-table">
-                                        <thead>
-                                            <tr>
-                                                <th className="product-col">Material Description</th>
-                                                <th className="qty-col text-right">Qty</th>
-                                                <th className="uom-col text-right">UOM</th>
-                                                <th className="price-col text-right">Unit Price</th>
-                                                <th className="amount-col text-right">Amount</th>
+                                <table className="item-table">
+                                    <thead>
+                                        <tr>
+                                            <th className="product-col">Description</th>
+                                            <th className="qty-col text-right">Qty</th>
+                                            <th className="uom-col text-right">UOM</th>
+                                            <th className="price-col text-right">Price</th>
+                                            <th className="amount-col text-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {invoice.items.map((item, index) => (
+                                            <tr key={index}>
+                                                <td className="product-col">{item.display_name}</td> 
+                                                <td className="qty-col text-right">{item.quantity}</td>
+                                                <td className="uom-col text-right">{item.uom?.name || 'N/A'}</td> 
+                                                <td className="price-col text-right">{Number(item.unit_price).toLocaleString()}</td> 
+                                                <td className="amount-col text-right">{Number(item.total_price).toLocaleString()}</td> 
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {/* Rendering using standardized 'invoice.items' array */}
-                                            {Array.isArray(invoice.items) && invoice.items.length > 0 ? (
-                                                invoice.items.map((item, index) => (
-                                                <tr key={index}>
-                                                    {/* Display Name will be rm_name or product_name based on standardization */}
-                                                    <td className="product-col">{item.display_name}</td> 
-                                                    <td className="qty-col text-right">{item.quantity}</td>
-                                                    <td className="uom-col text-right">{item.uom?.name || 'N/A'}</td> 
-                                                    {/* Price and Total formatted correctly */}
-                                                    <td className="price-col detail-text text-right">Rs. {Number(item.unit_price).toFixed(2)}</td> 
-                                                    <td className="amount-col value-text text-right">Rs. {Number(item.total_price).toFixed(2)}</td> 
-                                                </tr>
-                                                ))
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan="5" className="text-center text-muted py-4">
-                                                        No product details found for this invoice.
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </section>
+
                             <footer className="invoice-footer">
                                 <div className="total-area">
                                     <div className="total-box shadow">
-                                        <h5>Discount: Rs. {Number(invoice.discount)}</h5>
+                                        {/* ✅ Conditional Discount */}
+                                        {Number(invoice.discount) > 0 && (
+                                            <h5 style={{ marginBottom: '5px' }}>Discount: Rs. {Number(invoice.discount).toLocaleString()}</h5>
+                                        )}
                                         <h4 className="total-label">GRAND TOTAL</h4>
                                         <h2 className="total-value">Rs. {Number(invoice.grand_total).toLocaleString()}</h2> 
                                     </div>
                                 </div>
                                 
                                 <div className="note-section">
-                                    <p className="note">Thank you for your business. This is a computer-generated invoice.</p>
-                                    
-                                    <div className="action-buttons-group no-print">
-                                        <button
-                                            onClick={generatePdf}
-                                            className="download-pdf-button"
-                                        >
-                                            ↓ Download as PDF
+                                    <p className="note">Computer generated invoice. No signature required.</p>
+                                    <div className="action-buttons-group no-print" style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '15px' }}>
+                                        <button onClick={generateImage} className="download-img-button" style={{ backgroundColor: '#27ae60', color: 'white' }}>
+                                            🖼️ Save Image
+                                        </button>
+                                        <button onClick={generatePdf} className="download-pdf-button">
+                                            📄 Save PDF
                                         </button>
                                     </div>
                                 </div>
                             </footer>
                         </div>
                     </div>
-                    </>
                 )}
             </div>
         </div>

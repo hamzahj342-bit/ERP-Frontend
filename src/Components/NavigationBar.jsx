@@ -12,30 +12,41 @@ const NavigationBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const sidebarRef = useRef(null);
+
+  // ✅ Vite Environment Variable for Image Base URL
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
+
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem("user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
   const isDashboard = location.pathname === "/dashboard";
 
   useEffect(() => {
     const updateUserData = () => {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      if (storedUser) setUser(storedUser);
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
     };
 
-    updateUserData();
-    // Jab bhi localStorage update ho (Profile pic change ho), navbar refresh ho jaye
     window.addEventListener("storage", updateUserData);
-    return () => window.removeEventListener("storage", updateUserData);
+    const interval = setInterval(updateUserData, 2000); 
+
+    return () => {
+      window.removeEventListener("storage", updateUserData);
+      clearInterval(interval);
+    };
   }, []);
 
   const logOut = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    localStorage.clear();
     navigate("/");
   };
 
+  // Sidebar outside click
   useEffect(() => {
     if (!sidebarOpen) return;
     const handler = (e) => {
@@ -84,7 +95,7 @@ const NavigationBar = () => {
   const renderMenuItem = (item) => {
     if (item.type === "link") {
       return (
-        <li key={item.label} onClick={() => navigate(item.path)} className={location.pathname === item.path ? "active" : ""}>
+        <li key={item.label} onClick={() => { navigate(item.path); setSidebarOpen(false); }} className={location.pathname === item.path ? "active" : ""}>
           <span className="icon">{item.icon}</span>
           <span className="label">{item.label}</span>
         </li>
@@ -95,7 +106,7 @@ const NavigationBar = () => {
         <React.Fragment key={item.label}>
           <li className="sidebar-heading"><span><b>{item.label}</b></span></li>
           {item.children.map((child) => (
-            <li key={child.label} onClick={() => navigate(child.path)} className={`nested-link ${location.pathname === child.path ? "active" : ""}`}>
+            <li key={child.label} onClick={() => { navigate(child.path); setSidebarOpen(false); }} className={`nested-link ${location.pathname === child.path ? "active" : ""}`}>
               <span className="icon">{child.icon}</span>
               <span className="label">{child.label}</span>
             </li>
@@ -110,36 +121,57 @@ const NavigationBar = () => {
     <>
       <div className="topbar">
         <div className="left-section">
-          <div className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}><FaBars size={22} /></div>
+          <div className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <FaBars size={22} />
+          </div>
         </div>
 
         <div className="user-info">
-          {/* ✅ DYNAMIC PROFILE IMAGE IN NAVBAR */}
-          {user?.profile_image ? (
-            <img 
-              src={`http://localhost:5000/uploads/${user.profile_image}`} 
-              alt="User" 
-              className="user-avatar" 
-              style={{ width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", cursor: 'pointer', border: "2px solid #fff" }}
-              onClick={() => navigate("/profile")}
-            />
-          ) : (
-            <FaUserCircle size={26} className="user-icon" onClick={() => navigate("/profile")} style={{ cursor: 'pointer' }} />
-          )}
+          {/* ✅ Dynamic Image Path with Fallback Logic */}
+          <div className="avatar-wrapper" onClick={() => navigate("/profile")} style={{ cursor: 'pointer' }}>
+            {user?.profile_image ? (
+              <img 
+                src={`${IMAGE_BASE_URL}/uploads/${user.profile_image}`} 
+                alt="Profile" 
+                className="user-avatar" 
+                style={{ width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }}
+                onError={(e) => {
+                   // Agar image load na ho (invalid path), to hide karke icon dikhayein
+                   e.target.onerror = null; 
+                   e.target.src = "https://via.placeholder.com/35?text=U"; 
+                }}
+              />
+            ) : (
+              <FaUserCircle size={28} className="user-icon" style={{ color: 'white' }} />
+            )}
+          </div>
 
-          <select className="select-arrow" onChange={(e) => { if (e.target.value === "logout") logOut(); if (e.target.value === "profile") navigate("/profile"); }}>
-            <option>{user?.name || "Guest"}</option>
-            <option value="profile">Profile</option>
+          <select 
+            className="select-arrow" 
+            value="" 
+            onChange={(e) => { 
+              if (e.target.value === "logout") logOut(); 
+              if (e.target.value === "profile") navigate("/profile"); 
+            }}
+          >
+            {/* ✅ Priority: username > name > default "User" */}
+            <option value="" disabled hidden>
+              {user?.username || user?.name || "User"}
+            </option>
+            <option value="profile">My Profile</option>
             <option value="logout">Logout</option>
           </select>
         </div>
       </div>
 
       <div ref={sidebarRef} className={`sidebar ${isDashboard ? "sidebar-static" : ""} ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-header"><h2>Menu</h2></div>
+        <div className="sidebar-header"><h2>ERP Menu</h2></div>
         <ul className="sidebar-menu">
           {menuSections.map(renderMenuItem)}
-          <li onClick={logOut}><span className="icon"><FaSignOutAlt /></span><span className="label">Logout</span></li>
+          <li onClick={logOut} style={{marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)'}}>
+            <span className="icon"><FaSignOutAlt /></span>
+            <span className="label">Logout</span>
+          </li>
         </ul>
       </div>
       {sidebarOpen && <div className="overlay" onClick={() => setSidebarOpen(false)}></div>}

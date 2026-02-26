@@ -82,7 +82,7 @@ const FP_SaleReturnList = () => {
         {/* Table */}
         <div className="card">
           <button
-            className="add-cust-sup"
+            className="add-sale-btn"
             onClick={() => navigate('/fp-salereturn-form')} 
           >
             Add New

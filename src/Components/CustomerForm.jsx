@@ -96,7 +96,7 @@ const CustomerForm = () => {
             onChange={handleChange}
           />
 
-          <button type="submit" className="primary-btn" onClick={() => navigate("/customers")}>Add Customer</button>
+          <button type="submit" className="primary-btn">Add Customer</button>
         </form>
       </div>
     </div>

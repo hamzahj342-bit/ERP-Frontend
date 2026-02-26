@@ -261,38 +261,33 @@ const Dashboard = () => {
           </div>
 
           {/* --- Top Performing Products --- */}
-          <div className="top-products-section">
-            <div className="chart-box full-width">
-              <h3 style={{color : '#81c784'}}>Top Performing Products</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart layout="vertical" data={trendingProducts} margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+          <div className="trending-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+            <div className="chart-box">
+              <h3 style={{color : '#2e7d32'}}>Top 5 Selling Products</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart layout="vertical" data={trendingProducts}>
                   <XAxis type="number" hide /> 
-                  <YAxis dataKey="name" type="category" stroke="#666" />
-                  <Tooltip cursor={{fill: '#f5f5f5'}} />
-                  <Bar dataKey="sales" radius={[0, 10, 10, 0]} barSize={30}>
+                  <YAxis dataKey="name" type="category" width={100} style={{fontSize: '12px'}} />
+                  <Tooltip />
+                  <Bar dataKey="sales" radius={[0, 5, 5, 0]}>
                     {trendingProducts.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#4caf50' : '#81c784'} />
+                      <Cell key={`cell-${index}`} fill={index === 0 ? '#1b5e20' : '#4caf50'} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
 
-          {/* --- Top Raw Materials Usage --- */}
-          <div className="top-materials-section" style={{ marginTop: '20px' }}>
-            <div className="chart-box full-width">
-              <h3 style={{ color: '#1976d2' }}>High Usage Raw Materials</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart layout="vertical" data={trendingMaterials} margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+            <div className="chart-box">
+              <h3 style={{ color: '#1565c0' }}>Highest Consumption Materials</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart layout="vertical" data={trendingMaterials}>
                   <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" stroke="#666" width={100} />
-                  <Tooltip cursor={{ fill: '#f5f5f5' }} />
-                  <Bar dataKey="usage" radius={[0, 10, 10, 0]} barSize={30}>
+                  <YAxis dataKey="name" type="category" width={100} style={{fontSize: '12px'}} />
+                  <Tooltip />
+                  <Bar dataKey="usage" radius={[0, 5, 5, 0]}>
                     {trendingMaterials.map((entry, index) => (
-                      <Cell key={`cell-m-${index}`} fill={index === 0 ? '#1976d2' : '#64b5f6'} />
+                      <Cell key={`cell-m-${index}`} fill={index === 0 ? '#0d47a1' : '#2196f3'} />
                     ))}
                   </Bar>
                 </BarChart>

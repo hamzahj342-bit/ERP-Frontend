@@ -65,7 +65,7 @@ const RM_Purchase = () => {
         {/* Table */}
         <div className="card">
           <button
-            className="add-cust-sup"
+            className="add-sale-btn"
             onClick={() => navigate('/rm-purchase-form')}
           >
             Add New

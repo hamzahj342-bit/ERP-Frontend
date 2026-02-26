@@ -64,7 +64,7 @@ const FP_SaleList = () => {
 
         <div className="card">
           <button
-            className="add-cust-sup"
+            className="add-sale-btn"
             onClick={() => navigate('/fp-sale-form')}
           >
             Add New

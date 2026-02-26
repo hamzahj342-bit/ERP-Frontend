@@ -82,7 +82,7 @@ const RM_Sale = () => {
         {/* Table */}
         <div className="card">
           <button
-            className="add-cust-sup"
+            className="add-sale-btn"
             onClick={() => navigate('/rm-sale-form')}
           >
             Add New

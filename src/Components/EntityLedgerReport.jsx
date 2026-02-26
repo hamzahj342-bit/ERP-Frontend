@@ -24,7 +24,7 @@ const EntityLedgerReport = () => {
   useEffect(() => {
     const fetchEntities = async () => {
       try {
-        const res = await api.get("/entities");
+        const res = await api.get("/entities/transactions");
         setEntities(res.data);
       } catch (err) {
         toast.error("Failed to load entities");

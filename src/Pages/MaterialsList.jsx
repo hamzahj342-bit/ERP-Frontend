@@ -128,10 +128,10 @@ const MaterialsList = () => {
         {/* List */}
         <div className="card">
          <button
-            className="add-cust-sup"
+            className="add-sale-btn"
             onClick={() => navigate("/add-materials")}
           >
-            Add Materials
+            Add New
           </button>
           <h2>Raw Material List</h2>
           <table className="product-table">

@@ -1,7 +1,7 @@
 import React from 'react';
 import { FaShoppingCart, FaUndo, FaCashRegister, FaExchangeAlt, FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import "../RM_Transactions.css"
+import "../RM_CardLayout.css"
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
 

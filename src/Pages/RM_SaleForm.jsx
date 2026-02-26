@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import NavigationBar from '../Components/NavigationBar';
-import { FaArrowLeft, FaPlus } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
-import api from "../../api"; 
+import api from "../../api";
+import '../Model.css';
+import '../Transactions.css'; // Dono ka same CSS file
 
 const RM_SaleForm = () => {
     const navigate = useNavigate();
 
     const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0, entity_supplier_id: "", supplier_id: "" }
+        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0, supplier_id: "" }
     ]);
     const [materials, setMaterials] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -18,13 +20,11 @@ const RM_SaleForm = () => {
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
     
-    // 🛑 States for Discount Logic
     const [subTotal, setSubTotal] = useState(0); 
     const [globalDiscount, setGlobalDiscount] = useState(""); 
     const [grandTotal, setGrandTotal] = useState(0);
     const [showCustomerModal, setShowCustomerModal] = useState(false);
 
-    // 🔹 Fetch Invoice No (Standardized api.js)
     const fetchInvoiceNo = useCallback(async () => {
         try {
             const res = await api.get("/rm-transactions/rm-invoice", {
@@ -32,30 +32,24 @@ const RM_SaleForm = () => {
             });
             setInvoiceNo(res.data.invoice_no);
         } catch (err) {
-            console.error("Error fetching invoice number:", err);
+            console.error("Error fetching invoice:", err);
         }
     }, []);
 
-    // 🔹 Fetch Initial Data
     useEffect(() => {
         // Fetch Customers
-        api.get("/entities")
+        api.get("/entities/transactions")
             .then(res => setCustomers(res.data.filter(ent => ent.type === "customer")))
             .catch(err => console.error("Error fetching customers:", err));
         
-        // Fetch Materials with Supplier Data
+        // Fetch Materials with Supplier Data (Sale ke liye zaruri hai)
         api.get("/rm-transactions/materials-with-suppliers")
-            .then(res => {
-                console.log("🔍 Materials Data:", res.data);
-                setMaterials(res.data);
-            })
+            .then(res => setMaterials(res.data))
             .catch(err => console.error("Error fetching materials:", err));
 
         fetchInvoiceNo();
     }, [fetchInvoiceNo]);
 
-
-    // 🔹 Calculation Logic
     const calculateTotals = (currentRows, discountValue) => {
         const currentSubTotal = currentRows.reduce((sum, row) => {
             const qty = parseFloat(row.quantity) || 0;
@@ -71,27 +65,25 @@ const RM_SaleForm = () => {
         setGrandTotal(finalGrandTotal.toFixed(2));
     };
 
-    // 🔹 Handlers
     const handleChange = (index, field, value) => {
-        const updatedRows = [...rows];
-        updatedRows[index][field] = value;
+        const updated = [...rows];
+        updated[index][field] = value;
 
         if (field === "quantity" || field === "unitPrice") {
-            const qty = parseFloat(updatedRows[index].quantity) || 0;
-            const price = parseFloat(updatedRows[index].unitPrice) || 0;
+            const qty = parseFloat(updated[index].quantity) || 0;
+            const price = parseFloat(updated[index].unitPrice) || 0;
             
-            // Stock Check
-            if (field === "quantity" && qty > updatedRows[index].stock) {
-                toast.error(`Only ${updatedRows[index].stock} units available!`);
-                updatedRows[index].quantity = "";
-                updatedRows[index].total = "";
+            if (field === "quantity" && qty > updated[index].stock) {
+                toast.error(`Only ${updated[index].stock} units available!`);
+                updated[index].quantity = "";
+                updated[index].total = "";
             } else {
-                updatedRows[index].total = (qty * price).toFixed(2);
+                updated[index].total = (qty * price).toFixed(2);
             }
         }
 
-        setRows(updatedRows);
-        calculateTotals(updatedRows, globalDiscount);
+        setRows(updated);
+        calculateTotals(updated, globalDiscount);
     };
 
     const handleGlobalDiscountChange = (value) => {
@@ -100,41 +92,35 @@ const RM_SaleForm = () => {
     };
 
     const addRow = () => {
-        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0, entity_supplier_id: "", supplier_id: "" }]);
+        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0, supplier_id: "" }]);
     };
 
     const deleteRow = (index) => {
-        const updatedRows = rows.filter((_, i) => i !== index);
-        setRows(updatedRows);
-        calculateTotals(updatedRows, globalDiscount);
+        const updated = rows.filter((_, i) => i !== index);
+        setRows(updated);
+        calculateTotals(updated, globalDiscount);
     };
     
     const fetchStock = async (rm_id, supplier_id, index) => {
         try {
             const res = await api.get(`/rm-transactions/stock/${rm_id}/${supplier_id}`);
-            const updatedRows = [...rows];
-            updatedRows[index].stock = res.data.stock || 0;
-            setRows(updatedRows);
+            const updated = [...rows];
+            updated[index].stock = res.data.stock || 0;
+            setRows(updated);
         } catch (err) {
             console.error("Error fetching stock:", err);
         }
     };
 
-    // 🔹 Submit Form
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!selectedCustomer) return toast.error("Please select a customer.");
         if (!date) return toast.error("Please select a sale date.");
 
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
-        if (validRows.length === 0) return toast.error("Please add at least one valid material row.");
+        if (validRows.length === 0) return toast.error("Please add at least one valid row.");
         
         const disc = parseFloat(globalDiscount) || 0;
-        if (disc > parseFloat(subTotal)) {
-             return toast.error("Global Discount cannot exceed the Total Sub Amount.");
-        }
-
         const user = JSON.parse(localStorage.getItem("user"));
 
         const saleData = {
@@ -142,7 +128,7 @@ const RM_SaleForm = () => {
             grand_total: parseFloat(grandTotal),
             discount: disc, 
             type: "sale", 
-            createdby: user ? user.username : "guest",
+            createdby: user?.username || "guest",
             invoice_no: invoiceNo,
             details: validRows.map(r => ({
                 rm_id: r.rm_id,
@@ -157,269 +143,154 @@ const RM_SaleForm = () => {
         };
 
         try {
-            const res = await api.post("/rm-transactions", saleData);
-
-            toast.success(`Sale Transaction Successful! Invoice: ${res.data.invoice_no}`);
-            
-            // Reset Form
-            setRows([{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0, entity_supplier_id: "", supplier_id: "" }]);
-            setSelectedCustomer("");
-            setDate("");
-            setSubTotal(0);
-            setGlobalDiscount("");
-            setGrandTotal(0);
-            fetchInvoiceNo(); 
+            await api.post("/rm-transactions", saleData);
+            toast.success(`Sale Transaction Successful!`);
             navigate('/rm-sale');
         } catch (err) {
-            console.error("Error creating sale:", err);
-            toast.error(err.response?.data?.message || "Error creating sale transaction!");
+            toast.error(err.response?.data?.message || "Error saving sale transaction.");
         }
     };
 
     const handleQuickCustomerAdd = async () => {
-    const name = document.getElementById('new_cust_name').value;
-    const phone = document.getElementById('new_cust_phone').value;
-    const address = document.getElementById('new_cust_address').value;
-
-    if (!name) return toast.error("Customer name is required");
-
-    try {
-        const payload = { 
-            name, 
-            phone, 
-            address, 
-            type: "customer" // Important: Entity type must be customer
-        };
-        
-        const res = await api.post("/entities", payload);
-
-        if (res.status === 201 || res.status === 200) {
-            toast.success("Customer Added Successfully!");
-            
-            const newCustomer = res.data; 
-            setCustomers(prev => [...prev, newCustomer]);
-            
-            setSelectedCustomer(newCustomer.id);
-            
-            // 3. Close Modal
+        const name = document.getElementById('new_cust_name').value;
+        const contact = document.getElementById('new_cust_contact').value;
+        const address = document.getElementById('new_cust_address').value;
+        if (!name) return toast.error("Customer name is required");
+        try {
+            const res = await api.post("/entities", { name, contact, address, type: "customer" });
+            setCustomers(prev => [...prev, res.data]);
+            setSelectedCustomer(res.data.id);
             setShowCustomerModal(false);
+            toast.success("Customer Added!");
+        } catch (err) {
+            toast.error("Failed to add customer");
         }
-    } catch (err) {
-        console.error("Error adding customer:", err);
-        toast.error(err.response?.data?.message || "Failed to add customer");
-    }
-};
+    };
 
     return (
-        <>
+        <div className="rm-page-wrapper">
             <NavigationBar />
-            <div className="rm-page">
-                <button
-                    className="back-btn"
-                    style={{ marginTop: "30px" }}
-                    onClick={() => navigate("/rm-sale")}
-                >
-                    <FaArrowLeft />
-                </button>
 
-                <div className="rm-card">
-                    <h2>Raw Material Sale Form</h2>
+            <div className="rm-content-container">
+                <div className="rm-header-section">
+                    <button className="back-btn" onClick={() => navigate("/rm-sale")}>
+                        <FaArrowLeft />
+                    </button>
+                    <h2 className="form-title">Raw Material Sale Form</h2>
+                </div>
 
-                    <div className="form-group d-flex">
-                        <h6><b>Sale<br />Invoice No:</b></h6>
-                        <input
-                            type="text"
-                            value={invoiceNo}
-                            readOnly
-                            className="input"
-                            style={{ backgroundColor: "#f3f3f3", margin: "-5px 0 30px 5px", width: "auto" }}
-                        />
-                    </div>
-
-                    {/* Customer & Date */}
-                    <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
-                        <select
-                            className="input"
-                            value={selectedCustomer}
-                            onChange={(e) => setSelectedCustomer(e.target.value)}
-                        >
-                            <option value="">Select Customer</option>
-                            {customers.map((ent) => (
-                                <option key={ent.id} value={ent.id}>
-                                    {ent.name}
-                                </option>
-                            ))}
-                        </select>
-                        <button className="add-sup-cust" type="button" onClick={() => setShowCustomerModal(true)}>
-                            Add Customer
-                        </button>
-
-                        <label><b>Sale Date:</b></label>
-                        <input
-                            type="date"
-                            className="input"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Rows */}
-                    <form onSubmit={handleSubmit}>
-                        {rows.map((row, index) => (
-                            <div className="rm-row" key={index}>
-                                <select
-                                    className="input"
-                                    value={row.rm_id && row.supplier_id ? `${row.rm_id}-${row.supplier_id}` : ""}
-                                    onChange={(e) => {
-                                        const [rm_id, supplier_id] = e.target.value.split("-");
-                                        const selected = materials.find(
-                                            (m) => String(m.rm_id) === rm_id && String(m.supplier_id) === supplier_id
-                                        );
-
-                                        handleChange(index, "rm_id", rm_id);
-                                        handleChange(index, "rm_name", selected?.rm_name || "");
-                                        handleChange(index, "uom_id", selected?.uom_id || "");
-                                        handleChange(index, "uom_name", selected?.uom?.uom_name || selected?.uom_name || "");
-                                        handleChange(index, "supplier_id", supplier_id);
-
-                                        if (rm_id && supplier_id) fetchStock(rm_id, supplier_id, index);
-                                    }}
-                                >
-                                    <option value="">Select Material</option>
-                                    {materials.map((m) => (
-                                        <option
-                                            key={`${m.rm_id}-${m.supplier_id}`} 
-                                            value={`${m.rm_id}-${m.supplier_id}`}>
-                                            {m.rm_name} - {m.shop_name}
-                                        </option>
-                                    ))}
+                <div className="rm-main-card">
+                    {/* Top Info Grid */}
+                    <div className="info-grid">
+                        <div className="info-item">
+                            <label>Sale Invoice No</label>
+                            <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
+                        </div>
+                        <div className="info-item">
+                            <label>Customer</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <select className="rm-input-field" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
+                                    <option value="">Select Customer</option>
+                                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
+                                <button type="button" className="quick-add-btn" onClick={() => setShowCustomerModal(true)}><FaPlus /></button>
+                            </div>
+                        </div>
+                        <div className="info-item">
+                            <label>Sale Date</label>
+                            <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} />
+                        </div>
+                    </div>
 
-                                <input type="text" className="input" placeholder="UOM" value={row.uom_name || ""} readOnly />
+                    <form onSubmit={handleSubmit}>
+                        <div className="items-table-header">
+                            <span>Material - Supplier</span>
+                            <span>UOM</span>
+                            <span>Qty</span>
+                            <span>Unit Price</span>
+                            <span>Total</span>
+                            <span>Action</span>
+                        </div>
 
-                                <input
-                                    type="number"
-                                    className="input"
-                                    placeholder="Quantity"
-                                    value={row.quantity}
-                                    min="0"
-                                    step="0.01"
-                                    onChange={(e) => handleChange(index, "quantity", e.target.value)}
-                                />
-                                <small style={{ color: "gray" }}>Available: {row.stock}</small>
+                        {rows.map((row, index) => (
+                            <div className="item-row" key={index}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <select
+                                        className="rm-input-field"
+                                        value={row.rm_id && row.supplier_id ? `${row.rm_id}-${row.supplier_id}` : ""}
+                                        onChange={(e) => {
+                                            const [rm_id, supplier_id] = e.target.value.split("-");
+                                            const selected = materials.find(m => String(m.rm_id) === rm_id && String(m.supplier_id) === supplier_id);
+                                            handleChange(index, "rm_id", rm_id);
+                                            handleChange(index, "rm_name", selected?.rm_name || "");
+                                            handleChange(index, "uom_id", selected?.uom_id || "");
+                                            handleChange(index, "uom_name", selected?.uom?.uom_name || selected?.uom_name || "");
+                                            handleChange(index, "supplier_id", supplier_id);
+                                            if (rm_id && supplier_id) fetchStock(rm_id, supplier_id, index);
+                                            }}
+                                            style={{ marginTop: '20px' }}
+                                    >
+                                        <option value="">Select Material</option>
+                                        {materials.map((m) => (
+                                            <option key={`${m.rm_id}-${m.supplier_id}`} value={`${m.rm_id}-${m.supplier_id}`}>
+                                                {m.rm_name} - {m.shop_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <small style={{ color: 'gray', fontSize: '11px' }}>Available: {row.stock}</small>
+                                </div>
 
-                                <input
-                                    type="number"
-                                    className="input"
-                                    placeholder="Unit Price"
-                                    value={row.unitPrice}
-                                    min="0"
-                                    step="0.01"
-                                    onChange={(e) => handleChange(index, "unitPrice", e.target.value)}
-                                />
+                                <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
+                                <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
+                                <input type="text" className="rm-input-field readonly-input" value={row.total} readOnly />
 
-                                <input
-                                    type="text"
-                                    className="input"
-                                    placeholder="Total Price"
-                                    value={row.total}
-                                    readOnly
-                                />
-
-                                <button type="button" className="add-more" onClick={addRow}>
-                                    <FaPlus size={20} />
-                                </button>
-                                {rows.length > 1 && (
-                                    <button type="button" className="del-btn" onClick={() => deleteRow(index)}>
-                                        ❌
-                                    </button>
-                                )}
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                    <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
+                                    {rows.length > 1 && (
+                                        <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)}><FaTrash /></button>
+                                    )}
+                                </div>
                             </div>
                         ))}
 
-                        {/* Grand Totals Section */}
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "20px", marginTop: "20px" }}>
-                            {/* Total Sub Amount */}
-                            
-                                <label className="grand-total"><b>Total<br />Sub Amount:</b></label>
-                                <input type="text" className="input" value={subTotal} readOnly style={{ width: 'auto', backgroundColor: '#f3f3f3' }} />
-                            
-                            
-                            {/* 🛑 NEW: Global Discount Input */}
-                            
-                                <label className="grand-total"><b>Global<br />Discount:</b></label>
-                                <input
-                                    type="number"
-                                    className="input"
-                                    placeholder="Discount"
-                                    value={globalDiscount}
-                                    min="0"
-                                    step="0.01"
-                                    onChange={(e) => handleGlobalDiscountChange(e.target.value)}
-                                    style={{ width: 'auto' }}
-                                />
-                            
-                            
-                            {/* Final Grand Total */}
-                            
-                                <label className="grand-total"><b>Grand<br />Total:</b></label>
-                                <input type="text" className="input" value={grandTotal} readOnly style={{ width: 'auto', backgroundColor: '#f3f3f3' }} />
-                            
+                        <div className="summary-container">
+                            <div className="summary-row">
+                                <label>Sub Total:</label>
+                                <span>{subTotal}</span>
+                            </div>
+                            <div className="summary-row">
+                                <label>Discount:</label>
+                                <input type="number" className="rm-input-field" style={{ width: '120px' }} value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />
+                            </div>
+                            <div className="summary-row grand-total-box">
+                                <b>Grand Total:</b>
+                                <b>{grandTotal}</b>
+                            </div>
                         </div>
 
-                        <div className="form-actions">
-                            <button type="submit" className="save-btn">Save</button>
-                        </div>
+                        <button type="submit" className="save-btn-main">Save Sale</button>
                     </form>
                 </div>
             </div>
             <Footer />
+
+            {/* Customer Modal */}
             {showCustomerModal && (
-    <div className="modal-overlay" onClick={() => setShowCustomerModal(false)}>
-        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setShowCustomerModal(false)}>×</button>
-            
-            <div className="modal-form-content">
-                <h3>Add New Customer</h3>
-                <div className="form-group" style={{marginBottom: '15px'}}>
-                    <label><b>Customer Name *</b></label>
-                    <input type="text" id="new_cust_name" className="input" placeholder="Full Name" style={{width: '100%'}} />
+                <div className="modal-overlay" onClick={() => setShowCustomerModal(false)}>
+                    <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+                        <h3>Add New Customer</h3>
+                        <div className="form-group"><label>Name</label><input type="text" id="new_cust_name" className="rm-input-field" /></div>
+                        <div className="form-group"><label>Address</label><textarea id="new_cust_address" className="rm-input-field"></textarea></div>
+                        <div className="form-group"><label>Contact</label><input type="text" id="new_cust_contact" className="rm-input-field" /></div>
+                        <div className="modal-actions">
+                            <button className="save-btn-main" onClick={handleQuickCustomerAdd}>Save Customer</button>
+                            <button className="quick-add-btn" onClick={() => setShowCustomerModal(false)}>Cancel</button>
+                        </div>
+                    </div>
                 </div>
-                <div className="form-group" style={{marginBottom: '15px'}}>
-                    <label><b>Address</b></label>
-                    <input type="text" id="new_cust_address" className="input" placeholder="City, Area" style={{width: '100%'}} />
-                </div>
-                
-                <div className="form-group" style={{marginBottom: '15px'}}>
-                    <label><b>Phone / Contact</b></label>
-                    <input type="text" id="new_cust_phone" className="input" placeholder="03xx-xxxxxxx" style={{width: '100%'}} />
-                </div>
-
-                
-
-                <div className="modal-actions" style={{marginTop: '25px', display: 'flex', gap: '10px'}}>
-                    <button 
-                        type="button" 
-                        className="save-btn" 
-                        onClick={handleQuickCustomerAdd}
-                        // style={{flex: 1}}
-                    >
-                        Save Customer
-                    </button>
-                    <button 
-                        type="button" 
-                        className="del-btn" 
-                        onClick={() => setShowCustomerModal(false)}
-                        // style={{flex: 1}}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>
+            )}
         </div>
-    </div>
-)}
-        </>
     );
 };
 

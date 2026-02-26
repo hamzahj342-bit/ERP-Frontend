@@ -1,81 +1,198 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
 
+/* --- Main Layout --- */
 .table-container {
   font-family: 'Montserrat', sans-serif;
-  background-color: #f5f5f5;
+  background-color: #f8f9fa;
   min-height: 100vh;
-  padding: 40px 20px;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .table-wrapper {
   background-color: #ffffff;
-  border-radius: 15px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  overflow-x: auto;
-  padding: 30px;
-  /* max-width: 1000px; */
-  margin: 0 auto;
-  margin-top: 15px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  padding: 25px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 20px auto;
+  box-sizing: border-box;
 }
 
-.table-wrapper h2 {
-  font-size: 2rem;
+/* --- Header Section (Fixing Add Button to Right) --- */
+.header-flex {
+  display: flex;
+  justify-content: space-between; /* Heading Left, Button Right */
+  align-items: center;
+  margin-bottom: 25px;
+  gap: 15px;
+  flex-wrap: wrap; /* Mobile support */
+}
+
+.header-flex h2 {
+  font-size: 1.8rem;
   font-weight: 700;
   color: #1a73e8;
-  margin-bottom: 20px;
-  text-align: center;
+  margin: 0;
 }
 
+/* --- Buttons --- */
+.add-cust-sup {
+  background-color: #1a73e8;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.add-cust-sup:hover {
+  background-color: #155ab6;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+}
+
+.back-btn {
+  background-color: #fff;
+  color: #1a73e8;
+  border: 2px solid #1a73e8;
+  padding: 8px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.back-btn:hover {
+  background-color: #1a73e8;
+  color: white;
+}
+
+/* --- Action Buttons (Edit/Delete) --- */
+.edit-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-right: 5px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* --- Desktop Table --- */
 .entity-table {
   width: 100%;
   border-collapse: collapse;
-}
-
-.entity-table th,
-.entity-table td {
-  padding: 14px 16px;
-  border: 1px solid #ddd;
-  text-align: left;
-  font-size: 15px;
+  margin-top: 10px;
 }
 
 .entity-table th {
   background-color: #1a73e8;
   color: white;
+  padding: 15px;
+  text-align: left;
   font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
 }
 
-.entity-table tr:nth-child(even) {
-  background-color: #f9f9f9;
+.entity-table td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+  font-size: 14px;
 }
 
 .entity-table tr:hover {
-  background-color: #eaf3ff;
-  transition: background 0.2s ease-in-out;
+  background-color: #f1f8ff;
 }
+
+/* --- Inputs (Form) --- */
 .input {
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 15px;
-  background-color: #f9f9f9;
-  color: #333;
-  margin-bottom: 16px;
+  border: 1px solid #ddd;
+  font-size: 14px;
   width: 100%;
   box-sizing: border-box;
-  transition: border-color 0.3s ease, background-color 0.3s ease;
+  margin-bottom: 10px;
 }
-.add-cust-sup{
-  width: 160px;
-  background-color: #1a73e8;
-  color: white;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+
+.input:focus {
+  border-color: #1a73e8;
+  outline: none;
 }
-.add-cust-sup:hover {
-  background-color: #155ab6;
+
+/* --- 📱 Responsive (Mobile) View --- */
+@media (max-width: 768px) {
+  .header-flex {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .add-cust-sup {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Table to Card conversion */
+  .entity-table thead {
+    display: none; /* Hide headers */
+  }
+
+  .entity-table, .entity-table tbody, .entity-table tr, .entity-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .entity-table tr {
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .entity-table td {
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+    border-bottom: 1px solid #f5f5f5;
+  }
+
+  /* data-label injection */
+  .entity-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 15px;
+    width: 45%;
+    text-align: left;
+    font-weight: 700;
+    color: #1a73e8;
+  }
+
+  .entity-table td:last-child {
+    border-bottom: none;
+    background: #fcfcfc;
+    padding-left: 15px;
+    text-align: center;
+  }
 }

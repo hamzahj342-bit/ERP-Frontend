@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import NavigationBar from '../Components/NavigationBar';
-import { FaArrowLeft, FaPlus } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
 import api from '../../api';
-import '../Model.css'
+import '../Model.css';
+import '../Transactions.css';
 
 const RM_PurchaseForm = () => {
     const navigate = useNavigate();
@@ -18,14 +19,13 @@ const RM_PurchaseForm = () => {
     const [selectedSupplier, setSelectedSupplier] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
-    const [subTotal, setSubTotal] = useState(0); 
-    const [globalDiscount, setGlobalDiscount] = useState(""); 
+    const [subTotal, setSubTotal] = useState(0);
+    const [globalDiscount, setGlobalDiscount] = useState("");
     const [grandTotal, setGrandTotal] = useState(0);
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     const [showMaterialModal, setShowMaterialModal] = useState(false);
     const [uoms, setUoms] = useState([]);
 
-    // 🔹 Fetch Next Invoice Number (Using api.js)
     const fetchInvoiceNo = useCallback(async () => {
         try {
             const res = await api.get("/rm-transactions/rm-invoice", {
@@ -37,41 +37,36 @@ const RM_PurchaseForm = () => {
         }
     }, []);
 
-    // 🔹 Fetch Initial Data
     useEffect(() => {
-        // Fetch Materials
         api.get("/add-materials")
             .then(res => setMaterials(res.data))
             .catch(err => console.error("Error fetching materials:", err));
 
-        // Fetch Suppliers
-        api.get("/entities")
+        api.get("/entities/transactions")
             .then(res => {
                 const onlySuppliers = res.data.filter(ent => ent.type === "supplier");
                 setSuppliers(onlySuppliers);
             })
             .catch(err => console.error("Error fetching suppliers:", err));
-        
+
         fetchInvoiceNo();
     }, [fetchInvoiceNo]);
 
-    // 🔹 Totals Calculation (Same logic as yours)
     const calculateTotals = (currentRows, discountValue) => {
         const currentSubTotal = currentRows.reduce((sum, row) => {
             const qty = parseFloat(row.quantity) || 0;
             const price = parseFloat(row.unitPrice) || 0;
             return sum + (qty * price);
         }, 0);
-        
+
         const discount = parseFloat(discountValue) || 0;
         let finalGrandTotal = currentSubTotal - discount;
-        if (finalGrandTotal < 0) finalGrandTotal = 0; 
-        
+        if (finalGrandTotal < 0) finalGrandTotal = 0;
+
         setSubTotal(currentSubTotal.toFixed(2));
         setGrandTotal(finalGrandTotal.toFixed(2));
     };
-    
-    // 🔹 Handlers
+
     const handleChange = (index, field, value) => {
         const updated = [...rows];
         updated[index][field] = value;
@@ -83,49 +78,45 @@ const RM_PurchaseForm = () => {
         }
 
         setRows(updated);
-        calculateTotals(updated, globalDiscount); 
+        calculateTotals(updated, globalDiscount);
     };
-    
+
     const handleGlobalDiscountChange = (value) => {
         setGlobalDiscount(value);
-        calculateTotals(rows, value); 
+        calculateTotals(rows, value);
     };
 
-
-      const addRow = () => {
+    const addRow = () => {
         setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }]);
     };
 
     const deleteRow = (index) => {
         const updated = rows.filter((_, i) => i !== index);
         setRows(updated);
-        calculateTotals(updated, globalDiscount); // Recalculate after delete
+        calculateTotals(updated, globalDiscount);
     };
 
-    // 🔹 Handle Submit (Using api.js POST)
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!selectedSupplier) return toast.error("Please select a supplier.");
         if (!date) return toast.error("Please select a purchase date.");
 
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0 && parseFloat(r.unitPrice) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one valid material row.");
-        
+
         const disc = parseFloat(globalDiscount) || 0;
         if (disc > parseFloat(subTotal)) {
-             return toast.error("Global Discount cannot exceed the Total Sub Amount.");
+            return toast.error("Global Discount cannot exceed the Total Sub Amount.");
         }
 
         const user = JSON.parse(localStorage.getItem("user"));
-
         const purchaseData = {
             entityid: selectedSupplier,
-            grand_total: parseFloat(grandTotal), 
-            discount: disc, 
+            grand_total: parseFloat(grandTotal),
+            discount: disc,
             type: "purchase",
             createdby: user?.username || "guest",
-            invoice_no: invoiceNo, 
+            invoice_no: invoiceNo,
             details: validRows.map(r => ({
                 rm_id: r.rm_id,
                 rm_name: r.rm_name,
@@ -140,359 +131,179 @@ const RM_PurchaseForm = () => {
 
         try {
             const res = await api.post("/rm-transactions", purchaseData);
-
             toast.success(`Purchase Transaction Successful! Invoice: ${res.data.invoice_no}`);
-            
-            // Reset Form
-            setRows([{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }]);
-            setSelectedSupplier("");
-            setDate("");
-            setGrandTotal(0);
-            setSubTotal(0);
-            setGlobalDiscount(""); 
-            fetchInvoiceNo(); 
             navigate("/rm-purchase");
         } catch (err) {
-            console.error("❌ Error creating purchase:", err);
             toast.error(err.response?.data?.message || "Error saving purchase transaction.");
         }
     };
 
     const handleQuickSupplierAdd = async () => {
-    const name = document.getElementById('new_sup_name').value;
-    const contact = document.getElementById('new_sup_contact').value;
-    const address = document.getElementById('new_sup_address').value;
-
-    if (!name) return toast.error("Supplier name is required");
-
-    try {
-        const payload = { 
-            name, 
-            contact, 
-            address, 
-            type: "supplier" // Aapke backend ke mutabiq
-        };
-        
-        const res = await api.post("/entities", payload); // Check your endpoint
-
-        if (res.status === 201 || res.status === 200) {
-            toast.success("Supplier Added Successfully!");
-            
-            // 1. Dropdown list ko update karein (List mein naya supplier add karein)
-            const newSupplier = res.data; 
-            setSuppliers(prev => [...prev, newSupplier]);
-            
-            // 2. Naye supplier ko automatically select kar lein
-            setSelectedSupplier(newSupplier.id);
-            
-            // 3. Modal band kar dein
+        const name = document.getElementById('new_sup_name').value;
+        const contact = document.getElementById('new_sup_contact').value;
+        const address = document.getElementById('new_sup_address').value;
+        if (!name) return toast.error("Supplier name is required");
+        try {
+            const res = await api.post("/entities", { name, contact, address, type: "supplier" });
+            setSuppliers(prev => [...prev, res.data]);
+            setSelectedSupplier(res.data.id);
             setShowSupplierModal(false);
-        }
-    } catch (err) {
-        console.error("Error adding supplier:", err);
-        toast.error("Failed to add supplier");
-    }
-};
+            toast.success("Supplier Added!");
+        } catch (err) { toast.error("Failed to add supplier"); }
+    };
 
-const handleQuickMaterialAdd = async () => {
-    const name = document.getElementById('new_rm_name').value;
-    const uom_id = document.getElementById('new_rm_uom').value;
-
-    if (!name || !uom_id) {
-        return toast.error("Please fill all material fields");
-    }
-
-    try {
-        const payload = { 
-            name: name,
-            uom_id: parseInt(uom_id)
-        };
-        
-        const res = await api.post("/add-materials", payload);
-
-        if (res.status === 201 || res.status === 200) {
-            toast.success("Material Added!");
-
-            // 1. API se aya naya material state mein add karein
-            const newMaterial = res.data; 
-            setMaterials(prev => [...prev, newMaterial]);
-
-            // 2. Modal band karein
+    const handleQuickMaterialAdd = async () => {
+        const name = document.getElementById('new_rm_name').value;
+        const uom_id = document.getElementById('new_rm_uom').value;
+        if (!name || !uom_id) return toast.error("Please fill all fields");
+        try {
+            const res = await api.post("/add-materials", { name, uom_id: parseInt(uom_id) });
+            setMaterials(prev => [...prev, res.data]);
             setShowMaterialModal(false);
-        }
-    } catch (err) {
-        console.error("Error adding material:", err);
-        toast.error(err.response?.data?.message || "Failed to add material");
-    }
-};
+            toast.success("Material Added!");
+        } catch (err) { toast.error("Failed to add material"); }
+    };
 
-const fetchUoms = async () => {
-    try {
-      const res = await api.get('/uoms');
-      setUoms(res.data);
-    } catch (error) {
-      toast.error('Failed to fetch UOMs');
-    }
-  };
-
-  useEffect(() => {
-    fetchUoms();
-  })
+    useEffect(() => {
+        api.get('/uoms').then(res => setUoms(res.data)).catch(() => toast.error('Failed to fetch UOMs'));
+    }, []);
 
     return (
-        <>
+        <div className="rm-page-wrapper">
             <NavigationBar />
-            <div className="rm-page">
-                <button className="back-btn" style={{ marginTop: "30px" }} onClick={() => navigate("/rm-purchase")}>
-                    <FaArrowLeft />
-                </button>
 
-                <div className="rm-card">
-                    <h2>Raw Material Purchase Form</h2>
+            <div className="rm-content-container">
+                <div className="rm-header-section">
+                    <button className="back-btn" onClick={() => navigate("/rm-purchase")}>
+                        <FaArrowLeft />
+                    </button>
+                    <h2 className="form-title">Raw Material Purchase</h2>
+                </div>
 
-                    {/* Invoice No */}
-                    <div className="form-group d-flex">
-                        <h6><b>Purchase <br /> Invoice No:</b></h6>
-                        <input
-                            type="text"
-                            value={invoiceNo}
-                            readOnly
-                            className="input"
-                            style={{ backgroundColor: "#f3f3f3", margin: "-5px 0px 30px 5px", width: "auto" }}
-                        />
-                    </div>
-
-                    {/* Supplier & Date */}
-                    <div style={{ display: "flex", gap: "15px", marginBottom: "20px" }}>
-                        <select
-                            className="input"
-                            value={selectedSupplier}
-                            onChange={(e) => setSelectedSupplier(e.target.value)}
-                        >
-                            <option value="">Select Supplier</option>
-                            {suppliers.map((s) => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                        </select>
-
-                        <button className="add-sup-cust" type="button" onClick={() => setShowSupplierModal(true)}>
-                            Add Supplier
-                        </button>
-                       
-
-                        <label><b>Purchase Date:</b></label>
-                        <input
-                            type="date"
-                            className="input"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                        />
+                <div className="rm-main-card">
+                    {/* Top Info Grid */}
+                    <div className="info-grid">
+                        <div className="info-item">
+                            <label>Invoice No</label>
+                            <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
+                        </div>
+                        <div className="info-item">
+                            <label>Supplier</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <select className="rm-input-field" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)}>
+                                    <option value="">Select Supplier</option>
+                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                                <button type="button" className="quick-add-btn" onClick={() => setShowSupplierModal(true)}><FaPlus /></button>
+                            </div>
+                        </div>
+                        <div className="info-item">
+                            <label>Purchase Date</label>
+                            <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} />
+                        </div>
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="items-table-header">
+                            <span>Material</span>
+                            <span>UOM</span>
+                            <span>Qty</span>
+                            <span>Unit Price</span>
+                            <span>Total</span>
+                            <span>Action</span>
+                        </div>
+
                         {rows.map((row, index) => (
-                            <div className="rm-row" key={index}>
-                                {/* Material Select */}
-                                <select
-                                    className="input"
-                                    value={row.rm_id}
-                                    onChange={(e) => {
-                                        const selected = materials.find(m => m.rm_id === parseInt(e.target.value));
-                                        handleChange(index, "rm_id", e.target.value);
-                                        handleChange(index, "rm_name", selected ? selected.name : "");
-                                        handleChange(index, "uom_id", selected ? selected.uom.id : "");
-                                        handleChange(index, "uom_name", selected ? selected.uom.name : "");
-                                    }}
-                                >
-                                    <option value="">Select Material</option>
-                                    {materials.map(m => (
-                                        <option key={m.rm_id} value={m.rm_id}>{m.name}</option>
-                                    ))}
-                                </select>
+                            <div className="item-row" key={index}>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <select
+                                        className="rm-input-field"
+                                        value={row.rm_id}
+                                        onChange={(e) => {
+                                            const selected = materials.find(m => m.rm_id === parseInt(e.target.value));
+                                            handleChange(index, "rm_id", e.target.value);
+                                            handleChange(index, "rm_name", selected?.name || "");
+                                            handleChange(index, "uom_id", selected?.uom.id || "");
+                                            handleChange(index, "uom_name", selected?.uom.name || "");
+                                        }}
+                                    >
+                                        <option value="">Select Material</option>
+                                        {materials.map(m => <option key={m.rm_id} value={m.rm_id}>{m.name}</option>)}
+                                    </select>
+                                    <button type="button" className="quick-add-btn" onClick={() => setShowMaterialModal(true)}><FaPlus /></button>
+                                </div>
 
-                                <button className="add-more" type="button" onClick={() => setShowMaterialModal(true)}>
-                                    Add Material
-                                </button>
+                                <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
+                                <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
+                                <input type="text" className="rm-input-field readonly-input" value={row.total} readOnly />
 
-                           
-
-
-                                {/* UOM Display */}
-                                <input type="text" className="input" placeholder="UOM" value={row.uom_name || ""} readOnly />
-
-                                {/* Quantity */}
-                                <input
-                                    type="number"
-                                    className="input"
-                                    placeholder="Quantity"
-                                    value={row.quantity}
-                                    min="0"
-                                    step="0.01"
-                                    onChange={(e) => handleChange(index, "quantity", e.target.value)}
-                                />
-
-                                {/* Unit Price */}
-                                <input
-                                    type="number"
-                                    className="input"
-                                    placeholder="Unit Price"
-                                    value={row.unitPrice}
-                                    min="0"
-                                    step="0.01"
-                                    onChange={(e) => handleChange(index, "unitPrice", e.target.value)}
-                                />
-
-                                {/* Row Total (Qty * Price) */}
-                                <input
-                                    type="text"
-                                    className="input"
-                                    placeholder="Sub Total"
-                                    value={row.total}
-                                    readOnly
-                                />
-
-                                {/* Add Row Button */}
-                                <button type="button" className="add-more" onClick={addRow}>
-                                    <FaPlus size={20} />
-                                </button>
-
-                                {/* Delete Row Button */}
-                                {rows.length > 1 && (
-                                    <button type="button" className="del-btn" onClick={() => deleteRow(index)}>
-                                        ❌
-                                    </button>
-                                )}
+                                <div style={{ display: 'flex', gap: '5px' }}>
+                                    <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
+                                    {rows.length > 1 && (
+                                        <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)}><FaTrash /></button>
+                                    )}
+                                </div>
                             </div>
                         ))}
 
-                        {/* Grand Totals Section */}
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "20px", marginTop: "20px" }}>
-                            {/* Total Sub Amount */}
-                            
-                                <label className="grand-total"><b>Total<br />Sub Amount:</b></label>
-                                <input type="text" className="input" value={subTotal} readOnly style={{width: "auto", backgroundColor: '#f3f3f3' }} />
-                            
-                            
-                            {/* 🛑 NEW: Global Discount Input */}
-                            
-                                <label className="grand-total"><b>Global<br />Discount:</b></label>
-                                <input
-                                    type="number"
-                                    className="input"
-                                    placeholder="Discount"
-                                    value={globalDiscount}
-                                    min="0"
-                                    step="0.01"
-                                    onChange={(e) => handleGlobalDiscountChange(e.target.value)}
-                                    style={{ width: 'auto' }}
-                                />
-                            
-                            
-                            {/* Final Grand Total */}
-                            
-                                <label className="grand-total"><b>Grand<br/>Total:</b></label>
-                                <input type="text" className="input" value={grandTotal} readOnly style={{width: "auto",backgroundColor: '#f3f3f3' }} />
-                            
+                        <div className="summary-container">
+                            <div className="summary-row">
+                                <label>Sub Total:</label>
+                                <span>{subTotal}</span>
+                            </div>
+                            <div className="summary-row">
+                                <label>Discount:</label>
+                                <input type="number" className="rm-input-field" style={{ width: '120px' }} value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />
+                            </div>
+                            <div className="summary-row grand-total-box">
+                                <b>Grand Total:</b>
+                                <b>{grandTotal}</b>
+                            </div>
                         </div>
 
-                        <div className="form-actions">
-                            <button type="submit" className="save-btn">Save</button>
-                        </div>
+                        <button type="submit" className="save-btn-main">Save</button>
                     </form>
                 </div>
             </div>
             <Footer />
 
-             {showSupplierModal && (
-    <div className="modal-overlay" onClick={() => setShowSupplierModal(false)}>
-        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setShowSupplierModal(false)}>×</button>
-            
-            <div className="modal-form-content">
-                <h3>Add New Supplier</h3>
-                <div className="form-group">
-                    <label><b>Supplier Name</b></label>
-                    <input type="text" id="new_sup_name" className="input" placeholder="Enter name" />
+            {/* Modals remain same as your logic but with better classes */}
+            {showSupplierModal && (
+                <div className="modal-overlay" onClick={() => setShowSupplierModal(false)}>
+                    <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+                        <h3>Add New Supplier</h3>
+                        <div className="form-group"><label>Name</label><input type="text" id="new_sup_name" className="rm-input-field" /></div>
+                        <div className="form-group"><label>Address</label><textarea id="new_sup_address" className="rm-input-field"></textarea></div>
+                        <div className="form-group"><label>Contact</label><input type="text" id="new_sup_contact" className="rm-input-field" /></div>
+                        <div className="modal-actions">
+                            <button className="save-btn-main" onClick={handleQuickSupplierAdd}>Save Supplier</button>
+                            <button className="quick-add-btn" onClick={() => setShowSupplierModal(false)}>Cancel</button>
+                        </div>
+                    </div>
                 </div>
-                <div className="form-group">
-                    <label><b>Address</b></label>
-                    <textarea id="new_sup_address" className="input" placeholder="Enter address"></textarea>
-                </div>
-                <div className="form-group">
-                    <label><b>Phone / Contact</b></label>
-                    <input type="text" id="new_sup_contact" className="input" placeholder="Enter contact" />
-                </div>
-                
-                
-                <div className="modal-actions" style={{marginTop: '20px'}}>
-                    <button 
-                        type="button" 
-                        className="save-btn" 
-                        onClick={handleQuickSupplierAdd}
-                    >
-                        Save Supplier
-                    </button>
-                    <button 
-                        type="button" 
-                        className="del-btn" 
-                        onClick={() => setShowSupplierModal(false)}
-                        style={{marginLeft: '10px'}}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-)}
+            )}
 
-                  {showMaterialModal && (
-    <div className="modal-overlay" onClick={() => setShowMaterialModal(false)}>
-        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setShowMaterialModal(false)}>×</button>
-            
-            <div className="modal-form-content">
-                <h3>Add New Raw Material</h3>
-                <hr />
-                <div className="form-group">
-                    <label>Material Name</label>
-                    <input type="text" id="new_rm_name" className="input" placeholder="e.g. Cotton, Steel" />
+            {showMaterialModal && (
+                <div className="modal-overlay" onClick={() => setShowMaterialModal(false)}>
+                    <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+                        <h3>Add New Material</h3>
+                        <div className="form-group"><label>Material Name</label><input type="text" id="new_rm_name" className="rm-input-field" /></div>
+                        <div className="form-group">
+                            <label>UOM</label>
+                            <select id="new_rm_uom" className="rm-input-field">
+                                <option value="">Select UOM</option>
+                                {uoms.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="modal-actions">
+                            <button className="save-btn-main" onClick={handleQuickMaterialAdd}>Save Material</button>
+                            <button className="quick-add-btn" onClick={() => setShowMaterialModal(false)}>Cancel</button>
+                        </div>
+                    </div>
                 </div>
-                
-                <div className="form-group">
-                    <label>Unit of Measure (UOM)</label>
-                    <select id="new_rm_uom" className="input">
-                        <option value="">Select UOM</option>
-                       {uoms.map((uom) => (
-                <option key={uom.id} value={uom.id}>
-                  {uom.name}
-                </option>
-              ))}
-                    </select>
-                </div>
-
-                <div className="modal-actions" style={{marginTop: '20px'}}>
-                    <button 
-                        type="button" 
-                        className="save-btn" 
-                        onClick={handleQuickMaterialAdd}
-                    >
-                        Save Material
-                    </button>
-                    <button 
-                        type="button" 
-                        className="del-btn" 
-                        onClick={() => setShowMaterialModal(false)}
-                        style={{marginLeft: '10px'}}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>
+            )}
         </div>
-    </div>
-)}
-        </>
     );
 };
 

@@ -114,7 +114,6 @@ const EmployeesForm = () => {
             <button
               type="submit"
               className="primary-btn"
-              onClick={() => navigate("/employees")}
             >
               Add Employee
             </button>

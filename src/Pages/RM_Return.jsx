@@ -70,7 +70,7 @@ const RM_Return = () => {
         {/* Table */}
         <div className="card">
           <button
-            className="add-cust-sup"
+            className="add-sale-btn"
             onClick={() => navigate('/rm-return-form')}
           >
             Add New
