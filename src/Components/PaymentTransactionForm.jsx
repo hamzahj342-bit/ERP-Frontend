@@ -74,12 +74,12 @@ const PaymentTransactionForm = () => {
             setSuppliers(supplierData);
         } catch (err) {
             console.error("Error fetching suppliers:", err);
-        }
+        } 
     };
 
     const fetchEmployees = async () => {
     try {
-        const res = await api.get("/entities"); // Assuming employees are in entities or a separate /employees route
+        const res = await api.get("/entities/transactions"); // Assuming employees are in entities or a separate /employees route
         const data = res.data;
         const employeeData = data.filter(item => item.type === "employee");
         setEmployees(employeeData);
