@@ -187,7 +187,7 @@ const Login = () => {
                                 </div>
                                 <div className="options">
                                     <span className="forgot-link" onClick={() => setView('forgot')}>Forgot Password?</span>
-                                    <span className="forgot-link" onClick={() => setView('register')}>Register New User</span>
+                                    <span className="forgot-link" onClick={() => setView('register')}>Create Account</span>
                                 </div>
                                 <button type="submit" className="login-btn">Login</button>
                             </form>

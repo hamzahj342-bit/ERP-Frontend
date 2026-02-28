@@ -56,7 +56,7 @@ const PaymentTransactionForm = () => {
     // 3. Fetch Customers (Converted to Async/Await)
     const fetchCustomers = async () => {
         try {
-            const res = await api.get("/entities");
+            const res = await api.get("/entities/transactions"); 
             const data = res.data;
             const customerData = data.filter(item => item.type === "customer");
             setCustomers(customerData);
@@ -68,7 +68,7 @@ const PaymentTransactionForm = () => {
     // 4. Fetch Suppliers (Converted to Async/Await)
     const fetchSuppliers = async () => {
         try {
-            const res = await api.get("/entities");
+            const res = await api.get("/entities/transactions");
             const data = res.data;
             const supplierData = data.filter(item => item.type === "supplier");
             setSuppliers(supplierData);

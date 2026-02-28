@@ -12,6 +12,18 @@
     transition: all 0.3s ease;
     z-index: 100;
 }
+.brand-name {
+  font-weight: 700;
+  color: #1a73e8; /* Blue color ya jo aapki theme ho */
+}
+
+/* Dashboard footer ke liye agar light text chahiye ho */
+.footer-dashboard .powered-by {
+  color: #5e5e5e;
+}
+.footer-dashboard .brand-name {
+  color: #333;
+}
 
 .footer-content {
     max-width: 1200px;

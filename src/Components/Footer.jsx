@@ -12,6 +12,12 @@ const Footer = () => {
     <footer className={`footer ${isDashboard ? 'footer-dashboard' : ''}`}>
       <div className="footer-content">
         <p>&copy; {new Date().getFullYear()} Your Company Name. All rights reserved.</p>
+        
+        {/* Powered by section */}
+        <p className="powered-by">
+          Powered by <span className="brand-name">Bandesha Solution</span>
+        </p>
+
         <div className="footer-links">
           <a href="/privacy">Privacy Policy</a>
           <a href="/terms">Terms of Service</a>
