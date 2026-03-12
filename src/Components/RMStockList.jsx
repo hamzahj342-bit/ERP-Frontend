@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavigationBar from './NavigationBar';
 import Footer from './Footer';
+import Pagination from './Pagination';
 import { toast } from 'react-toastify';
 import { FaArrowLeft, FaBoxes, FaUserTag } from 'react-icons/fa';
 import api from "../../api"; 
@@ -14,17 +15,25 @@ const RMStockList = () => {
     
     // 🛑 NEW STATE: View Mode toggle karne ke liye
     // 'entity' = Purana route (/list), 'material' = Naya route (/material-list)
-    const [viewMode, setViewMode] = useState('entity'); 
+    const [viewMode, setViewMode] = useState('entity');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     const navigate = useNavigate();
 
     // Data Fetching Function (Ab ye viewMode par depend karega)
-    const fetchStock = async (mode) => {
+    const fetchStock = async (mode, pageNum = 1) => {
         setLoading(true);
         try {
             const endpoint = mode === 'entity' ? "/rm-stock/list" : "/rm-stock/material-list";
-            const res = await api.get(endpoint);
-            setStock(res.data);
+            const res = await api.get(endpoint, { params: { page: pageNum, limit: 50 } });
+            if (res.data && res.data.data) {
+                setStock(res.data.data);
+                setTotalPages(res.data.totalPages || 1);
+            } else {
+                setStock([]);
+                setTotalPages(1);
+            }
             setLoading(false);
         } catch (err) {
             console.error("Error fetching stock:", err);
@@ -33,15 +42,26 @@ const RMStockList = () => {
         }
     };
 
-    // Jab viewMode change ho, data dubara fetch karein
+    // Jab viewMode or page change ho, data dubara fetch karein
     useEffect(() => {
-        fetchStock(viewMode);
+        // whenever view mode changes, go back to first page
+        setPage(1);
+        fetchStock(viewMode, 1);
         // Reset filters when switching views
         setMaterialFilter('');
         setSupplierFilter('');
     }, [viewMode]);
 
-    // Filtering Logic (No changes needed, handles both data structures)
+    // fetch when page changes (same view)
+    useEffect(() => {
+        if (page !== 1) fetchStock(viewMode, page);
+    }, [page]);
+
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
+    };
+
+    // Filtering Logic (applied after pagination)
     const filteredStock = useMemo(() => {
         let currentStock = [...stock];
         if (materialFilter) {
@@ -58,6 +78,11 @@ const RMStockList = () => {
         }
         return currentStock;
     }, [stock, materialFilter, supplierFilter]);
+
+    // reset page when filters are applied
+    useEffect(() => {
+        setPage(1);
+    }, [materialFilter, supplierFilter]);
 
     return (
         <>
@@ -116,43 +141,50 @@ const RMStockList = () => {
                     ) : filteredStock.length === 0 ? (
                         <p>No records found.</p>
                     ) : (
-                        <table className="product-table">
-                            <thead>
-                                <tr>
-                                    {/* Stock ID sirf entity-wise mein hota hai */}
-                                    {viewMode === 'entity' && <th>Stock ID</th>}
-                                    <th>Material Name</th>
-                                    <th>Supplier</th>
-                                    <th>Avg Unit Cost</th>
-                                    <th>Sold Qty</th>
-                                    <th>Consumed Qty</th>
-                                    <th>Current Stock</th>
-                                    <th>Total Price</th>
-                                    <th>UOM</th> 
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredStock.map((item, index) => (
-                                    <tr key={viewMode === 'entity' ? item.stock_id : index}>
-                                        {viewMode === 'entity' && <td>{item.stock_id}</td>}
-                                        <td>{item.material_name}</td> 
-                                        <td>
-                                            <span style={{ color: viewMode === 'material' ? '#7f8c8d' : 'inherit' }}>
-                                                {item.supplier_name}
-                                            </span>
-                                        </td> 
-                                        <td>{parseFloat(item.avg_unit_cost).toFixed(2)}</td>
-                                        <td style={{ color: '#e74c3c' }}>{parseFloat(item.sold_qty).toFixed(2)}</td>
-                                        <td>{parseFloat(item.consumed_qty).toFixed(2)}</td>
-                                        <td style={{ fontWeight: 'bold', color: '#27ae60' }}>
-                                            {parseFloat(item.current_stock).toFixed(2)}
-                                        </td> 
-                                        <td>{parseFloat(item.current_stock_price).toFixed(2)}</td>
-                                        <td>{item.uom_name}</td> 
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <>
+                          <table className="product-table">
+                              <thead>
+                                  <tr>
+                                      {/* Stock ID sirf entity-wise mein hota hai */}
+                                      {viewMode === 'entity' && <th>Stock ID</th>}
+                                      <th>Material Name</th>
+                                      <th>Supplier</th>
+                                      <th>Avg Unit Cost</th>
+                                      <th>Sold Qty</th>
+                                      <th>Consumed Qty</th>
+                                      <th>Current Stock</th>
+                                      <th>Total Price</th>
+                                      <th>UOM</th> 
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  {filteredStock.map((item, index) => (
+                                      <tr key={viewMode === 'entity' ? item.stock_id : index}>
+                                          {viewMode === 'entity' && <td>{item.stock_id}</td>}
+                                          <td>{item.material_name}</td> 
+                                          <td>
+                                              <span style={{ color: viewMode === 'material' ? '#7f8c8d' : 'inherit' }}>
+                                                  {item.supplier_name}
+                                              </span>
+                                          </td> 
+                                          <td>{parseFloat(item.avg_unit_cost).toFixed(2)}</td>
+                                          <td style={{ color: '#e74c3c' }}>{parseFloat(item.sold_qty).toFixed(2)}</td>
+                                          <td>{parseFloat(item.consumed_qty).toFixed(2)}</td>
+                                          <td style={{ fontWeight: 'bold', color: '#27ae60' }}>
+                                              {parseFloat(item.current_stock).toFixed(2)}
+                                          </td> 
+                                          <td>{parseFloat(item.current_stock_price).toFixed(2)}</td>
+                                          <td>{item.uom_name}</td> 
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+
+                          {/* pagination */}
+                          {totalPages > 1 && (
+                            <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+                          )}
+                        </>
                     )}
                 </div>
             </div>

@@ -65,6 +65,8 @@ import FP_Adjustment from './Components/FP_Adjustment';
 import InventoryAdjustment from './Layout/InventoryAdjustment';
 import SalesReport from './Reports/SalesReport';
 import ProductionReport from './Reports/ProductionReport';
+import CustomerInvoices from './Pages/CustomerInvoices';
+import SupplierInvoices from './Pages/SupplierInvoices';
 
 
 const App = () => {
@@ -79,8 +81,10 @@ const App = () => {
         {/* <Route path="/entities" element={<ProtectedRoute> <EntityForm/> </ProtectedRoute>} /> */}
         <Route path="/customers" element={<ProtectedRoute> <Customers/> </ProtectedRoute>} />
         <Route path="/add-customers" element={<ProtectedRoute> <CustomerForm/> </ProtectedRoute>} />
+        <Route path="/customer-invoices/:id" element={<ProtectedRoute> <CustomerInvoices/> </ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute> <Suppliers/> </ProtectedRoute>} />
         <Route path="/add-suppliers" element={<ProtectedRoute> <SupplierForm/> </ProtectedRoute>} />
+        <Route path="/supplier-invoices/:id" element={<ProtectedRoute> <SupplierInvoices/> </ProtectedRoute>} />
         <Route path="/employees" element={<ProtectedRoute> <Employees /> </ProtectedRoute>} />
         <Route path="/add-employees" element={<ProtectedRoute> <EmployeesForm /> </ProtectedRoute>} />
         <Route path="/shops" element={<ProtectedRoute> <Shops/> </ProtectedRoute>} />

@@ -67,11 +67,11 @@ const ProductionList = () => {
 
         <div className="card">
           <button
-            className="add-cust-sup"
+            className="add-sale-btn"
             // Navigate to the Product Creation Form
             onClick={() => navigate("/production-form")} 
           >
-             Add Product
+             Add
           </button>
           <h2>Product Master List</h2>
           <table className="product-table">

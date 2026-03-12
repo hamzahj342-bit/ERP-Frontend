@@ -15,7 +15,7 @@ const Footer = () => {
         
         {/* Powered by section */}
         <p className="powered-by">
-          Powered by <span className="brand-name">Bandesha Solution</span>
+          Powered by <span className="brand-name">CODEBASE SOLUTIONS</span>
         </p>
 
         <div className="footer-links">

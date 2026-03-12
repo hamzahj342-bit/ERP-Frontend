@@ -86,7 +86,7 @@ const AddMaterial = () => {
       setFormData({ name: "", uom_id: "", unit_quantity: "" });
       toast.success("Raw Material Added Successfully!");
     } catch (error) {
-      const msg = error.response?.data?.message || "Failed to add material!";
+      const msg = error.response?.data?.error || "Failed to add material!";
       toast.error(msg);
     }
   };

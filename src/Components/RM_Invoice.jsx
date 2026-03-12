@@ -51,7 +51,9 @@ const RM_InvoiceDetail = () => {
     // 📄 PDF Download Handler
     const handleDownloadPDF = () => {
         const input = document.getElementById("invoice-detail"); 
-        html2canvas(input, { useCORS: true, scale: 2 }).then((canvas) => {
+        html2canvas(input, { useCORS: true, scale: 2,
+            ignoreElements: (element) => element.classList.contains('no-print')
+         }).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -64,7 +66,9 @@ const RM_InvoiceDetail = () => {
     // 🖼️ PNG Image Download Handler
     const handleDownloadImage = () => {
         const input = document.getElementById("invoice-detail");
-        html2canvas(input, { useCORS: true, scale: 3 }).then((canvas) => {
+        html2canvas(input, { useCORS: true, scale: 3,
+            ignoreElements: (element) => element.classList.contains('no-print')
+         }).then((canvas) => {
             const link = document.createElement('a');
             link.download = `Invoice-${invoice.invoice_no}.png`;
             link.href = canvas.toDataURL('image/png');
