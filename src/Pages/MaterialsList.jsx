@@ -42,7 +42,7 @@ const MaterialsList = () => {
     const fetchMaterials = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/add-materials', {
+            const res = await api.get('/add-materials/with-filters', {
                 params: {
                     page: page,
                     limit: 50,
