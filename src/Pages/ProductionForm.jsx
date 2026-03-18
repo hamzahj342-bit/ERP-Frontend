@@ -26,7 +26,7 @@ const ProductionForm = () => {
   // 1. Fetch all recipes
   const fetchRecipes = async () => {
     try {
-      const res = await api.get("/recipe");
+      const res = await api.get("/recipe/for-production");
       setRecipes(res.data);
     } catch (err) {
       console.error("Error fetching recipes:", err);

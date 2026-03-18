@@ -6,7 +6,7 @@ import {
     FaArrowRight, 
     FaArrowLeft,
 } from 'react-icons/fa';
-import { MdPrecisionManufacturing } from 'react-icons/md';
+import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
 import Footer from '../Components/Footer';
 import NavigationBar from '../Components/NavigationBar';
@@ -102,6 +102,14 @@ const Reports = () => {
                        color="#3f51b5" // Professional Indigo/Blue color for Manufacturing/Industry
                      />
                     {/* Add more reports here if needed, e.g., Trial Balance, Balance Sheet */}
+
+                    <ReportCard 
+                       title="📦 Inventory & Stock Report"
+                       description="Real-time tracking of Raw Materials and Finished Goods. Monitor current stock levels, average unit costs, and warehouse availability."
+                       icon={<MdInventory size={40} />}
+                       path="/stock-report" 
+                       color="#10b981" // Professional Emerald/Green color for Inventory & Growth
+                    />
 
                 </div>
             </div>

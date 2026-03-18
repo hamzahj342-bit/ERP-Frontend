@@ -67,6 +67,7 @@ import SalesReport from './Reports/SalesReport';
 import ProductionReport from './Reports/ProductionReport';
 import CustomerInvoices from './Pages/CustomerInvoices';
 import SupplierInvoices from './Pages/SupplierInvoices';
+import StockReport from './Reports/StockReport';
 
 
 const App = () => {
@@ -148,6 +149,7 @@ const App = () => {
         <Route path='sales-report' element={<ProtectedRoute> <SalesReport /> </ProtectedRoute>} />
         <Route path='production-report' element={<ProtectedRoute> <ProductionReport /> </ProtectedRoute>} />
         <Route path='/inventory-adjustment' element={<ProtectedRoute > <InventoryAdjustment /> </ProtectedRoute>} /> 
+        <Route path='/stock-report' element={<ProtectedRoute > <StockReport /> </ProtectedRoute>} /> 
       </Routes>  
     </Router>
   );
