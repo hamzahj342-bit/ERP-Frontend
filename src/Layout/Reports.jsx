@@ -111,6 +111,14 @@ const Reports = () => {
                        color="#10b981" // Professional Emerald/Green color for Inventory & Growth
                     />
 
+                    <ReportCard 
+  title="💰 Balance Summary"
+  description="View real-time closing balances for Customers, Suppliers, and Employees. Track Receivables and Payables at a glance."
+  icon={<FaFileInvoiceDollar size={40} />} 
+  path="/entity-balance-report" 
+  color="#3f51b5" 
+/>
+
                 </div>
             </div>
         </div>

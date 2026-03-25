@@ -4,10 +4,11 @@ import MainLayout from '../Layout/MainLayout';
 import api from '../../api';
 import { FaArrowLeft, FaSearch, FaFilter, FaFileExcel, FaFilePdf, FaImage } from 'react-icons/fa';
 import { MdScience, MdPrecisionManufacturing } from 'react-icons/md';
+import { toast } from 'react-toastify';
 
 // Export Libraries
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
 
@@ -82,14 +83,10 @@ const ProductionReport = () => {
 
   // --- 📕 PDF EXPORT ---
   const exportToPDF = () => {
+  const loadingToast = toast.loading("Generating Production Report...");
+  try {
     const doc = new jsPDF();
-    doc.text(`Production Report - ${reportType.toUpperCase()}`, 14, 15);
-    doc.setFontSize(10);
-    doc.text(`Period: ${fromDate} to ${toDate}`, 14, 22);
-
-    const head = reportType === 'summary' 
-      ? [['Product Name', 'Total Batches', 'Produced Qty']] 
-      : [['Material Name', 'Qty Used', 'Value (Rs)']];
+    doc.text(`Production Report: ${reportType.toUpperCase()}`, 14, 15);
 
     const body = filteredData.map(row => [
       reportType === 'summary' ? row.productName : row.materialName,
@@ -97,14 +94,19 @@ const ProductionReport = () => {
       Number(reportType === 'summary' ? row.totalQty : row.totalCost).toLocaleString()
     ]);
 
-    doc.autoTable({
-      startY: 30,
-      head: head,
+    autoTable(doc, {
+      startY: 25,
+      head: reportType === 'summary' ? [['Product', 'Batches', 'Qty']] : [['Material', 'Used', 'Value']],
       body: body,
-      headStyles: { fillColor: [76, 175, 80] } // Production Green
+      headStyles: { fillColor: [76, 175, 80] }
     });
+
     doc.save(`Production_Report_${today}.pdf`);
-  };
+    toast.success("Production PDF Downloaded!", { id: loadingToast });
+  } catch (error) {
+    toast.error("Production PDF Failed!", { id: loadingToast });
+  }
+};
 
   // --- 🖼️ PNG IMAGE EXPORT ---
   const exportToPNG = async () => {

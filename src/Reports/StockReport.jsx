@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; 
+import { toast } from 'react-toastify';
 import MainLayout from '../Layout/MainLayout';
 import api from '../../api';
 import { FaBox, FaWarehouse, FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaSync } from 'react-icons/fa';
 
 // Export Libraries
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
 
@@ -88,24 +89,84 @@ const StockReport = () => {
   };
 
   const exportToPDF = () => {
-    const doc = new jsPDF();
-    doc.text(`Stock Report - ${reportType === 'rm' ? 'Raw Materials' : 'Finished Goods'}`, 14, 15);
-    if (reportType === 'rm') {
-      doc.autoTable({
-        startY: 25,
-        head: [['Material Name', 'Stock', 'Value', 'Avg Cost', 'Consumed']],
-        body: [...filteredRM.map(i => [i['RawMaterial.name'], i.total_current_stock, i.total_stock_price, i.average_unit_cost, i.total_consumed]), ["TOTAL", totalRMStock, totalRMValue, "", ""]]
-      });
-    } else {
-      doc.autoTable({
-        startY: 25,
-        head: [['Product Name', 'Qty Remaining', 'Unit Cost', 'Total Value']],
-        body: [...filteredFG.map(i => [i['product.name'], i.total_qty_remaining, i.unit_cost, (i.unit_cost * i.total_qty_remaining)]), ["TOTAL", totalFGQty, "", totalFGValue]]
-      });
+    const currentData = reportType === 'rm' ? filteredRM : filteredFG;
+    
+    if (!currentData || currentData.length === 0) {
+      toast.error("No data available to export!");
+      return;
     }
-    doc.save(`Stock_Report_${today}.pdf`);
-  };
 
+    const loadingToast = toast.loading("Generating PDF..."); 
+    
+    try {
+      const doc = new jsPDF();
+      const title = `Stock Report - ${reportType === 'rm' ? 'Raw Materials' : 'Finished Goods'}`;
+      
+      doc.setFontSize(16);
+      doc.text(title, 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Date: ${today}`, 14, 22);
+      
+      if (reportType === 'rm') {
+        const bodyData = filteredRM.map(i => [
+          i['RawMaterial.name'] || 'N/A', 
+          Number(i.total_current_stock).toLocaleString(), 
+          Number(i.total_stock_price).toLocaleString(), 
+          Number(i.average_unit_cost).toFixed(2), 
+          Number(i.total_consumed || 0).toLocaleString() // Consumed Column
+        ]);
+        
+        // Grand Total Row with Consumed Total
+        bodyData.push([
+          { content: "GRAND TOTAL", styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, 
+          { content: totalRMStock.toLocaleString(), styles: { fontStyle: 'bold' } }, 
+          { content: totalRMValue.toLocaleString(), styles: { fontStyle: 'bold' } }, 
+          "", 
+          { content: totalRMConsumed.toLocaleString(), styles: { fontStyle: 'bold' } } // Yahan total add kiya
+        ]);
+
+        autoTable(doc, {
+          startY: 28,
+          head: [['Material Name', 'Stock', 'Value', 'Avg Cost', 'Consumed']],
+          body: bodyData,
+          headStyles: { fillColor: [46, 125, 50] },
+          theme: 'grid'
+        });
+      } else {
+        const bodyData = filteredFG.map(i => [
+          i['product.name'] || 'N/A', 
+          Number(i.total_qty_remaining).toLocaleString(), 
+          Number(i.unit_cost).toFixed(2), 
+          (Number(i.unit_cost) * Number(i.total_qty_remaining)).toLocaleString(),
+          Number(i.total_consumed || 0).toLocaleString() // Consumed Column
+        ]);
+
+        // Grand Total Row with Consumed Total
+        bodyData.push([
+          { content: "GRAND TOTAL", styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, 
+          { content: totalFGQty.toLocaleString(), styles: { fontStyle: 'bold' } }, 
+          "", 
+          { content: totalFGValue.toLocaleString(), styles: { fontStyle: 'bold' } },
+          { content: totalFGConsumed.toLocaleString(), styles: { fontStyle: 'bold' } } // Yahan total add kiya
+        ]);
+
+        autoTable(doc, {
+          startY: 28,
+          head: [['Product Name', 'Qty Remaining', 'Unit Cost', 'Total Value', 'Consumed']],
+          body: bodyData,
+          headStyles: { fillColor: [21, 101, 192] },
+          theme: 'grid'
+        });
+      }
+
+      doc.save(`Stock_Report_${today}.pdf`);
+      toast.success("PDF Downloaded Successfully!", { id: loadingToast });
+
+    } catch (error) {
+      console.error("PDF Error:", error);
+      toast.error("Failed to generate PDF!", { id: loadingToast });
+    }
+  };
   const exportToPNG = async () => {
     if (reportRef.current) {
       const canvas = await html2canvas(reportRef.current, { scale: 2 });

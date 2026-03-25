@@ -77,7 +77,8 @@ const FP_SaleList = () => {
               <tr>
                 <th>ID</th>
                 <th>Invoice No</th>
-                <th>Transaction Date</th>
+                <th>Created At</th>
+                <th>Invoice Date</th>
                 <th>Customer</th>
                 <th>Grand Total (Rs)</th>
                 <th>Created By</th>
@@ -96,6 +97,7 @@ const FP_SaleList = () => {
                         ? new Date(sale.createdat).toLocaleDateString()
                         : ""}
                     </td>
+                    <td>{sale.date ? new Date(sale.date).toLocaleDateString() : ""}</td>
                     <td>{sale.customer?.name || sale.entity_name || "N/A"}</td>
                     <td>{parseFloat(sale.grand_total) || "-"}</td>
                     <td>{sale.createdby || "—"}</td>

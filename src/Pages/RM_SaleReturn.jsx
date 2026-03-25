@@ -98,7 +98,8 @@ const RM_SaleReturn = () => {
                         <tr>
                             <th>ID</th>
                             <th>Invoice No</th>
-                            <th>Transaction Date</th>
+                            <th>Created At</th>
+                            <th>Invoice Date</th>
                             <th>Created By</th>
                             <th>Customer</th>
                             <th>Grand Total</th>
@@ -111,6 +112,7 @@ const RM_SaleReturn = () => {
                                 <td>{ret.master_id}</td>
                                 <td>{ret.invoice_no}</td>
                                 <td>{ret.createdat ? new Date(ret.createdat).toLocaleDateString() : "N/A"}</td>
+                                <td>{ret.date ? new Date(ret.date).toLocaleDateString() : "N/A"}</td>
                                 <td>{ret.createdby}</td>
                                 <td>{ret.entity_name}</td>
                                 <td>{parseFloat(ret.grand_total)?.toFixed(2) ?? "-"}</td>

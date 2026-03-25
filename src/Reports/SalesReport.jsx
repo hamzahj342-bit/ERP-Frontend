@@ -7,7 +7,8 @@ import { MdScience } from 'react-icons/md';
 
 // Export Libraries
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
+import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
 
@@ -142,29 +143,95 @@ const SalesReport = () => {
   };
   
   const exportToPDF = () => {
-    const doc = new jsPDF();
-    doc.text(`Sales Report - ${reportType.toUpperCase()}`, 14, 15);
-    if (reportType === 'customer') {
-      doc.autoTable({
-        startY: 25,
-        head: [['Customer Name', 'Total Sale (Rs)']],
-        body: filterCustomer.map(c => [c.name, Number(c.total).toLocaleString()])
-      });
-    } else {
-      doc.autoTable({
-        startY: 25,
-        head: [['Finished Product', 'Qty', 'Amount']],
-        body: filteredFP.map(f => [f.itemName, f.qty, Number(f.total).toLocaleString()])
-      });
-      doc.autoTable({
-        startY: doc.lastAutoTable.finalY + 10,
-        head: [['Raw Material', 'Qty', 'Amount']],
-        body: filteredRM.map(r => [r.itemName, r.qty, Number(r.total).toLocaleString()])
-      });
-    }
-    doc.save(`Sales_Report_${today}.pdf`);
-  };
+    try {
+      const doc = new jsPDF();
+      const reportTitle = `Sales Report - ${reportType === 'customer' ? 'Customer Wise' : 'Item Wise'}`;
+      
+      // Header Section
+      doc.setFontSize(18);
+      doc.setTextColor(40);
+      doc.text(reportTitle, 14, 15);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Period: ${fromDate} to ${toDate}`, 14, 22);
+      doc.text(`Generated on: ${today}`, 14, 27);
 
+      if (reportType === 'customer') {
+        const bodyData = filterCustomer.map(c => [
+          c.name, 
+          Number(c.total).toLocaleString()
+        ]);
+
+        // Add Grand Total row for Customer
+        const grandTotal = filterCustomer.reduce((sum, row) => sum + Number(row.total || 0), 0);
+        bodyData.push([
+          { content: 'GRAND TOTAL', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+          { content: grandTotal.toLocaleString(), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+        ]);
+
+        autoTable(doc, {
+          startY: 35,
+          head: [['Customer Name', 'Total Sale (Rs)']],
+          body: bodyData,
+          headStyles: { fillColor: [33, 150, 243] }, // Blue Theme
+          theme: 'grid'
+        });
+
+      } else {
+        // --- Finished Products Table ---
+        doc.setFontSize(14);
+        doc.setTextColor(229, 57, 53); // Red color for FP
+        doc.text("Finished Product Sales", 14, 35);
+
+        const fpBody = filteredFP.map(f => [f.itemName, f.qty, Number(f.total).toLocaleString()]);
+        const fpTotalAmount = filteredFP.reduce((s, i) => s + Number(i.total), 0);
+        
+        fpBody.push([
+          { content: 'FP TOTAL', styles: { fontStyle: 'bold', fillColor: [255, 235, 238] } },
+          '',
+          { content: fpTotalAmount.toLocaleString(), styles: { fontStyle: 'bold', fillColor: [255, 235, 238] } }
+        ]);
+
+        autoTable(doc, {
+          startY: 40,
+          head: [['Finished Product', 'Qty', 'Amount']],
+          body: fpBody,
+          headStyles: { fillColor: [229, 57, 53] },
+          theme: 'grid'
+        });
+
+        // --- Raw Materials Table ---
+        const finalY = doc.lastAutoTable.finalY + 15;
+        doc.setFontSize(14);
+        doc.setTextColor(67, 160, 71); // Green color for RM
+        doc.text("Raw Material Sales", 14, finalY);
+
+        const rmBody = filteredRM.map(r => [r.itemName, r.qty, Number(r.total).toLocaleString()]);
+        const rmTotalAmount = filteredRM.reduce((s, i) => s + Number(i.total), 0);
+
+        rmBody.push([
+          { content: 'RM TOTAL', styles: { fontStyle: 'bold', fillColor: [232, 245, 233] } },
+          '',
+          { content: rmTotalAmount.toLocaleString(), styles: { fontStyle: 'bold', fillColor: [232, 245, 233] } }
+        ]);
+
+        autoTable(doc, {
+          startY: finalY + 5,
+          head: [['Raw Material', 'Qty', 'Amount']],
+          body: rmBody,
+          headStyles: { fillColor: [67, 160, 71] },
+          theme: 'grid'
+        });
+      }
+
+      doc.save(`Sales_Report_${today}.pdf`);
+      // toast.success("PDF Downloaded!"); // Agar toast library hai toh enable karein
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      alert("PDF generate nahi ho saki. Console check karein.");
+    }
+  };
   const exportToPNG = async () => {
     if (reportRef.current) {
       const canvas = await html2canvas(reportRef.current, { scale: 2 });
