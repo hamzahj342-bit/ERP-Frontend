@@ -5,28 +5,22 @@ import "../RM_CardLayout.css"
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
 
-const TransactionCard = ({ title, value, icon, path, color, navigate }) => {
+const TransactionCard = ({ title, icon, path, color, navigate, description }) => {
   return (
-    <div className="transaction-card" style={{ borderLeft: `5px solid ${color}` }}>
-      <div className="card-header">
-        <span className="card-icon" style={{ color: color }}>
+    <div className="tr-card" onClick={() => navigate(path)}>
+      <div className="tr-card-inner">
+        <div className="tr-icon-wrapper" style={{ backgroundColor: `${color}15`, color: color }}>
           {icon}
-        </span>
-        <h3 className="card-title">{title}</h3>
+        </div>
+        <div className="tr-content">
+          <h4 className="tr-title">{title}</h4>
+          <p className="tr-description">{description}</p>
+        </div>
+        <div className="tr-footer-link">
+           <span style={{color: color}}>View Records <FaArrowRight /></span>
+        </div>
       </div>
-      {/* <div className="card-body">
-        <p className="card-value">{value.toLocaleString()}</p> 
-        {/* Assume value is a number, showing a placeholder value here 
-      </div> */}
-      <div className="card-footer">
-        <button 
-          className="view-btn" 
-          style={{ backgroundColor: color }}
-          onClick={() => navigate(path)}
-        >
-          View Details <FaArrowRight />
-        </button>
-      </div>
+      <div className="tr-accent-bar" style={{ backgroundColor: color }}></div>
     </div>
   );
 };
@@ -34,75 +28,45 @@ const TransactionCard = ({ title, value, icon, path, color, navigate }) => {
 const RM_Transactions = () => {
   const navigate = useNavigate();
 
-  // 💡 Placeholder Data: Aapko yeh data actual API calls se fetch karna hoga
   const transactionData = [
-    {
-      id: 1,
-      title: "RM Purchase (Inward)",
-      value: 55000,
-      icon: <FaShoppingCart size={30} />,
-      path: "/rm-purchase", // Is path par purchase entries show hongi
-      color: "#28a745" // Green for inflow
-    },
-    {
-      id: 2,
-      title: "RM Purchase Return",
-      value: 15000,
-      icon: <FaUndo size={30} />,
-      path: "/rm-return", // Is path par return entries show hongi
-      color: "#ffc107" // Yellow for partial reversal
-    },
-    {
-      id: 3,
-      title: "RM Sale (Outward)",
-      value: 80000,
-      icon: <FaCashRegister size={30} />,
-      path: "/rm-sale", // Is path par sale entries show hongi
-      color: "#dc3545" // Red for outflow/sale (ya dark blue for revenue)
-    },
-    {
-      id: 4,
-      title: "RM Sale Return",
-      value: 5000,
-      icon: <FaExchangeAlt size={30} />,
-      path: "/rm-sale-return", // Is path par sale return entries show hongi
-      color: "#17a2b8" // Cyan for reversal
-    },
+    { id: 1, title: "RM Purchase", description: "Manage inward stock and invoices.", icon: <FaShoppingCart />, path: "/rm-purchase", color: "#10b981" },
+    { id: 2, title: "Purchase Return", description: "Track materials sent back to suppliers.", icon: <FaUndo />, path: "/rm-return", color: "#f59e0b" },
+    { id: 3, title: "RM Sale", description: "Manage outward sales and billing.", icon: <FaCashRegister />, path: "/rm-sale", color: "#3b82f6" },
+    { id: 4, title: "Sale Return", description: "Manage materials returned by customers.", icon: <FaExchangeAlt />, path: "/rm-sale-return", color: "#ef4444" },
   ];
 
   return (
-    <>
-    <NavigationBar/>
-    <div className="rm-page">
-                    <button
-                              className="back-btn"
-                              style={{ marginTop: "30px" }}
-                              onClick={() => navigate('/dashboard')}
-                            >
-                              <FaArrowLeft/>
-                            </button>
-    <div className="rm-transactions-container">
-      <h3>Raw Material Transactions Summary</h3>
-      
-      <div className="transaction-cards-grid">
-        {transactionData.map(transaction => (
-          <TransactionCard 
-            key={transaction.id}
-            title={transaction.title}
-            value={transaction.value}
-            icon={transaction.icon}
-            path={transaction.path}
-            color={transaction.color}
-            navigate={navigate}
-          />
-        ))}
-      </div>
-      
-      {/* Yahan aap koi aur table ya summary component add kar sakte hain */}
+    <div className="page-wrapper">
+      <NavigationBar />
+      <main className="rm-main-container">
+        <div className="rm-content-limit">
+          <div className="rm-header" style={{marginTop: '30px'}}>
+            <button className="back-btn" onClick={() => navigate('/dashboard')}>
+              <FaArrowLeft />
+            </button>
+            <div className="header-info">
+              <h2>Raw Material Transactions</h2>
+              <p>Manage all your inward and outward raw material flow</p>
+            </div>
+          </div>
+
+          <div className="tr-grid-row">
+            {transactionData.map(transaction => (
+              <TransactionCard 
+                key={transaction.id}
+                title={transaction.title}
+                description={transaction.description}
+                icon={transaction.icon}
+                path={transaction.path}
+                color={transaction.color}
+                navigate={navigate}
+              />
+            ))}
+          </div>
+        </div>
+      </main>
+      <Footer />
     </div>
-    </div>
-    <Footer />
-    </>
   );
 };
 

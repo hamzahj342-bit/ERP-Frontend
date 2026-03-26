@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import MainLayout from '../Layout/MainLayout';
 import api from '../../api';
 import { FaUserFriends, FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaSearch, FaUserTie, FaTruckLoading } from 'react-icons/fa';
+import Pagination from '../Components/Pagination'; // Pagination component import kiya
+import { toast } from 'react-toastify';
 
 // Export Libraries
 import { jsPDF } from "jspdf";
@@ -15,22 +17,45 @@ const EntityBalanceReport = () => {
   const reportRef = useRef();
   const today = new Date().toISOString().split('T')[0];
 
-  const [reportType, setReportType] = useState('customer'); // customer, supplier, employee
+  const [reportType, setReportType] = useState('customer'); 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(""); 
   const [data, setData] = useState([]);
+  
+  // Pagination States
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // --- 🔍 Native Debounce Logic ---
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1); // Nayi search par page 1 par reset karein
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchBalances = async () => {
     setLoading(true);
     try {
-      // Backend route jo humne discuss kiya tha
       const response = await api.get('/reports/entity-balance', {
-        params: { type: reportType }
+        params: { 
+          type: reportType,
+          page: page,
+          limit: 50,
+          search: debouncedSearch
+        }
       });
-      setData(response.data);
+      
+      // Backend response structure ke mutabiq data set karein
+      setData(response.data.data || []);
+      setTotalPages(response.data.totalPages || 1);
+      setTotalItems(response.data.totalItems || 0);
     } catch (err) {
       console.error("Error fetching balances:", err);
-      alert("Failed to fetch balance data");
+      toast.error("Failed to fetch balance data");
     } finally {
       setLoading(false);
     }
@@ -38,13 +63,9 @@ const EntityBalanceReport = () => {
 
   useEffect(() => {
     fetchBalances();
-  }, [reportType]);
+  }, [reportType, page, debouncedSearch]);
 
-  const filteredData = data.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // --- EXPORT FUNCTIONS (Exactly like your Sales Report) ---
+  // --- EXPORT FUNCTIONS ---
 
   const exportToExcel = () => {
     const headerStyle = {
@@ -64,8 +85,8 @@ const EntityBalanceReport = () => {
       { v: "CLOSING BALANCE (RS)", s: headerStyle }
     ];
 
-    const rows = filteredData.map((item, idx) => [
-      { v: idx + 1, s: cellStyle },
+    const rows = data.map((item, idx) => [
+      { v: (page - 1) * 50 + (idx + 1), s: cellStyle },
       { v: item.name, s: cellStyle },
       { v: Number(item.balance), s: amountStyle }
     ]);
@@ -73,60 +94,43 @@ const EntityBalanceReport = () => {
     let ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     ws['!cols'] = [{ wch: 10 }, { wch: 40 }, { wch: 25 }];
     XLSX.utils.book_append_sheet(wb, ws, "Balances");
-    XLSX.writeFile(wb, `${reportType}_Balances_${today}.xlsx`);
+    XLSX.writeFile(wb, `${reportType}_Balances_Page${page}.xlsx`);
   };
 
   const exportToPDF = () => {
-  try {
-    const doc = new jsPDF();
+    try {
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text(`${reportType.toUpperCase()} BALANCE REPORT`, 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Page: ${page} | Generated on: ${today}`, 14, 22);
 
-    // 1. Header Section
-    doc.setFontSize(18);
-    doc.text(`${reportType.toUpperCase()} BALANCE REPORT`, 14, 15);
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${today}`, 14, 22);
+      const tableData = data.map((item, idx) => [
+        (page - 1) * 50 + (idx + 1),
+        item.name || 'N/A',
+        { content: Number(item.balance || 0).toLocaleString(), styles: { halign: 'right' } }
+      ]);
 
-    // 2. Data Prepare Karein (Check ke data khali na ho)
-    const tableData = filteredData.map((item, idx) => [
-      idx + 1,
-      item.name || 'N/A',
-      { 
-        content: Number(item.balance || 0).toLocaleString(), 
-        styles: { halign: 'right' } 
-      }
-    ]);
+      autoTable(doc, {
+        startY: 30,
+        head: [['#', 'Entity Name', 'Balance (Rs)']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [33, 150, 243] }
+      });
 
-    // 3. Grand Total Calculation
-    const totalAmount = filteredData.reduce((sum, row) => sum + Number(row.balance || 0), 0);
+      doc.save(`${reportType}_Balance_Page${page}.pdf`);
+    } catch (error) {
+      toast.error("PDF Export failed");
+    }
+  };
 
-    // 4. AutoTable Call (Naya Syntax)
-    autoTable(doc, {
-      startY: 30,
-      head: [['#', 'Entity Name', 'Balance (Rs)']],
-      body: tableData,
-      foot: [[
-        { content: 'Grand Total', colSpan: 2, styles: { halign: 'center', fontStyle: 'bold' } },
-        { content: totalAmount.toLocaleString(), styles: { halign: 'right', fontStyle: 'bold' } }
-      ]],
-      theme: 'grid',
-      headStyles: { fillColor: [33, 150, 243] },
-      footStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0] }
-    });
-
-    // 5. Save File
-    doc.save(`${reportType}_Balance_Report.pdf`);
-    
-  } catch (error) {
-    console.error("PDF Generation Error:", error);
-    alert("PDF banane mein masla aya hai. Console check karein.");
-  }
-};
   const exportToPNG = async () => {
     if (reportRef.current) {
       const canvas = await html2canvas(reportRef.current, { scale: 2 });
       const link = document.createElement('a');
       link.href = canvas.toDataURL("image/png");
-      link.download = `${reportType}_Balances_${today}.png`;
+      link.download = `${reportType}_Balances_Page${page}.png`;
       link.click();
     }
   };
@@ -168,24 +172,24 @@ const EntityBalanceReport = () => {
 
         {/* Tab Buttons */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #ddd' }}>
-          <button 
-            onClick={() => setReportType('customer')}
-            style={{ padding: '12px 25px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: reportType === 'customer' ? '4px solid #2196f3' : 'none', color: reportType === 'customer' ? '#2196f3' : '#666', fontWeight: '600' }}
-          >
-            <FaUserFriends /> Customers
-          </button>
-          <button 
-            onClick={() => setReportType('supplier')}
-            style={{ padding: '12px 25px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: reportType === 'supplier' ? '4px solid #43a047' : 'none', color: reportType === 'supplier' ? '#43a047' : '#666', fontWeight: '600' }}
-          >
-            <FaTruckLoading /> Suppliers
-          </button>
-          {/* <button 
-            onClick={() => setReportType('employee')}
-            style={{ padding: '12px 25px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: reportType === 'employee' ? '4px solid #ef6c00' : 'none', color: reportType === 'employee' ? '#ef6c00' : '#666', fontWeight: '600' }}
-          >
-            <FaUserTie /> Employees
-          </button> */}
+          {['customer', 'supplier'].map((type) => (
+            <button 
+              key={type}
+              onClick={() => { setReportType(type); setPage(1); }}
+              style={{ 
+                padding: '12px 25px', 
+                border: 'none', 
+                background: 'none', 
+                cursor: 'pointer', 
+                borderBottom: reportType === type ? `4px solid ${type === 'customer' ? '#2196f3' : '#43a047'}` : 'none', 
+                color: reportType === type ? (type === 'customer' ? '#2196f3' : '#43a047') : '#666', 
+                fontWeight: '600',
+                textTransform: 'capitalize'
+              }}
+            >
+              {type === 'customer' ? <FaUserFriends /> : <FaTruckLoading />} {type}s
+            </button>
+          ))}
         </div>
 
         {/* Content Table */}
@@ -193,7 +197,11 @@ const EntityBalanceReport = () => {
           <div style={{ textAlign: 'center', padding: '100px', fontSize: '18px', color: '#666' }}>Loading Balances...</div>
         ) : (
           <div ref={reportRef} style={{ background: '#fff', borderRadius: '10px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            <h3 style={{ marginBottom: '20px', textTransform: 'capitalize' }}>{reportType} Wise Closing Balances</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0, textTransform: 'capitalize' }}>{reportType} Wise Closing Balances</h3>
+                <span style={{ fontSize: '14px', color: '#666' }}>Showing {data.length} of {totalItems} records</span>
+            </div>
+            
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f8f9fa', textAlign: 'left' }}>
@@ -203,9 +211,9 @@ const EntityBalanceReport = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredData.map((row, index) => (
+                {data.length > 0 ? data.map((row, index) => (
                   <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '15px', color: '#7f8c8d' }}>{index + 1}</td>
+                    <td style={{ padding: '15px', color: '#7f8c8d' }}>{(page - 1) * 50 + (index + 1)}</td>
                     <td style={{ padding: '15px', fontWeight: '500' }}>{row.name}</td>
                     <td style={{ 
                         padding: '15px', 
@@ -213,21 +221,24 @@ const EntityBalanceReport = () => {
                         fontWeight: 'bold', 
                         color: row.balance >= 0 ? '#2e7d32' : '#c62828' 
                     }}>
-                      {Math.abs(row.balance).toLocaleString()} 
-                      <span style={{ fontSize: '10px', marginLeft: '5px' }}>{row.balance >= 0}</span>
+                      {Math.abs(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })} 
+                      <span style={{ fontSize: '11px', marginLeft: '5px' }}>{row.balance >= 0 ? '(Dr)' : '(Cr)'}</span>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr><td colSpan="3" style={{ padding: '30px', textAlign: 'center' }}>No records found.</td></tr>
+                )}
               </tbody>
-              <tfoot style={{ background: '#f1f8ff', fontWeight: 'bold' }}>
-                <tr>
-                  <td colSpan="2" style={{ padding: '15px', borderTop: '2px solid #2196f3' }}>Grand Total</td>
-                  <td style={{ padding: '15px', textAlign: 'right', borderTop: '2px solid #2196f3', color: '#1565c0', fontSize: '1.1rem' }}>
-                    {filteredData.reduce((sum, row) => sum + row.balance, 0).toLocaleString()}
-                  </td>
-                </tr>
-              </tfoot>
             </table>
+
+            {/* Pagination Component */}
+            <div style={{ marginTop: '30px' }}>
+                <Pagination 
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={(newPage) => setPage(newPage)}
+                />
+            </div>
           </div>
         )}
       </div>

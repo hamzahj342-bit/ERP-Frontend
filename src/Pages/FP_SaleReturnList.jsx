@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import NavigationBar from '../Components/NavigationBar';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaEye, FaFileInvoice, FaUserAlt, FaCalendarAlt, FaReply } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
-import Pagination from '../Components/Pagination'; // ✅ Imported Pagination component
+import Pagination from '../Components/Pagination'; 
 import api from "../../api"; 
 
 const FP_SaleReturnList = () => {
@@ -16,12 +16,10 @@ const FP_SaleReturnList = () => {
   const limit = 50;
   const navigate = useNavigate();
 
-  // ✅ Fetch Finished Goods Sale Return Data (GET using api.js)
   useEffect(() => {
     const fetchSaleReturns = async () => {
         setLoading(true);
         try {
-            // URL params ko 'params' object mein handle karna professional tarika hai
             const res = await api.get("/fp-sale", {
               params: {
                 type: "SaleReturn",
@@ -31,9 +29,7 @@ const FP_SaleReturnList = () => {
             });
             
             const data = res.data;
-            console.log("FG Sale Return API Response:", data);
-
-            // Logic matching your original structure
+            
             if (data && Array.isArray(data.data)) {
                 setSales(data.data);
                 setTotalPages(data.totalPages || 1);
@@ -67,63 +63,65 @@ const FP_SaleReturnList = () => {
       navigate(`/fp-invoice-detail/${invoiceNo}`); 
   };
 
-  return (
-    <>
-      <NavigationBar />
-      <div className="rm-page">
-        <button
-          className="back-btn"
-          style={{ marginTop: "30px" }}
-          onClick={() => navigate('/fp-transactions')}
-        >
-          <FaArrowLeft />
-        </button>
+  return (
+    <>
+      <NavigationBar />
+      <div className="rm-page">
+        {/* Top Header Section */}
+        <div className="top-nav-container" style={{marginTop: '30px'}}>
+          <button className="back-btn" onClick={() => navigate('/fp-transactions')}>
+            <FaArrowLeft />
+          </button>
+        </div>
 
-        {/* Table */}
-        <div className="card">
-          <button
-            className="add-sale-btn"
-            onClick={() => navigate('/fp-salereturn-form')} 
-          >
-            Add New
-          </button>
-          <h3>Finished Goods Sale Returns List</h3>
-          
-            {/* Loading and Data Display */}
+        {/* Table Card */}
+        <div className="card">
+          <div className="card-header">
+            <h3>
+              Finished Goods Sale Returns List
+            </h3>
+            <button className="add-sale-btn" onClick={() => navigate('/fp-salereturn-form')}>
+              <FaPlus /> ADD NEW FG RETURN
+            </button>
+          </div>
+          
+          <div className="table-container">
             {loading ? (
-                <p>Loading Finished Goods Sale Returns...</p>
+                <div className="loading-state">Loading Finished Goods Sale Returns...</div>
             ) : sales.length === 0 ? (
-                <p style={{textAlign: "center"}}>No Finished Goods Sale Returns transactions found.</p>
+                <div className="no-data">No Finished Goods Sale Returns transactions found.</div>
             ) : (
                 <table className="product-table">
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Invoice No</th>
-                            <th>Created At</th>
-                            <th>Invoice Date</th>
-                            <th>Customer</th>
-                            <th>Grand Total (Rs)</th>
-                            <th>Created By</th>
-                            <th>Action</th>
+                            <th><FaFileInvoice /> INVOICE NO</th>
+                            <th>CREATED AT</th>
+                            <th><FaCalendarAlt /> DATE</th>
+                            <th>CUSTOMER</th>
+                            <th>GRAND TOTAL</th>
+                            <th><FaUserAlt /> CREATED BY</th>
+                            <th style={{ textAlign: 'center' }}>ACTION</th>
                         </tr>
                     </thead>
                     <tbody>
                         {sales.map((sale) => (
                             <tr key={sale.id}>
-                                <td>{sale.id}</td> 
-                                <td>{sale.invoice_no}</td>
+                                <td className="id-cell">#{sale.id}</td> 
+                                <td className="invoice-cell">{sale.invoice_no}</td>
                                 <td>{formatDate(sale.createdat)}</td> 
                                 <td>{formatDate(sale.date)}</td>
-                                <td>{sale.customer?.name || sale.entity_name || "N/A"}</td>
-                                <td>{parseFloat(sale.grand_total)?.toFixed(2) || "-"}</td>
-                                <td>{sale.createdby || "—"}</td>
-                                <td>
+                                <td><span className="supplier-tag">{sale.customer?.name || sale.entity_name || "N/A"}</span></td>
+                                <td className="total-cell">
+                                  {parseFloat(sale.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                </td>
+                                <td><span className="user-tag">{sale.createdby || "—"}</span></td>
+                                <td className="action-cell">
                                     <button 
                                         onClick={() => handleViewDetails(sale.invoice_no)} 
                                         className="primary-btn"
                                     >
-                                        View Details
+                                        <FaEye /> VIEW
                                     </button>
                                 </td>
                             </tr>
@@ -131,20 +129,20 @@ const FP_SaleReturnList = () => {
                     </tbody>
                 </table>
             )}
+          </div>
             
-            {/* ✅ Pagination Component */}
-            <div style={{ marginTop: "25px" }}>
+          <div className="pagination-footer">
                 <Pagination
                     page={page}
                     totalPages={totalPages}
                     onPageChange={(newPage) => setPage(newPage)}
                 />
-            </div>
-        </div>
-      </div>
-      <Footer />
-    </>
-  );
+          </div>
+        </div>
+      </div>
+      <Footer />
+    </>
+  );
 };
 
 export default FP_SaleReturnList;

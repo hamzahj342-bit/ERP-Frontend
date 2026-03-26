@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
-import NavigationBar from "./NavigationBar";
-import Footer from "./Footer";
+import NavigationBar from "../Components/NavigationBar";
+import Footer from "../Components/Footer";
 import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import api from "../../api";
-
+import "../Transactions.css"; 
 
 const PaymentTransactionForm = () => {
     const navigate = useNavigate();
 
     const [accounts, setAccounts] = useState([]);
     const [invoiceNo, setInvoiceNo] = useState("");
-    const [fromBalance, setFromBalance] = useState(0);
     const [suppliers, setSuppliers] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [employees, setEmployees] = useState([]);
@@ -29,159 +28,80 @@ const PaymentTransactionForm = () => {
         entity_id: ""
     });
 
-    // 1. INVOICE NUMBER FETCH LOGIC
     const fetchInvoiceNo = useCallback(async () => {
         try {
             const res = await api.get("/payment-transactions/invoice-no?type=payments");
-            const data = res.data; 
-            setInvoiceNo(data.invoice_no);
-            return data.invoice_no;
+            setInvoiceNo(res.data.invoice_no);
         } catch (err) {
             console.error("Error fetching invoice:", err);
             setInvoiceNo("PAY-INV-ERROR");
-            return null;
         }
     }, []);
 
-    // 2. Fetch all accounts (Converted to Async/Await)
     const fetchAccounts = async () => {
         try {
             const res = await api.get("/accounts/list-with-balance");
             setAccounts(res.data);
-        } catch (err) {
-            console.error("Error fetching accounts:", err);
-        }
+        } catch (err) { console.error("Error fetching accounts:", err); }
     };
 
-    // 3. Fetch Customers (Converted to Async/Await)
-    const fetchCustomers = async () => {
-        try {
-            const res = await api.get("/entities/transactions"); 
-            const data = res.data;
-            const customerData = data.filter(item => item.type === "customer");
-            setCustomers(customerData);
-        } catch (err) {
-            console.error("Error fetching customers:", err);
-        }
-    };
-
-    // 4. Fetch Suppliers (Converted to Async/Await)
-    const fetchSuppliers = async () => {
+    const fetchEntities = async () => {
         try {
             const res = await api.get("/entities/transactions");
             const data = res.data;
-            const supplierData = data.filter(item => item.type === "supplier");
-            setSuppliers(supplierData);
-        } catch (err) {
-            console.error("Error fetching suppliers:", err);
-        } 
+            setCustomers(data.filter(item => item.type === "customer"));
+            setSuppliers(data.filter(item => item.type === "supplier"));
+            setEmployees(data.filter(item => item.type === "employee"));
+        } catch (err) { console.error("Error fetching entities:", err); }
     };
 
-    const fetchEmployees = async () => {
-    try {
-        const res = await api.get("/entities/transactions"); // Assuming employees are in entities or a separate /employees route
-        const data = res.data;
-        const employeeData = data.filter(item => item.type === "employee");
-        setEmployees(employeeData);
-    } catch (err) {
-        console.error("Error fetching employees:", err);
-    }
-};
-
     useEffect(() => {
-        fetchSuppliers();
-        fetchCustomers();
-        fetchEmployees();
+        fetchEntities();
         fetchAccounts();
         fetchInvoiceNo();
     }, [fetchInvoiceNo]);
 
-    // --- Baqi logic (getControlAccType, handleChange etc.) same rahega ---
-    
-    // const getControlAccType = (accountId) => {
-    //     const acc = accounts.find(a => a.id == accountId);
-    //     if (acc?.account_code === '0002-0001') return 'Payable'; 
-    //     if (acc?.account_code === '0001-0004') return 'Receivable'; 
-    //     return null;
-    // };
-
-    // const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
-    // const entityList = activeControlAcc === 'Payable' ? suppliers : (activeControlAcc === 'Receivable' ? customers : []);
-    // const entityTypeLabel = activeControlAcc === 'Payable' ? 'Supplier' : (activeControlAcc === 'Receivable' ? 'Customer' : 'Entity');
-
     const getControlAccType = (accountId) => {
-    const acc = accounts.find(a => a.id == accountId);
-    if (!acc) return null;
-    
-    const name = acc.account_name.toLowerCase();
-    
-    if (name.includes('payable')) return 'Payable'; 
-    if (name.includes('receivable')) return 'Receivable'; 
-    if (name.includes('salary')) return 'Salary'; // Salary detection logic
-    return null;
-};
+        const acc = accounts.find(a => a.id == accountId);
+        if (!acc) return null;
+        const name = acc.account_name.toLowerCase();
+        if (name.includes('payable')) return 'Payable'; 
+        if (name.includes('receivable')) return 'Receivable'; 
+        if (name.includes('salary')) return 'Salary'; 
+        return null;
+    };
 
-// Dropdown list decide karne ka logic
-const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
+    const activeControlAcc = getControlAccType(formData.from_account_id) || getControlAccType(formData.to_account_id);
+    let entityList = [];
+    let entityTypeLabel = "Entity";
 
-let entityList = [];
-let entityTypeLabel = "Entity";
+    if (activeControlAcc === 'Payable') { entityList = suppliers; entityTypeLabel = "Supplier"; }
+    else if (activeControlAcc === 'Receivable') { entityList = customers; entityTypeLabel = "Customer"; }
+    else if (activeControlAcc === 'Salary') { entityList = employees; entityTypeLabel = "Employee"; }
 
-if (activeControlAcc === 'Payable') {
-    entityList = suppliers;
-    entityTypeLabel = "Supplier";
-} else if (activeControlAcc === 'Receivable') {
-    entityList = customers;
-    entityTypeLabel = "Customer";
-} else if (activeControlAcc === 'Salary') {
-    entityList = employees;
-    entityTypeLabel = "Employee";
-}
-    
     const handleChange = (field, value) => {
         setFormData(prev => {
             const updated = { ...prev, [field]: value };
-            if (field === "from_account_id") {
-                const acc = accounts.find(a => a.id == value);
-                const balance = acc && acc.balance ? Number(acc.balance) || 0 : 0;
-                setFromBalance(balance);
-            }
-            if (field === "credit") {
-                updated.debit = value;
-            }
+            if (field === "credit") { updated.debit = value; }
             return updated;
         });
     };
 
-      const handleEntityChange = (value) => {
-        setSelectedEntityId(value);
-    };
-
-    // 5. SUBMIT HANDLER (Async/Await)
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isSubmitting) return;
-
-        // Validation logic same hai jo aapne di thi
-        if (!formData.from_account_id || !formData.to_account_id) {
-            toast.error("Please select both accounts.");
-            return;
-        }
-        if (formData.transaction_date === "") {
-            toast.error("Please select a transaction date.");
-            return;
-        }
-
+        if (!formData.from_account_id || !formData.to_account_id) return toast.error("Please select both accounts.");
+        if (!formData.transaction_date) return toast.error("Please select a transaction date.");
+        
         setIsSubmitting(true);
-
         const user = JSON.parse(localStorage.getItem("user"));
-        const debitAmount = parseFloat(formData.credit);
+        const amount = parseFloat(formData.credit);
 
         const payload = {
             from_account_id: formData.from_account_id,
             to_account_id: formData.to_account_id,
-            debit: debitAmount, 
-            credit: debitAmount,
+            debit: amount, 
+            credit: amount,
             transaction_date: formData.transaction_date,
             description: formData.description,
             created_by: user ? user.id : null,
@@ -190,135 +110,157 @@ if (activeControlAcc === 'Payable') {
         };
 
         try {
-            const res = await api.post("/payment-transactions", payload, {
-            });
-
+            const res = await api.post("/payment-transactions", payload);
             setIsSubmitting(false);
             Swal.fire({
                 title: "Payment Successful!",
-                text: `Transaction completed with Invoice No: ${res.data.invoice_no}`, 
+                text: `Invoice No: ${res.data.invoice_no}`, 
                 icon: "success",
             }).then(() => {
-                setFormData({
-                    from_account_id: "", to_account_id: "", debit: "", credit: "",
-                    transaction_date: "",
-                    description: "", entity_id: ""
-                });
+                setFormData({ from_account_id: "", to_account_id: "", debit: "", credit: "", transaction_date: "", description: "", entity_id: "" });
                 setSelectedEntityId("");
-                setFromBalance(0);
                 fetchInvoiceNo(); 
             });
         } catch (err) {
             setIsSubmitting(false);
-            const msg = err.response?.data?.message || err.response?.data?.error || "Transaction Failed!";
-            toast.error(msg);
+            toast.error(err.response?.data?.message || "Transaction Failed!");
         }
     };
-  return (
-    <>
-      <NavigationBar />
-      <div className="rm-page">
-        <button className="back-btn" onClick={() => navigate("/payment-transactions")}>
-          <FaArrowLeft />
-        </button>
 
-        <div className="rm-card">
-          <h2>Payment Transaction Form</h2>
+    return (
+        <div className="rm-page-wrapper">
+            <NavigationBar />
 
-          {/* Invoice No + Transaction Date */}
-          <div className="form-group mb-3 d-flex"
-          style={{gap:"15px"}}>
-            <b>Invoice No:</b>
-            <input type="text" className="input" value={invoiceNo} readOnly 
-            style={{ background: "#f3f3f3",}} 
-            />
-            
-            <b>Transaction Date:</b>
-            <input
-              type="date"
-              className="input"
-              value={formData.transaction_date}
-              onChange={(e) => handleChange("transaction_date", e.target.value)}
-            />
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            {/* From Account + Balance */}
-            <div className="form-group" style={{ display: "flex", gap: "15px"}}>
-              <b>From Account:</b>
-              <select className="input" value={formData.from_account_id} onChange={(e) => handleChange("from_account_id", e.target.value)}>
-                <option value="">Select Account</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.account_name} - {acc.account_code}
-                  </option>
-                ))}
-              </select>
-
-              <b style={{marginTop:"10px"}}>Balance:</b>
-              <input type="text" className="input" value={fromBalance} readOnly 
-              style={{width:"auto"}}/>
-
-               <b>To Account:</b>
-              <select className="input" value={formData.to_account_id} onChange={(e) => handleChange("to_account_id", e.target.value)}>
-                <option value="">Select Account</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.account_name} - {acc.account_code}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* 🚨 FIX: CONDITIONAL ENTITY DROPDOWN */}
-            {activeControlAcc && (
-                <div className="form-group" style={{ display: "flex", gap: "15px", marginTop: "10px"}}>
-                    <b style={{marginTop:"10px"}}>{entityTypeLabel}:</b>
-                    <select 
-                        className="input" 
-                        value={selectedEntityId} 
-                        onChange={(e) => handleEntityChange(e.target.value)}
-                    >
-                        <option value="">Select {entityTypeLabel}</option>
-                        {entityList.map(entity => (
-                            <option key={entity.id} value={entity.id}>
-                                {entity.name}
-                            </option>
-                        ))}
-                    </select>
+            <div className="rm-content-container">
+                <div className="rm-header-section">
+                    <button className="back-btn" onClick={() => navigate("/payment-transactions")}>
+                        <FaArrowLeft />
+                        {/* className="back-btn-styled"*/}
+                    </button>
+                    <h2 className="form-title">Payment Transaction</h2>
                 </div>
-            )}
 
+                <div className="rm-main-card">
+                    <form onSubmit={handleSubmit}>
+                        {/* Top Info Grid */}
+                        <div className="info-grid">
+                            <div className="info-item">
+                                <label>Invoice No</label>
+                                <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
+                            </div>
+                            <div className="info-item">
+                                <label>Transaction Date</label>
+                                <input 
+                                    type="date" 
+                                    className="rm-input-field" 
+                                    value={formData.transaction_date} 
+                                    onChange={(e) => handleChange("transaction_date", e.target.value)} 
+                                    required
+                                />
+                            </div>
+                        </div>
 
-            {/* Debit */}
-            <div className="form-group" style={{ display: "flex", gap: "15px",marginTop:"10px"}}>
-              <b style={{marginTop:"10px"}}>Credit:</b>
-              <input
-                type="number"
-                className="input"
-                min="0.01"
-                step="0.01"
-                value={formData.debit}
-                onChange={(e) => handleChange("credit", e.target.value)}
-              />
-              <b style={{marginTop:"10px"}}>Debit:</b>
-              <input type="number" className="input" value={formData.debit} readOnly />
+                        {/* Account Selection Grid */}
+                        <div className="info-grid">
+                            <div className="info-item">
+                                <label>From Account (Source)</label>
+                                <select 
+                                    className="rm-input-field" 
+                                    value={formData.from_account_id} 
+                                    onChange={(e) => handleChange("from_account_id", e.target.value)}
+                                    required
+                                >
+                                    <option value="">Select Account</option>
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.account_name} ({acc.account_code})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="info-item">
+                                <label>To Account (Destination)</label>
+                                <select 
+                                    className="rm-input-field" 
+                                    value={formData.to_account_id} 
+                                    onChange={(e) => handleChange("to_account_id", e.target.value)}
+                                    required
+                                >
+                                    <option value="">Select Account</option>
+                                    {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.account_name} ({acc.account_code})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {activeControlAcc && (
+                                <div className="info-item">
+                                    <label>{entityTypeLabel}</label>
+                                    <select 
+                                        className="rm-input-field" 
+                                        value={selectedEntityId} 
+                                        onChange={(e) => setSelectedEntityId(e.target.value)}
+                                        required
+                                    >
+                                        <option value="">Select {entityTypeLabel}</option>
+                                        {entityList.map(entity => (
+                                            <option key={entity.id} value={entity.id}>{entity.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Amount Section */}
+                        <div className="info-grid" style={{ borderBottom: 'none' }}>
+                            <div className="info-item">
+                                <label>Amount (Credit)</label>
+                                <input
+                                    type="number"
+                                    className="rm-input-field"
+                                    placeholder="0.00"
+                                    value={formData.credit}
+                                    onChange={(e) => handleChange("credit", e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="info-item">
+                                <label>Debit Amount (Auto)</label>
+                                <input type="number" className="rm-input-field readonly-input" value={formData.credit} readOnly />
+                            </div>
+                        </div>
+
+                        {/* Description Section */}
+                        <div className="info-item" style={{ marginTop: '10px' }}>
+                            <label>Description / Remarks</label>
+                            <textarea 
+                                className="rm-input-field" 
+                                rows={3} 
+                                placeholder="Enter transaction details..."
+                                value={formData.description} 
+                                onChange={(e) => handleChange("description", e.target.value)}
+                            ></textarea>
+                        </div>
+
+                        <div className="summary-container">
+                            <div className="summary-row grand-total-box">
+                                <b>Total Payment:</b>
+                                <b>{formData.credit || 0}</b>
+                            </div>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            className="save-btn-main" 
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? "Processing..." : "Submit Payment Transaction"}
+                        </button>
+                    </form>
+                </div>
             </div>
-
-            {/* Description */}
-            <div className="form-group" style={{ marginTop: "15px" }}>
-              <b>Description:</b>
-              <textarea className="input" rows={3} value={formData.description} onChange={(e) => handleChange("description", e.target.value)}></textarea>
-            </div>
-
-            <div className="form-actions" style={{ marginTop: "15px" }}>
-              <button type="submit" className="save-btn">Submit Payment</button>
-            </div>
-          </form>
+            <Footer />
         </div>
-      </div>
-      <Footer />
-    </>
-  );
+    );
 };
 
 export default PaymentTransactionForm;
