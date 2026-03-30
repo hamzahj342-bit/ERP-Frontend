@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FaArrowLeft, FaPlus, FaTimes } from "react-icons/fa";
+import { FaArrowLeft, FaPlus, FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import api from "../../api";
+import "../css/FP/Production/AddRecipe.css"; // CSS Link
 
 const AddRecipe = () => {
   const navigate = useNavigate();
@@ -14,291 +15,192 @@ const AddRecipe = () => {
   const [formData, setFormData] = useState({
     name: "",
     createdby: user ? user.username : "guest",
-    details: [
-      {
-        rm_id: null,
-        rm_name: "",
-        fp_id: null,
-        fp_name: "",
-        qty: "",
-        percentage: 0,
-        uom_id: null,
-        uom_name: "",
-      },
-    ],
+    details: [{ rm_id: null, rm_name: "", fp_id: null, fp_name: "", qty: "", percentage: 0, uom_id: null, uom_name: "" }],
   });
 
   const [availableItems, setAvailableItems] = useState([]);
 
-  // 1. Fetch Materials and Products
   const fetchAllItems = async () => {
     try {
-      const [rmRes, fpRes] = await Promise.all([
-        api.get("/add-materials"),
-        api.get("/production"),
-      ]);
-
-      const materials = rmRes.data.map((item) => ({
-        ...item,
-        type: "RM",
-        uniqueKey: `RM-${item.rm_id}`,
-      }));
-      const products = fpRes.data.map((item) => ({
-        ...item,
-        type: "FP",
-        uniqueKey: `FP-${item.id}`,
-      }));
-
+      const [rmRes, fpRes] = await Promise.all([api.get("/add-materials"), api.get("/production")]);
+      const materials = rmRes.data.map(i => ({ ...i, type: "RM", uniqueKey: `RM-${i.rm_id}` }));
+      const products = fpRes.data.map(i => ({ ...i, type: "FP", uniqueKey: `FP-${i.id}` }));
       setAvailableItems([...materials, ...products]);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load materials or products");
-    }
+    } catch (err) { toast.error("Failed to load items"); }
   };
 
-  // 2. Fetch Recipe for Editing with Name Fix
-  const fetchRecipeData = async () => {
-    if (!id || availableItems.length === 0) return;
-    try {
-      const res = await api.get(`/recipe/${id}`);
-      const data = res.data;
+  useEffect(() => { fetchAllItems(); }, []);
 
-      setFormData({
-        name: data.name,
-        createdby: data.createdby,
-        details: data.details.map((d) => {
-          const uniqueKey = d.rm_id ? `RM-${d.rm_id}` : `FP-${d.fp_id}`;
-          const matchedItem = availableItems.find(i => i.uniqueKey === uniqueKey);
-
-          return {
-            rm_id: d.rm_id || null,
-            rm_name: d.rm_name || (matchedItem ? matchedItem.name : ""),
-            fp_id: d.fp_id || null,
-            fp_name: d.fp_name || (matchedItem ? matchedItem.name : ""),
-            qty: d.qty || "",
-            percentage: d.percentage || 0,
-            uom_id: d.uom_id,
-            uom_name: d.uom?.uom_name || d.uom?.name || d.uom_name || (matchedItem?.uom?.name || ""),
-          };
-        }),
-      });
-    } catch (err) {
-      toast.error("Could not load recipe details");
-    }
-  };
-
-  useEffect(() => {
-    fetchAllItems();
-  }, []);
-
-  // Is useEffect ko availableItems par depend karwaya taake names mil saken
   useEffect(() => {
     if (id && availableItems.length > 0) {
+      const fetchRecipeData = async () => {
+        try {
+          const res = await api.get(`/recipe/${id}`);
+          setFormData({
+            name: res.data.name,
+            createdby: res.data.createdby,
+            details: res.data.details.map(d => {
+              const key = d.rm_id ? `RM-${d.rm_id}` : `FP-${d.fp_id}`;
+              const match = availableItems.find(i => i.uniqueKey === key);
+              return { ...d, uom_name: match?.uom?.name || d.uom_name || "" };
+            })
+          });
+        } catch (err) { toast.error("Load failed"); }
+      };
       fetchRecipeData();
     }
   }, [id, availableItems]);
 
-  // AUTO CALCULATION LOGIC
+  // Percentage Calculation
   useEffect(() => {
-    const updatedDetails = [...formData.details];
-    const totalSum = updatedDetails.reduce(
-      (sum, item) => sum + (parseFloat(item.qty) || 0),
-      0
-    );
-
-    if (totalSum > 0) {
-      updatedDetails.forEach((item) => {
-        const itemQty = parseFloat(item.qty) || 0;
-        item.percentage = ((itemQty / totalSum) * 100).toFixed(2);
-      });
-      // Sirf tab update karein jab values badli hon taake infinite loop na bane
+    const total = formData.details.reduce((sum, item) => sum + (parseFloat(item.qty) || 0), 0);
+    if (total > 0) {
+      const updated = formData.details.map(item => ({
+        ...item,
+        percentage: ((parseFloat(item.qty) || 0) / total * 100).toFixed(2)
+      }));
+      if (JSON.stringify(updated) !== JSON.stringify(formData.details)) {
+        setFormData(prev => ({ ...prev, details: updated }));
+      }
     }
-  }, [JSON.stringify(formData.details.map((d) => d.qty))]);
-
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleQtyChange = (index, value) => {
-    const updatedDetails = [...formData.details];
-    updatedDetails[index].qty = value;
-    setFormData({ ...formData, details: updatedDetails });
-  };
+  }, [formData.details]);
 
   const handleItemSelection = (index, uniqueKey) => {
-    const updatedDetails = [...formData.details];
-    const selectedItem = availableItems.find((item) => item.uniqueKey === uniqueKey);
-
-    if (!selectedItem) {
-      updatedDetails[index] = {
-        ...updatedDetails[index],
-        rm_id: null, fp_id: null, rm_name: "", fp_name: "", uom_id: null, uom_name: ""
-      };
-    } else {
-      const isRM = selectedItem.type === "RM";
-      updatedDetails[index] = {
-        ...updatedDetails[index],
-        rm_id: isRM ? selectedItem.rm_id : null,
-        rm_name: isRM ? selectedItem.name : "",
-        fp_id: isRM ? null : selectedItem.id,
-        fp_name: isRM ? "" : selectedItem.name,
-        uom_id: selectedItem.uom_id,
-        uom_name: selectedItem.uom?.name || selectedItem.uom?.uom_name || ""
+    const updated = [...formData.details];
+    const item = availableItems.find(i => i.uniqueKey === uniqueKey);
+    if (item) {
+      const isRM = item.type === "RM";
+      updated[index] = {
+        ...updated[index],
+        rm_id: isRM ? item.rm_id : null, rm_name: isRM ? item.name : "",
+        fp_id: isRM ? null : item.id, fp_name: isRM ? "" : item.name,
+        uom_id: item.uom_id, uom_name: item.uom?.name || ""
       };
     }
-    setFormData({ ...formData, details: updatedDetails });
+    setFormData({ ...formData, details: updated });
+  };
+
+  const handleQtyChange = (index, val) => {
+    const updated = [...formData.details];
+    updated[index].qty = val;
+    setFormData({ ...formData, details: updated });
   };
 
   const addRow = () => {
-    setFormData({
-      ...formData,
-      details: [
-        ...formData.details,
-        {
-          rm_id: null, rm_name: "", fp_id: null, fp_name: "",
-          qty: "", percentage: 0, uom_id: null, uom_name: "",
-        },
-      ],
-    });
+    setFormData({ ...formData, details: [...formData.details, { rm_id: null, rm_name: "", fp_id: null, fp_name: "", qty: "", percentage: 0, uom_id: null, uom_name: "" }] });
   };
 
   const removeRow = (index) => {
-    const newDetails = [...formData.details];
-    newDetails.splice(index, 1);
-    setFormData({ ...formData, details: newDetails });
+    const updated = formData.details.filter((_, i) => i !== index);
+    setFormData({ ...formData, details: updated });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return toast.error("Please enter recipe name");
-    
-    // Clean data before sending to ensure no null names go to backend
-    const cleanedDetails = formData.details.map(d => {
-        const isRM = d.rm_id !== null;
-        const matched = availableItems.find(i => 
-            isRM ? i.rm_id === d.rm_id : i.id === d.fp_id
-        );
-        return {
-            ...d,
-            rm_name: isRM ? (d.rm_name || matched?.name || "") : "",
-            fp_name: !isRM ? (d.fp_name || matched?.name || "") : ""
-        };
-    });
-
-    if (cleanedDetails.some((d) => (!d.rm_id && !d.fp_id) || !d.qty || d.qty <= 0)) {
-      return toast.error("Please fill all items and quantities correctly");
-    }
-
     try {
-      const payload = { 
-        ...formData, 
-        details: cleanedDetails,
-        updatedby: user?.username 
-      };
-      
+      const payload = { ...formData, updatedby: user?.username };
       id ? await api.put(`/recipe/${id}`, payload) : await api.post("/recipe", payload);
-      
-      toast.success(id ? "Recipe updated and versioned!" : "Recipe created!");
+      toast.success("Recipe Saved!");
       navigate("/recipe");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to save recipe");
-    }
+    } catch (err) { toast.error("Save failed"); }
   };
 
   return (
-    <>
+    <div className="page-wrapper">
       <NavigationBar />
-      <div className="rm-page">
-        <button className="back-btn" style={{ marginTop: "30px" }} onClick={() => navigate("/recipe")}>
-          <FaArrowLeft />
-        </button>
+      <div className="recipe-form-wrapper">
+        <div className="recipe-form-container" style={{marginTop: '30px'}}>
+          <button className="back-btn" onClick={() => navigate("/recipe")} style={{ marginBottom: "20px" }}>
+            <FaArrowLeft />
+          </button>
 
-        <div className="rm-card">
-          <h2>{id ? "Edit Recipe (New Version)" : "Create Recipe"}</h2>
-          <form onSubmit={handleSubmit}>
-            <input
-              className="input"
-              type="text"
-              name="name"
-              placeholder="Recipe Name"
-              value={formData.name}
-              onChange={handleInputChange}
-            />
+          <div className="form-card">
+            <div className="form-header">
+              <h2>{id ? "Edit Recipe (New Version)" : "Create New Recipe"}</h2>
+            </div>
 
-            <h3 style={{ marginTop: "20px" }}>Materials & Formulas</h3>
-
-            <div style={{ marginTop: "20px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: "10px", marginBottom: "10px", fontWeight: "bold" }}>
-                <div>Item Selection</div>
-                <div>Quantity</div>
-                <div>UOM</div>
-                <div>Percentage (%)</div>
-                <div>Actions</div>
+            <form onSubmit={handleSubmit}>
+              <div className="recipe-name-section">
+                <label>Recipe Title / Product Name</label>
+                <input
+                  className="recipe-input"
+                  type="text"
+                  name="name"
+                  placeholder="e.g. Chemical Mixture A1"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
               </div>
 
-              {formData.details.map((detail, index) => (
-                <div key={index} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto", gap: "10px", marginBottom: "10px", alignItems: "center" }}>
-                  <select
-                    className="input"
-                    value={detail.rm_id ? `RM-${detail.rm_id}` : detail.fp_id ? `FP-${detail.fp_id}` : ""}
-                    onChange={(e) => handleItemSelection(index, e.target.value)}
-                  >
-                    <option value="">Select Item</option>
-                    <optgroup label="Raw Materials">
-                      {availableItems.filter((i) => i.type === "RM").map((rm) => (
-                        <option key={rm.uniqueKey} value={rm.uniqueKey}>{rm.name}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Finished Products (Sub-Assembly)">
-                      {availableItems.filter((i) => i.type === "FP").map((fp) => (
-                        <option key={fp.uniqueKey} value={fp.uniqueKey}>{fp.name}</option>
-                      ))}
-                    </optgroup>
-                  </select>
+              <div className="items-section">
+                <label style={{ fontWeight: 600, color: "#475569", marginBottom: "15px", display: "block" }}>
+                  Formulation Details
+                </label>
 
-                  <input
-                    className="input"
-                    type="number"
-                    placeholder="Qty"
-                    value={detail.qty}
-                    onChange={(e) => handleQtyChange(index, e.target.value)}
-                  />
-
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="UOM"
-                    value={detail.uom_name || ""}
-                    readOnly
-                    style={{ background: "#f8f9fa" }}
-                  />
-
-                  <input
-                    className="input"
-                    type="text"
-                    value={detail.percentage + "%"}
-                    readOnly
-                    style={{ background: "#e9ecef", fontWeight: "bold" }}
-                  />
-
-                  <div>
-                    <button type="button" className="add-more-recipe" onClick={addRow}><FaPlus /></button>
-                    {formData.details.length > 1 && (
-                      <button type="button" className="del-btn-recipe" onClick={() => removeRow(index)}><FaTimes /></button>
-                    )}
-                  </div>
+                <div className="items-grid-header">
+                  <div>Item Selection</div>
+                  <div>Quantity</div>
+                  <div>UOM</div>
+                  <div>Ratio (%)</div>
+                  <div>Action</div>
                 </div>
-              ))}
-            </div>
 
-            <div className="form-actions" style={{ marginTop: "30px" }}>
-              <button type="submit" className="save-btn">Save Recipe</button>
-            </div>
-          </form>
+                {formData.details.map((detail, index) => (
+                  <div key={index} className="item-row">
+                    <select
+                      className="recipe-input"
+                      value={detail.rm_id ? `RM-${detail.rm_id}` : detail.fp_id ? `FP-${detail.fp_id}` : ""}
+                      onChange={(e) => handleItemSelection(index, e.target.value)}
+                      required
+                    >
+                      <option value="">Select Material/Product</option>
+                      <optgroup label="Raw Materials">
+                        {availableItems.filter(i => i.type === "RM").map(rm => (
+                          <option key={rm.uniqueKey} value={rm.uniqueKey}>{rm.name}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Finished Products">
+                        {availableItems.filter(i => i.type === "FP").map(fp => (
+                          <option key={fp.uniqueKey} value={fp.uniqueKey}>{fp.name}</option>
+                        ))}
+                      </optgroup>
+                    </select>
+
+                    <input
+                      className="recipe-input"
+                      type="number"
+                      placeholder="Qty"
+                      value={detail.qty}
+                      onChange={(e) => handleQtyChange(index, e.target.value)}
+                      required
+                    />
+
+                    <input className="recipe-input" type="text" value={detail.uom_name || ""} readOnly placeholder="UOM" />
+
+                    <input className="recipe-input" type="text" value={detail.percentage + "%"} readOnly />
+
+                    <div className="action-icon-btns">
+                      <button type="button" className="btn-icon-add" onClick={addRow} title="Add Row"><FaPlus /></button>
+                      {formData.details.length > 1 && (
+                        <button type="button" className="btn-icon-del" onClick={() => removeRow(index)} title="Remove"><FaTrash /></button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: "40px", display: "flex", justifyContent: "flex-end" }}>
+                <button type="submit" className="save-btn">
+                  {id ? "Update Formulation" : "Save Formulation"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
       <Footer />
-    </>
+    </div>
   );
 };
 

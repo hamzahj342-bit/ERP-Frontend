@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import NavigationBar from '../Components/NavigationBar'; // Assuming path
-import Footer from '../Components/Footer';             // Assuming path
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaLayerGroup, FaHistory } from 'react-icons/fa';
 import api from "../../api"; 
+import "../css/FP/ProductBatchList.css"; // CSS Link
 
 const ProductBatchList = () => {
     const [batches, setBatches] = useState([]);
@@ -14,10 +15,7 @@ const ProductBatchList = () => {
     useEffect(() => {
         const fetchBatches = async () => {
             try {
-                // headers ab api.js handle karega (interceptors ke zariye)
                 const res = await api.get("/product-batches");
-
-                // Jo data backend se join ke saath aa raha hai, wahi batches mein jayega
                 setBatches(res.data);
                 setLoading(false);
             } catch (err) {
@@ -26,70 +24,106 @@ const ProductBatchList = () => {
                 setLoading(false);
             }
         };
-
         fetchBatches();
     }, []);
 
-    // Format date logic same to same
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleDateString();
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
     };
 
     if (loading) {
-        return <><NavigationBar /><div className="rm-page">Loading Product Batches...</div><Footer /></>;
+        return (
+            <div className="page-wrapper">
+                <NavigationBar />
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+                    <div className="loader"></div>
+                    <p style={{ marginLeft: '10px' }}>Loading Batch Records...</p>
+                </div>
+                <Footer />
+            </div>
+        );
     }
 
     return (
-        <>
+        <div className="page-wrapper">
             <NavigationBar />
-            <div className="rm-page">
-                <button
-                    className="back-btn"
-                    style={{ marginTop: "30px" }}
-                    onClick={() => navigate('/dashboard')} 
-                >
-                    <FaArrowLeft />
-                </button>
-                <div className="rm-card">
-                    <h2>Finished Goods Batch List</h2>
+            
+            <div className="batch-list-wrapper">
+                <div className="batch-container">
                     
-                    {batches.length === 0 ? (
-                        <p>No product batches found.</p>
-                    ) : (
-                        <table className="product-table">
-                            <thead>
-                                <tr>
-                                    <th>Batch ID</th>
-                                    <th>Product Master ID</th>
-                                    <th>Product Name</th>
-                                    <th>Remaining Qty</th>
-                                    <th>Unit Cost</th>
-                                    <th>Created By</th>
-                                    <th>Created Date</th>
-                                    {/* <th>Action (Future)</th> */}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {batches.map((batch) => (
-                                    <tr key={batch.id}>
-                                        <td>{batch.id}</td>
-                                        <td>{batch.product_master_id}</td>
-                                        <td>{batch.product?.name || 'N/A'}</td>
-                                        <td>{parseFloat(batch.qty_remaining).toFixed(3)}</td>
-                                        <td>{parseFloat(batch.unit_cost).toFixed(3)}</td>
-                                        <td>{batch.createdby || 'System'}</td>
-                                        <td>{formatDate(batch.createdat)}</td>
-                                        {/* <td><button className="del-btn">View</button></td> */}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
+                    <div className="batch-header-area" style={{marginTop: '30px'}}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <button className="back-btn" onClick={() => navigate('/dashboard')}>
+                                <FaArrowLeft />
+                            </button>
+                            <h2><FaLayerGroup style={{ color: '#3b82f6', marginRight: '10px' }} /> Finished Goods Batches</h2>
+                        </div>
+                    </div>
+
+                    <div className="batch-card">
+                        {batches.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                                <FaHistory size={40} style={{ marginBottom: '10px', opacity: 0.5 }} />
+                                <p>No production batches found in records.</p>
+                            </div>
+                        ) : (
+                            <div className="batch-table-container">
+                                <table className="batch-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Batch ID</th>
+                                            <th>Product Name</th>
+                                            <th>Remaining Qty</th>
+                                            <th>Unit Cost</th>
+                                            <th>Batch Valuation</th>
+                                            <th>Created By</th>
+                                            <th>Production Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {batches.map((batch) => {
+                                            const remaining = parseFloat(batch.qty_remaining || 0);
+                                            const cost = parseFloat(batch.unit_cost || 0);
+                                            return (
+                                                <tr key={batch.id}>
+                                                    <td><span className="batch-id-tag">BATCH-{batch.id}</span></td>
+                                                    <td style={{ fontWeight: '600', color: '#1e293b' }}>
+                                                        {batch.product?.name || 'Unknown Product'}
+                                                    </td>
+                                                    <td>
+                                                        <span className={`qty-pill ${remaining > 0 ? 'qty-active' : 'qty-empty'}`}>
+                                                            {remaining.toFixed(3)}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ color: '#64748b' }}>{cost.toFixed(2)}</td>
+                                                    <td style={{ fontWeight: 'bold' }}>
+                                                        {(remaining * cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    </td>
+                                                    <td>
+                                                        <span style={{ fontSize: '0.85rem', color: '#475569' }}>
+                                                            {batch.createdby || 'System'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(batch.createdat)}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
+            
             <Footer />
-        </>
+        </div>
     );
 };
 

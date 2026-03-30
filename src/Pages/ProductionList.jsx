@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaPlus } from "react-icons/fa"; // FaTrash, FaEdit removed
+import { FaArrowLeft, FaPlus, FaBoxOpen } from "react-icons/fa";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
-import { toast } from "react-toastify";
-import api from "../../api"; 
+import api from "../../api";
+import "../css/FP/Production/ProductionList.css"; // CSS Import
 
 const ProductionList = () => {
   const navigate = useNavigate();
@@ -14,20 +14,11 @@ const ProductionList = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-    setError(null);
     try {
-      // ✅ Fetch ki jagah api.get use kiya, headers khud handle honge
       const res = await api.get("/production");
-      
-      // Axios mein data direct 'res.data' mein hota hai
-      const data = res.data;
-      
-      setProducts(Array.isArray(data) ? data : []);
+      setProducts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      // ✅ Error message handle karne ka behtar tarika
-      const errMsg = err.response?.data?.message || 'Server connection error.';
-      setError(errMsg);
-      console.error('Fetch error:', err);
+      setError(err.response?.data?.message || 'Server connection error.');
     } finally {
       setLoading(false);
     }
@@ -37,80 +28,84 @@ const ProductionList = () => {
     fetchProducts();
   }, []);
 
-  if (loading) {
-    return <p className="page-container" style={{ textAlign: 'center' }}>Loading products...</p>;
-  }
+  return (
+    <div className="page-wrapper">
+      <NavigationBar />
+      
+      <div className="prod-list-wrapper">
+        <div className="prod-container">
+          
+          <div className="prod-header"  style={{marginTop: '30px'}}>
+            <div className="prod-title-area">
+              <button className="back-btn" onClick={() => navigate("/fp-production")}>
+                <FaArrowLeft />
+              </button>
+              <h2>Product Master List</h2>
+            </div>
+            <button className="add-sale-btn" onClick={() => navigate("/production-form")}>
+              <FaPlus /> Add New Product
+            </button>
+          </div>
 
-  if (error) {
-    return <p className="page-container" style={{ color: 'red', textAlign: 'center' }}>Error: {error}</p>;
-  }
-
-  return (
-    <>
-      <NavigationBar />
-      <div className="page-container">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <button
-            className="back-btn"
-            style={{ marginTop: "30px" }}
-            onClick={() => navigate("/fp-production")}
-          >
-            <FaArrowLeft />
-          </button>
-        </div>
-
-        <div className="card">
-          <button
-            className="add-sale-btn"
-            // Navigate to the Product Creation Form
-            onClick={() => navigate("/production-form")} 
-          >
-             Add
-          </button>
-          <h2>Product Master List</h2>
-          <table className="product-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Product Name</th>
-                <th>UOM</th>
-                <th>Unit Price (Cost)</th>
-                <th>Quantity</th>
-                <th>Grand Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.length > 0 ? (
-                products.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.id}</td>
-                    <td>{p.name}</td>
-                    <td>{p.uom ? p.uom.name : 'N/A'}</td>  
-                    <td>{parseFloat(p.unit_price) ?? "—"}</td>
-                    <td>{parseFloat(p.current_stock) ?? "-"}</td>
-                    <td>{parseFloat(p.current_stock_price).toFixed(2) ?? "-"}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" style={{ textAlign: "center" }}>
-                    No products found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <Footer />
-    </>
-  );
+          <div className="prod-card">
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div className="loader"></div> {/* Add your loader CSS if any */}
+                <p>Loading products...</p>
+              </div>
+            ) : error ? (
+              <p style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{error}</p>
+            ) : (
+              <div className="prod-table-container">
+                <table className="prod-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Product Name</th>
+                      <th>UOM</th>
+                      <th>Cost/Unit</th>
+                      <th>Stock Qty</th>
+                      <th>Valuation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.length > 0 ? (
+                      products.map((p) => (
+                        <tr key={p.id}>
+                          <td data-label="ID">#{p.id}</td>
+                          <td data-label="Product Name" style={{ fontWeight: '600', color: '#1e293b' }}>
+                             {p.name}
+                          </td>
+                          <td data-label="UOM">{p.uom ? p.uom.name : 'N/A'}</td>  
+                          <td data-label="Cost/Unit">{parseFloat(p.unit_price || 0).toFixed(2)}</td>
+                          <td data-label="Stock Qty">
+                             <span className={`stock-badge ${(parseFloat(p.current_stock) || 0) > 0 ? 'stock-high' : 'stock-low'}`}>
+                                {parseFloat(p.current_stock || 0)}
+                             </span>
+                          </td>
+                          <td data-label="Valuation" style={{ fontWeight: 'bold' }}>
+                            {parseFloat(p.current_stock_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" style={{ textAlign: "center", padding: '30px', color: '#64748b' }}>
+                          No products found in the database.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <Footer />
+    </div>
+  );
 };
 
 export default ProductionList;

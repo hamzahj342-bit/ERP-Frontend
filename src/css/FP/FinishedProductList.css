@@ -1,0 +1,88 @@
+/* FinishedProductList.css */
+
+.stock-page-wrapper {
+    background-color: #f8fafc;
+    min-height: 90vh;
+    padding: 30px 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+.stock-container {
+    max-width: 1250px;
+    margin: 0 auto;
+}
+
+.stock-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #edf2f7;
+    padding: 25px;
+}
+
+/* Search Bar Area */
+.search-box-wrapper {
+    position: relative;
+    margin-bottom: 25px;
+    max-width: 400px;
+}
+
+.stock-search-input {
+    width: 100%;
+    padding: 12px 15px 12px 40px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.stock-search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+.search-icon-inside {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+/* Table Styling */
+.stock-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stock-table th {
+    background: #f1f5f9;
+    padding: 15px;
+    font-size: 0.8rem;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.stock-table td {
+    padding: 15px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.9rem;
+    color: #334155;
+}
+
+/* Custom Stock Labels */
+.stock-label {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.stock-positive { background: #dcfce7; color: #15803d; }
+.stock-zero { background: #f1f5f9; color: #94a3b8; }
+
+.sold-text { color: #ef4444; font-weight: 500; }
+.consumed-text { color: #f59e0b; font-weight: 500; }

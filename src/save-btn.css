@@ -1,0 +1,37 @@
+/* Save / Primary Action Button */
+.save-btn {
+    background-color: #10b981; /* Emerald Green - Success ka color */
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+/* Hover Effect: Thoda dark aur shadow zyada */
+.save-btn:hover {
+    background-color: #059669;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Active Effect: Click karne par button niche dabega */
+.save-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+/* Disabled State: Agar form fill na ho toh grey dikhega */
+.save-btn:disabled {
+    background-color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}

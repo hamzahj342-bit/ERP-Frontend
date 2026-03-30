@@ -1,0 +1,135 @@
+/* AddRecipe.css */
+
+.recipe-form-wrapper {
+    background-color: #f8fafc;
+    min-height: 90vh;
+    padding: 30px 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+.recipe-form-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.form-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #edf2f7;
+}
+
+.form-header {
+    margin-bottom: 25px;
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 15px;
+}
+
+.form-header h2 {
+    font-size: 1.5rem;
+    color: #1e293b;
+    margin: 0;
+}
+
+.recipe-name-section {
+    margin-bottom: 30px;
+}
+
+.recipe-name-section label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+/* Items Grid Layout */
+.items-grid-header {
+    display: grid;
+    grid-template-columns: 2.5fr 1fr 1fr 1fr 100px;
+    gap: 15px;
+    padding: 10px;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 10px;
+}
+
+.item-row {
+    display: grid;
+    grid-template-columns: 2.5fr 1fr 1fr 1fr 100px;
+    gap: 15px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+/* Input Styles */
+.recipe-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.recipe-input:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.recipe-input[readonly] {
+    background-color: #f1f5f9;
+    color: #64748b;
+    font-weight: 600;
+}
+
+/* Action Buttons */
+.action-icon-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon-add {
+    background: #ecfdf5;
+    color: #10b981;
+    border: 1px solid #10b981;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.btn-icon-del {
+    background: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #ef4444;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Responsive Logic */
+@media (max-width: 850px) {
+    .items-grid-header { display: none; }
+    .item-row {
+        grid-template-columns: 1fr 1fr;
+        background: #f8fafc;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+    }
+    .item-row > *:first-child { grid-column: span 2; } /* Item Selection full width */
+    .action-icon-btns { grid-column: span 2; justify-content: flex-end; }
+}

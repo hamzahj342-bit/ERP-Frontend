@@ -1,48 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import NavigationBar from './NavigationBar';
-import Footer from './Footer';
-import Pagination from './Pagination';
+import NavigationBar from '../Components/NavigationBar'; 
+import Footer from '../Components/Footer';           
+import Pagination from '../Components/Pagination';
 import { toast } from 'react-toastify';
-import { FaArrowLeft, FaBoxes, FaUserTag } from 'react-icons/fa';
+import { FaArrowLeft, FaBoxes, FaUserTag, FaSearch, FaWarehouse } from 'react-icons/fa';
 import api from "../../api"; 
+import "../css/RM/RMStockList.css"; // CSS Import
 
 const RMStockList = () => {
     const [stock, setStock] = useState([]);
     const [loading, setLoading] = useState(true);
-    
-    // Search States (As per your FinishedProductList logic)
     const [searchTerm, setSearchTerm] = useState(""); 
     const [debouncedSearch, setDebouncedSearch] = useState(""); 
-
-    // View Mode & Pagination
     const [viewMode, setViewMode] = useState('entity');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-
     const navigate = useNavigate();
 
-    // 1. Native Debounce Logic (Matches your FinishedProductList)
+    // Debounce Logic
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearch(searchTerm);
-            setPage(1); // Reset to page 1 on new search
+            setPage(1); 
         }, 500);
-
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // 2. Fetch Function
     const fetchStock = async () => {
         setLoading(true);
         try {
             const endpoint = viewMode === 'entity' ? "/rm-stock/list" : "/rm-stock/material-list";
             const res = await api.get(endpoint, { 
-                params: { 
-                    page: page, 
-                    limit: 50, 
-                    search: debouncedSearch // Use debounced value here
-                } 
+                params: { page: page, limit: 50, search: debouncedSearch } 
             });
             if (res.data && res.data.data) {
                 setStock(res.data.data);
@@ -52,143 +42,114 @@ const RMStockList = () => {
                 setTotalPages(1);
             }
         } catch (err) {
-            console.error("Error fetching stock:", err);
-            toast.error(`Failed to load data.`);
+            toast.error(`Failed to load inventory.`);
         } finally {
             setLoading(false);
         }
     };
 
-    // 3. Fetch when page, debounced search or view mode changes
-    useEffect(() => {
-        fetchStock();
-    }, [page, debouncedSearch, viewMode]);
+    useEffect(() => { fetchStock(); }, [page, debouncedSearch, viewMode]);
 
-    // Reset logic when switching view modes
     useEffect(() => {
         setSearchTerm("");
         setPage(1);
     }, [viewMode]);
 
     return (
-        <>
+        <div className="page-wrapper">
             <NavigationBar />
-            <div className="rm-page">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: "30px" }}>
-                    <button className="back-btn" onClick={() => navigate('/dashboard')}>
-                        <FaArrowLeft />
-                    </button>
-
-                    <div className="view-toggle-buttons">
-                        <button 
-                            className={`toggle-btn ${viewMode === 'entity' ? 'active' : ''}`}
-                            onClick={() => setViewMode('entity')}
-                            style={toggleStyles(viewMode === 'entity')}
-                        >
-                            <FaUserTag /> Entity-wise Stock
-                        </button>
-                        <button 
-                            className={`toggle-btn ${viewMode === 'material' ? 'active' : ''}`}
-                            onClick={() => setViewMode('material')}
-                            style={toggleStyles(viewMode === 'material')}
-                        >
-                            <FaBoxes /> Material-wise Stock
-                        </button>
-                    </div>
-                </div>
-
-                <div className="rm-card">
-                    <h2>Raw Material Stock ({viewMode === 'entity' ? 'By Supplier' : 'By Material Summary'})</h2>
+            <div className="stock-page-wrapper">
+                <div className="stock-container">
                     
-                    {/* Search Input - Using your preferred design */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <input
-                            type="text"
-                            placeholder={viewMode === 'entity' ? "Search by material or supplier..." : "Filter by Material..."}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="input"
-                        />
+                    {/* Header with Back Button & Toggle */}
+                    <div className="stock-header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '30px 0px 25px 0px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <button className="back-btn" onClick={() => navigate('/dashboard')}>
+                                <FaArrowLeft />
+                            </button>
+                            <h2 style={{ margin: 0, fontWeight: 700, color: '#1e293b' }}>Raw Material Stock</h2>
+                        </div>
+
+                        <div className="view-toggle-container">
+                            <button className={`view-toggle-btn ${viewMode === 'entity' ? 'active' : ''}`} onClick={() => setViewMode('entity')}>
+                                <FaUserTag /> Entity View
+                            </button>
+                            <button className={`view-toggle-btn ${viewMode === 'material' ? 'active' : ''}`} onClick={() => setViewMode('material')}>
+                                <FaBoxes /> Summary View
+                            </button>
+                        </div>
                     </div>
 
-                    {loading ? (
-                        <p style={{ textAlign: 'center', padding: '20px' }}>Loading data...</p>
-                    ) : (
-                        <>
-                          <table className="product-table">
-                              <thead>
-                                  <tr>
-                                      {viewMode === 'entity' && <th>Stock ID</th>}
-                                      <th>Material Name</th>
-                                      <th>Supplier</th>
-                                      <th>Avg Unit Cost</th>
-                                      <th>Sold Qty</th>
-                                      <th>Consumed Qty</th>
-                                      <th>Current Stock</th>
-                                      <th>Total Price</th>
-                                      <th>UOM</th> 
-                                  </tr>
-                              </thead>
-                              <tbody>
-                                  {stock.length > 0 ? stock.map((item, index) => (
-                                      <tr key={viewMode === 'entity' ? item.stock_id : index}>
-                                          {viewMode === 'entity' && <td>#{item.stock_id}</td>}
-                                          <td>{item.material_name}</td> 
-                                          <td>
-                                              <span style={{ color: viewMode === 'material' ? '#7f8c8d' : 'inherit' }}>
-                                                  {item.supplier_name}
-                                              </span>
-                                          </td> 
-                                          <td>{parseFloat(item.avg_unit_cost || 0).toFixed(2)}</td>
-                                          <td style={{ color: '#e74c3c' }}>{parseFloat(item.sold_qty || 0).toFixed(2)}</td>
-                                          <td>{parseFloat(item.consumed_qty || 0).toFixed(2)}</td>
-                                          <td style={{ fontWeight: 'bold', color: '#27ae60' }}>
-                                              {parseFloat(item.current_stock || 0).toFixed(2)}
-                                          </td> 
-                                          <td>{parseFloat(item.current_stock_price || 0).toFixed(2)}</td>
-                                          <td>{item.uom_name}</td> 
-                                      </tr>
-                                  )) : (
-                                      <tr>
-                                          <td colSpan={viewMode === 'entity' ? 9 : 8} style={{ textAlign: 'center' }}>
-                                              No records found.
-                                          </td>
-                                      </tr>
-                                  )}
-                              </tbody>
-                          </table>
-
-                          {totalPages > 1 && (
-                            <div style={{ marginTop: '20px' }}>
-                                <Pagination 
-                                    page={page} 
-                                    totalPages={totalPages} 
-                                    onPageChange={(newPage) => setPage(newPage)} 
+                    <div className="stock-card-main">
+                        {/* Search Bar Section */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <FaWarehouse /> {viewMode === 'entity' ? 'Batch-wise Inventory' : 'Total Material Stock'}
+                            </h3>
+                            <div className="search-box-wrapper" style={{ maxWidth: '350px', marginBottom: 0 }}>
+                                <FaSearch className="search-icon-inside" />
+                                <input
+                                    type="text"
+                                    placeholder={viewMode === 'entity' ? "Search Material or Supplier..." : "Filter Materials..."}
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="stock-search-input"
                                 />
                             </div>
-                          )}
-                        </>
-                    )}
+                        </div>
+
+                        {loading ? (
+                            <div style={{ textAlign: 'center', padding: '40px' }}><div className="loader"></div><p>Fetching Stock...</p></div>
+                        ) : (
+                            <div className="prod-table-container">
+                                <table className="stock-table-responsive">
+                                    <thead>
+                                        <tr>
+                                            {viewMode === 'entity' && <th>ID</th>}
+                                            <th>Material</th>
+                                            {viewMode === 'entity' && <th>Supplier</th>}
+                                            <th>Avg Cost</th>
+                                            <th style={{ textAlign: 'center' }}>Sold</th>
+                                            <th style={{ textAlign: 'center' }}>Consumed</th>
+                                            <th style={{ textAlign: 'center' }}>Available</th>
+                                            <th>Valuation</th>
+                                            <th>UOM</th> 
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {stock.length > 0 ? stock.map((item, index) => (
+                                            <tr key={viewMode === 'entity' ? item.stock_id : index}>
+                                                {viewMode === 'entity' && <td><span style={{color:'#94a3b8', fontSize: '0.8rem'}}>#{item.stock_id}</span></td>}
+                                                <td style={{ fontWeight: '600', color: '#1e293b' }}>{item.material_name}</td> 
+                                                {viewMode === 'entity' && <td style={{ color: '#475569' }}>{item.supplier_name}</td>}
+                                                <td>{parseFloat(item.avg_unit_cost || 0).toFixed(2)}</td>
+                                                <td style={{ textAlign: 'center', color: '#ef4444' }}>{parseFloat(item.sold_qty || 0).toFixed(2)}</td>
+                                                <td style={{ textAlign: 'center', color: '#f59e0b' }}>{parseFloat(item.consumed_qty || 0).toFixed(2)}</td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <span className="stock-qty-bold">{parseFloat(item.current_stock || 0).toFixed(2)}</span>
+                                                </td> 
+                                                <td style={{ fontWeight: '600' }}>{parseFloat(item.current_stock_price || 0).toFixed(2)}</td>
+                                                <td><span className="uom-badge">{item.uom_name}</span></td> 
+                                            </tr>
+                                        )) : (
+                                            <tr>
+                                                <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No records found for current search.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+                            <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
+                        </div>
+                    </div>
                 </div>
             </div>
             <Footer />
-        </>
+        </div>
     );
 };
-
-const toggleStyles = (isActive) => ({
-    padding: '10px 20px',
-    cursor: 'pointer',
-    backgroundColor: isActive ? '#3498db' : '#ecf0f1',
-    color: isActive ? 'white' : '#2c3e50',
-    border: '1px solid #bdc3c7',
-    borderRadius: '5px',
-    marginRight: '10px',
-    fontWeight: 'bold',
-    transition: 'all 0.3s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-});
 
 export default RMStockList;

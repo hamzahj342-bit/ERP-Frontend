@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft, FaPlus, FaEdit, FaTrashAlt, FaFolderOpen } from "react-icons/fa";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import api from "../../api"; 
+import "../css/Accounts/CategoryList.css"; // CSS Link
 
 const AccountCategoryList = () => {
   const [categories, setCategories] = useState([]);
@@ -17,16 +18,17 @@ const AccountCategoryList = () => {
   });
 
   const navigate = useNavigate();
+  const userId = localStorage.getItem("user_id");
 
-  // 1. Fetch categories (Converted to Async/Await)
   const fetchCategories = async () => {
     setLoading(true);
     try {
       const res = await api.get("/account-categories");
       setCategories(res.data);
-      setLoading(false);
     } catch (err) {
       console.error("Error fetching categories:", err);
+      toast.error("Failed to load categories.");
+    } finally {
       setLoading(false);
     }
   };
@@ -47,196 +49,150 @@ const AccountCategoryList = () => {
     });
   };
 
-  const userId = localStorage.getItem("user_id");
-  
-  // 2. Update category API (PUT method using api.js)
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.put(`/account-categories/${onUpdate.id}`, {
+      await api.put(`/account-categories/${onUpdate.id}`, {
         category_name: formData.category_name,
         updated_by: userId
       });
-
-      // Axios automatically handles success check
       toast.success("Category updated successfully!");
       setOnUpdate(null);
       fetchCategories();
     } catch (err) {
-      console.error("Update error:", err);
       toast.error("Failed to update category.");
     }
   };
 
-  // 3. Delete category (DELETE method using api.js)
   const handleDelete = (id) => {
     Swal.fire({
       title: "Are you sure?",
-      text: "You won't be able to revert this!",
+      text: "This will remove the category from your chart of accounts!",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#64748b",
       confirmButtonText: "Yes, delete it!",
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
           await api.delete(`/account-categories/${id}`);
           fetchCategories();
-          Swal.fire("Deleted!", "Category has been deleted.", "success");
+          Swal.fire("Deleted!", "Category removed.", "success");
         } catch (err) {
-          console.error("Delete error:", err);
-          Swal.fire(
-            "Error!",
-            "Something went wrong while deleting.",
-            "error"
-          );
+          Swal.fire("Error!", "Could not delete category.", "error");
         }
       }
     });
   };
 
-
   return (
-    <>
+    <div className="page-wrapper">
       <NavigationBar />
 
-      <div className="table-container">
-        {/* Back Button */}
-        <button
-          className="back-btn"
-          style={{ marginTop: "30px" }}
-          onClick={() => navigate("/accounts-setting")}
-        >
-          <FaArrowLeft />
-        </button>
+      <div className="acc-category-wrapper">
+        <div className="acc-category-container">
+          
+          {/* Top Actions */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '30px 0px 25px 0px' }}>
+            <button className="back-btn" onClick={() => navigate("/accounts-setting")}>
+              <FaArrowLeft />
+            </button>
+            <button className="add-sale-btn" onClick={() => navigate("/create-category")} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaPlus /> Add Category
+            </button>
+          </div>
 
-        <div className="table-wrapper">
-          <button
-            className="add-cust-sup"
-            onClick={() => navigate("/create-category")}
-          >
-            Add Category
-          </button>
+          <div className="category-card">
+            <h2 style={{ margin: '0 0 20px 0', fontSize: '1.4rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FaFolderOpen style={{ color: '#3b82f6' }} /> Account Categories
+            </h2>
 
-          <h2>Account Categories</h2>
+            {/* Edit Modal */}
+            {onUpdate && (
+              <div className="edit-modal-overlay">
+                <div className="edit-modal-content">
+                  <h3 style={{ marginTop: 0 }}>Edit Category</h3>
+                  <form onSubmit={handleUpdate} className="modal-form">
+                    <div>
+                      <label style={{ fontSize: '0.85rem', color: '#64748b' }}>Category Name</label>
+                      <input
+                        className="input"
+                        name="category_name"
+                        value={formData.category_name}
+                        onChange={handleChange}
+                        placeholder="Enter Name"
+                        required
+                        autoFocus
+                      />
+                    </div>
 
-          {/* Edit Modal */}
-          {onUpdate && (
-            <div
-              style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%",
-                backgroundColor: "rgba(0, 0, 0, 0.5)",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: "white",
-                  padding: "30px",
-                  borderRadius: "10px",
-                  width: "300px",
-                }}
-              >
-                <h3>Edit Category</h3>
+                    <div>
+                      <label style={{ fontSize: '0.85rem', color: '#64748b' }}>Category Code (Fixed)</label>
+                      <input
+                        className="input read-only-input"
+                        name="category_code"
+                        value={formData.category_code}
+                        readOnly
+                      />
+                    </div>
 
-                <form
-                  onSubmit={handleUpdate}
-                  style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-                >
-                  <input
-                    className="input"
-                    name="category_name"
-                    value={formData.category_name}
-                    onChange={handleChange}
-                    placeholder="Category Name"
-                    required
-                  />
-
-                  <input
-                    className="input"
-                    name="category_code"
-                    value={formData.category_code}
-                    onChange={handleChange}
-                    placeholder="Category Code"
-                    readOnly
-                  />
-
-                  <button type="submit" className="primary-btn">
-                    Update
-                  </button>
-
-                  <button
-                    type="button"
-                    className="primary-btn"
-                    onClick={() => setOnUpdate(null)}
-                  >
-                    Cancel
-                  </button>
-                </form>
+                    <div className="action-btns-gap" style={{ marginTop: '10px' }}>
+                      <button type="submit" className="primary-btn" style={{ flex: 1 }}>Update</button>
+                      <button type="button" className="primary-btn" onClick={() => setOnUpdate(null)} style={{ flex: 1, backgroundColor: '#64748b' }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Loading */}
-          {loading ? (
-            <p style={{ textAlign: "center", marginTop: "20px" }}>Loading...</p>
-          ) : (
-            <table className="entity-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Category Code</th>
-                  <th>Category Name</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {categories.map((cat, index) => (
-                  <tr key={cat.id}>
-                    <td>{index + 1}</td>
-                    <td>{cat.category_code}</td>
-                    <td>{cat.category_name}</td>
-                    <td>
-                      <button
-                        className="edit-btn"
-                        onClick={() => handleEdit(cat)}
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(cat.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-
-                {categories.length === 0 && !loading && (
-                  <tr>
-                    <td colSpan="4" style={{ textAlign: "center" }}>
-                      No categories found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
+            {/* Table */}
+            {loading ? (
+              <div style={{ textAlign: "center", padding: "40px" }}><div className="loader"></div></div>
+            ) : (
+              <div className="prod-table-container">
+                <table className="entity-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '50px' }}>#</th>
+                      <th>Code</th>
+                      <th>Category Name</th>
+                      <th style={{ textAlign: 'center' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.map((cat, index) => (
+                      <tr key={cat.id}>
+                        <td>{index + 1}</td>
+                        <td style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#3b82f6' }}>{cat.category_code}</td>
+                        <td style={{ fontWeight: '500' }}>{cat.category_name}</td>
+                        <td>
+                          <div className="action-btns-gap" style={{ justifyContent: 'center' }}>
+                            <button className="edit-btn" onClick={() => handleEdit(cat)} title="Edit">
+                              <FaEdit />
+                            </button>
+                            <button className="delete-btn" onClick={() => handleDelete(cat.id)} title="Delete">
+                              <FaTrashAlt />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {categories.length === 0 && (
+                      <tr><td colSpan="4" style={{ textAlign: "center", padding: '30px', color: '#94a3b8' }}>No categories found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <Footer />
-    </>
+    </div>
   );
 };
 

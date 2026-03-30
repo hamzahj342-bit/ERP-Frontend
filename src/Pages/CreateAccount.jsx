@@ -135,7 +135,7 @@ const AccountForm = () => {
               readOnly
             />
 
-            <button type="submit" className="primary-btn">Create Account</button>
+            <button type="submit" className="save-btn">Save</button>
           </form>
         </div>
       </div>

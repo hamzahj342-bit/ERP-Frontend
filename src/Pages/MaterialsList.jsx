@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
 import Pagination from "../Components/Pagination";
 import api from '../../api';
+import '../css/RM/MaterialList.css'; // Importing New CSS
 
 const MaterialsList = () => {
     const navigate = useNavigate();
     
-    // States
     const [rawMaterial, setRawMaterial] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uoms, setUoms] = useState([]);
@@ -20,7 +20,6 @@ const MaterialsList = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    // Edit Modal States
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editData, setEditData] = useState({
         rm_id: null,
@@ -29,7 +28,6 @@ const MaterialsList = () => {
         unit_quantity: '',
     });
 
-    // ✅ Native Debounce Logic (As per FinishedProductList)
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearch(searchTerm);
@@ -38,33 +36,18 @@ const MaterialsList = () => {
         return () => clearTimeout(handler);
     }, [searchTerm]);
 
-    // ✅ Fetch Materials with 50 limit
     const fetchMaterials = async () => {
         setLoading(true);
         try {
             const res = await api.get('/add-materials/with-filters', {
-                params: {
-                    page: page,
-                    limit: 50,
-                    search: debouncedSearch
-                }
+                params: { page, limit: 50, search: debouncedSearch }
             });
-            const data = res.data;
-            setRawMaterial(data.data || []);
-            setTotalPages(data.totalPages || 1);
+            setRawMaterial(res.data.data || []);
+            setTotalPages(res.data.totalPages || 1);
         } catch (error) {
             toast.error('Failed to fetch materials');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const fetchUoms = async () => {
-        try {
-            const res = await api.get('/uoms');
-            setUoms(res.data);
-        } catch (error) {
-            toast.error('Failed to fetch UOMs');
         }
     };
 
@@ -73,30 +56,32 @@ const MaterialsList = () => {
     }, [page, debouncedSearch]);
 
     useEffect(() => {
+        const fetchUoms = async () => {
+            try {
+                const res = await api.get('/uoms');
+                setUoms(res.data);
+            } catch (error) { toast.error('Failed to fetch UOMs'); }
+        };
         fetchUoms();
     }, []);
 
-    // Handlers
     const handleDelete = async (rm_id, name) => {
-        Swal.fire({
-            title: `Are you sure?`,
-            text: `Do you want to delete material: ${name}?`,
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: `Do you want to delete ${name}?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            confirmButtonColor: '#ef4444',
             confirmButtonText: 'Yes, delete it!'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    await api.delete(`/add-materials/${rm_id}`);
-                    Swal.fire('Deleted!', `Material has been deleted.`, 'success');
-                    fetchMaterials();
-                } catch (error) {
-                    Swal.fire('Error!', 'Failed to delete material.', 'error');
-                }
-            }
         });
+
+        if (result.isConfirmed) {
+            try {
+                await api.delete(`/add-materials/${rm_id}`);
+                Swal.fire('Deleted!', 'Material removed.', 'success');
+                fetchMaterials();
+            } catch (error) { Swal.fire('Error!', 'Failed to delete.', 'error'); }
+        }
     };
 
     const openEditModal = (material) => {
@@ -109,120 +94,113 @@ const MaterialsList = () => {
         setEditModalOpen(true);
     };
 
-    const handleEditChange = (e) => {
-        setEditData({ ...editData, [e.target.name]: e.target.value });
-    };
-
     const handleUpdateMaterial = async (e) => {
         e.preventDefault();
-        const selectedUom = uoms.find((u) => u.id == editData.uom_id)?.name;
-        if (['Bag', 'Drum', 'Piece'].includes(selectedUom) && !editData.unit_quantity) {
-            toast.error('Please fill Unit Quantity for Bag, Drum, or Piece.');
-            return;
-        }
-
         try {
             await api.put(`/add-materials/${editData.rm_id}`, editData);
-            Swal.fire({
-                icon: 'success',
-                title: 'Updated!',
-                text: `Material ${editData.name} has been updated.`,
-                showConfirmButton: false,
-                timer: 1500
-            });
+            toast.success('Updated successfully');
             fetchMaterials(); 
             setEditModalOpen(false);
-        } catch (error) {
-            toast.error('Error updating material');
-        }
+        } catch (error) { toast.error('Update failed'); }
     };
 
     return (
-        <>
+        <div className="page-wrapper">
             <NavigationBar />
-            <div className="page-container">
-                <button className="back-btn" style={{ marginTop: '30px' }} onClick={() => navigate('/dashboard')}>
-                    <FaArrowLeft />
-                </button>
-
-                <div className="card">
-                    <button className="add-sale-btn" onClick={() => navigate("/add-materials")}>
-                        Add New
-                    </button>
-                    <h2>Raw Material List</h2>
-
-                    {/* ✅ Search Bar added here (Same style as your FP List) */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <input
-                            type="text"
-                            placeholder="Filter by Material..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className='input'
-                        />
+            <div className="materials-wrapper">
+                <div className="materials-container">
+                    
+                    <div className="materials-header">
+                        <div className="header-left" style={{marginTop: '30px'}}>
+                            <button className="back-btn" onClick={() => navigate('/dashboard')}>
+                                <FaArrowLeft />
+                            </button>
+                            <div className="materials-title">
+                                <h2>Raw Materials</h2>
+                            </div>
+                        </div>
                     </div>
 
-                    <table className="product-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>UOM</th>
-                                <th>Unit Weight</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr><td colSpan="5" className="text-center">Loading...</td></tr>
-                            ) : rawMaterial.map((m) => (
-                                <tr key={m.rm_id}>
-                                    <td>{m.rm_id}</td>
-                                    <td>{m.name}</td>
-                                    <td>{m.uom?.name}</td>
-                                    <td>{m.unit_quantity ? parseFloat(m.unit_quantity) : '-'}</td>
-                                    <td>
-                                        <button onClick={() => openEditModal(m)} className="edit-btn">Edit</button>
-                                        <button onClick={() => handleDelete(m.rm_id, m.name)} className="delete-btn">Delete</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className="actions-bar">
+                        <div className="search-wrapper">
+                            <input
+                                type="text"
+                                placeholder="Search material name..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="search-input"
+                            />
+                        </div>
+                        <button className="add-sale-btn" onClick={() => navigate("/add-materials")}>
+                            <FaPlus /> Add New Material
+                        </button>
+                    </div>
 
-                    {/* ✅ Pagination (FP List Style) */}
-                    <div style={{ marginTop: '20px' }}>
+                    <div className="table-responsive">
+                        <table className="materials-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>UOM</th>
+                                    <th>Unit Weight</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loading ? (
+                                    <tr><td colSpan="5" style={{textAlign:'center'}}>Loading...</td></tr>
+                                ) : rawMaterial.map((m) => (
+                                    <tr key={m.rm_id}>
+                                        <td data-label="ID">#{m.rm_id}</td>
+                                        <td data-label="Name" style={{fontWeight:'600'}}>{m.name}</td>
+                                        <td data-label="UOM">{m.uom?.name}</td>
+                                        <td data-label="Weight">{m.unit_quantity || '-'}</td>
+                                        <td data-label="Actions">
+                                            <div className="action-btns">
+                                                <button onClick={() => openEditModal(m)} className="btn-edit">Edit</button>
+                                                <button onClick={() => handleDelete(m.rm_id, m.name)} className="btn-delete">Delete</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style={{ marginTop: '30px' }}>
                         <Pagination
                             page={page}
                             totalPages={totalPages}
-                            onPageChange={(newPage) => setPage(newPage)}
+                            onPageChange={(p) => setPage(p)}
                         />
                     </div>
                 </div>
 
-                {/* Edit Modal (Keeping your original design) */}
+                {/* Edit Modal */}
                 {editModalOpen && (
-                    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-                        <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', width: '300px' }}>
-                            <h3>Edit Raw Material</h3>
-                            <form onSubmit={handleUpdateMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <input className='input' type="text" name="name" value={editData.name} onChange={handleEditChange} required />
-                                <select className='form' name="uom_id" value={editData.uom_id} onChange={handleEditChange} required>
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <h3>Edit Material</h3>
+                            <form onSubmit={handleUpdateMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                <label style={{fontSize:'0.85rem', color:'#64748b'}}>Material Name</label>
+                                <input className='search-input' type="text" value={editData.name} onChange={(e)=>setEditData({...editData, name:e.target.value})} required />
+                                
+                                <label style={{fontSize:'0.85rem', color:'#64748b'}}>Select UOM</label>
+                                <select className='search-input' value={editData.uom_id} onChange={(e)=>setEditData({...editData, uom_id:e.target.value})} required>
                                     <option value="">Select UOM</option>
                                     {uoms.map((uom) => <option key={uom.id} value={uom.id}>{uom.name}</option>)}
                                 </select>
-                                {['Bag', 'Drum', 'Piece'].includes(uoms.find((u) => u.id == editData.uom_id)?.name) && (
-                                    <input className='input' type="number" name="unit_quantity" placeholder="Unit Weight" value={editData.unit_quantity} onChange={handleEditChange} required />
-                                )}
-                                <button type="submit" className="primary-btn">Update</button>
-                                <button type="button" onClick={() => setEditModalOpen(false)} className="primary-btn" style={{ backgroundColor: '#666' }}>Cancel</button>
+
+                                <button type="submit" className="btn-add">Update Material</button>
+                                <button type="button" onClick={() => setEditModalOpen(false)} style={{background:'none', border:'none', color:'#64748b', cursor:'pointer'}}>Cancel</button>
                             </form>
                         </div>
                     </div>
                 )}
             </div>
             <Footer />
-        </>
+        </div>
     );
 };
 

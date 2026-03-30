@@ -236,7 +236,7 @@ const RM_PurchaseForm = () => {
                                 <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
                                 <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
                                 <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
-                                <input type="text" className="rm-input-field readonly-input" value={row.total} readOnly />
+                                <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
 
                                 <div style={{ display: 'flex', gap: '5px' }}>
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>

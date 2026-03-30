@@ -6,6 +6,7 @@ import Swal from 'sweetalert2'; // 💡 SweetAlert2 Import
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
 import api from "../../api"; 
+import '../save-btn.css'
 
 const AddMaterial = () => {
   const navigate = useNavigate();
@@ -146,7 +147,7 @@ const AddMaterial = () => {
               />
             )}
 
-            <button className="primary-btn" type="submit">
+            <button className="save-btn" type="submit">
               Add Raw Material
             </button>
           </form>

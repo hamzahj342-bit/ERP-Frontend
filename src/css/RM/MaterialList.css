@@ -1,0 +1,201 @@
+/* MaterialsList.css */
+
+.materials-wrapper {
+    background-color: #f8fafc;
+    min-height: 90vh;
+    padding: 30px 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+.materials-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Header Section */
+.materials-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.materials-title h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+/* Actions Row (Search & Add) */
+.actions-bar {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.search-wrapper {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-add {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn-add:hover {
+    background-color: #2563eb;
+}
+
+/* Table Design */
+.table-responsive {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #edf2f7;
+}
+
+.materials-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.materials-table th {
+    background-color: #f8fafc;
+    padding: 15px 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #edf2f7;
+}
+
+.materials-table td {
+    padding: 15px 20px;
+    font-size: 0.95rem;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.materials-table tr:hover {
+    background-color: #f1f5f9;
+}
+
+/* Action Buttons */
+.action-btns {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-edit {
+    background: #ecf3ff;
+    color: #3b82f6;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-delete {
+    background: #fff1f2;
+    color: #ef4444;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: #1e293b;
+    margin-bottom: 20px;
+}
+
+/* Responsive Table Hack */
+@media (max-width: 768px) {
+    .materials-table thead { display: none; }
+    .materials-table td {
+        display: block;
+        text-align: right;
+        border: none;
+        position: relative;
+        padding-left: 50%;
+    }
+    .materials-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 20px;
+        width: 45%;
+        text-align: left;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .actions-bar { flex-direction: column; }
+    .search-wrapper { max-width: 100%; }
+}
