@@ -137,6 +137,12 @@
   .card-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Trending charts in 2 rows on mobile */
+  .trending-grid {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
+  }
 }
 
 

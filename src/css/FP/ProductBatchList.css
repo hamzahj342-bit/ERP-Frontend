@@ -77,6 +77,10 @@
     color: #334155;
 }
 
+.batch-table tr:hover {
+    background-color: #f1f5f9;
+}
+
 /* Responsive Table */
 @media (max-width: 768px) {
     .batch-table-container {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { toast} from "react-toastify";
 import { FaUserCircle, FaEnvelope, FaCalendarAlt, FaCamera, FaIdBadge, FaBuilding, FaArrowLeft, FaLock, FaTimes, FaShieldAlt } from "react-icons/fa";
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
@@ -112,7 +112,7 @@ const Profile = () => {
     return (
         <>
             <NavigationBar />
-            <ToastContainer />
+            {/* <ToastContainer /> */}
             <div className="report-page-wrapper">
                 <button className="back-btn" style={{ marginTop: "50px" }} onClick={() => navigate('/dashboard')}><FaArrowLeft /></button>
                 

@@ -73,7 +73,7 @@ import EntityBalanceReport from './Reports/EntityBalanceReport';
 const App = () => {
   return (
     <Router>
-       <ToastContainer position="top-right" autoClose={3000} />
+      
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/profile" element={<ProtectedRoute> <Profile /> </ProtectedRoute>} />
@@ -152,6 +152,7 @@ const App = () => {
         <Route path='/stock-report' element={<ProtectedRoute > <StockReport /> </ProtectedRoute>} /> 
         <Route path='/entity-balance-report' element={<ProtectedRoute > <EntityBalanceReport /> </ProtectedRoute>} />
       </Routes>  
+       <ToastContainer position="top-right" autoClose={3000} style={{ zIndex: 99999 }}/>
     </Router>
   );
 };

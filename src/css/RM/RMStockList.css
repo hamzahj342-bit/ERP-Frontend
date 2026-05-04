@@ -73,6 +73,9 @@
     border-bottom: 1px solid #f1f5f9;
     font-size: 0.9rem;
 }
+.stock-table-responsive tr:hover {
+    background-color: #f1f5f9;
+}
 
 .stock-qty-bold {
     font-weight: 700;

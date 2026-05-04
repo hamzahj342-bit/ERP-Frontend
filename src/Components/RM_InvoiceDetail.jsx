@@ -137,11 +137,11 @@ const RM_InvoiceDetail = () => {
                     <input
                         className="input"
                         type="text"
-                        placeholder="Enter Invoice No (e.g. INV-001)"
+                        placeholder="Enter Invoice No (e.g. INV-P-0001)"
                         value={invoiceNo}
                         onChange={(e) => setInvoiceNo(e.target.value)}
                     />
-                    <button onClick={handleSearch} style={{ padding: '0 25px' }}>Search</button>
+                    <button onClick={handleSearch} className="btn btn-secondary" style={{height: '46px'}}>Search</button>
                 </div>
 
                 {error && <p style={{ color: "red", textAlign: 'center' }}>{error}</p>}

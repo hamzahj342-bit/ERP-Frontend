@@ -73,6 +73,10 @@
     color: #334155;
 }
 
+.stock-table tr:hover {
+    background-color: #f1f5f9;
+}
+
 /* Custom Stock Labels */
 .stock-label {
     padding: 4px 10px;

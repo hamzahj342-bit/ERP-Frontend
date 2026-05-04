@@ -97,12 +97,12 @@ const Dashboard = () => {
   }, [fromDate, toDate]); // Dates change hone par refetch hoga
 
   // Card data
-  const cards = [
-    // { title: "Raw Material", value: "Stocks", icon: <FaBoxes size={30} color="#4caf50" /> },
-    // ... (rest of your commented cards)
-    { title: "Shops Detail", value: "Main Branch", icon: <FaStore size={30} color="#795548" /> },
-    // ... (rest of your commented cards)
-  ];
+  // const cards = [
+  //   // { title: "Raw Material", value: "Stocks", icon: <FaBoxes size={30} color="#4caf50" /> },
+  //   // ... (rest of your commented cards)
+  //   { title: "Shops Detail", value: "Main Branch", icon: <FaStore size={30} color="#795548" /> },
+  //   // ... (rest of your commented cards)
+  // ];
 
   const allCardsRoute = {
     "Raw Material Reports": "/rm-invoice-detail",
@@ -279,13 +279,13 @@ const Dashboard = () => {
             </div>
 
             <div className="chart-box">
-              <h3 style={{ color: '#1565c0' }}>Highest Consumption Materials</h3>
+              <h3 style={{ color: '#1565c0' }}>Top 5 Selling Materials</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart layout="vertical" data={trendingMaterials}>
                   <XAxis type="number" hide />
                   <YAxis dataKey="name" type="category" width={100} style={{fontSize: '12px'}} />
                   <Tooltip />
-                  <Bar dataKey="usage" radius={[0, 5, 5, 0]}>
+                  <Bar dataKey="sales" radius={[0, 5, 5, 0]}>
                     {trendingMaterials.map((entry, index) => (
                       <Cell key={`cell-m-${index}`} fill={index === 0 ? '#0d47a1' : '#2196f3'} />
                     ))}
@@ -295,28 +295,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* <div className="card-section">
-          <div className="card-grid">
-            {cards.map((card, index) => (
-              <div
-                className="dashboard-card"
-                key={index}
-                onClick={() => {
-                  const route = allCardsRoute[card.title];
-                  if (route) navigate(route);
-                }}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="icon-block">{card.icon}</div>
-                <div className="content-block">
-                  <h3>{card.title}</h3>
-                  <p>{card.value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          </div> 
-          */}
 
         </div>  
       </div>
