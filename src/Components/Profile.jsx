@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast} from "react-toastify";
+import { toast } from "react-toastify";
 import { FaUserCircle, FaEnvelope, FaCalendarAlt, FaCamera, FaIdBadge, FaBuilding, FaArrowLeft, FaLock, FaTimes, FaShieldAlt } from "react-icons/fa";
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
-import api from "../../api"; 
+import api from "../../api";
 import Swal from 'sweetalert2';
-import "../Profitloss.css";
 
 const Profile = () => {
     const [user, setUser] = useState(null);
@@ -15,7 +14,6 @@ const Profile = () => {
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
 
-    // --- Password Change States (Step Logic) ---
     const [showModal, setShowModal] = useState(false);
     const [step, setStep] = useState(1);
     const [forgotEmail, setForgotEmail] = useState('');
@@ -24,13 +22,15 @@ const Profile = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [modalLoading, setModalLoading] = useState(false);
 
+    const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
+
     useEffect(() => {
         fetchUserProfile();
     }, []);
 
     const fetchUserProfile = async () => {
         try {
-            const res = await api.get("/profile"); 
+            const res = await api.get("/profile");
             setUser(res.data);
             setForgotEmail(res.data.email);
         } catch (err) {
@@ -107,141 +107,184 @@ const Profile = () => {
         } finally { setModalLoading(false); }
     };
 
-    if (loading) return <div className="loader-container"><div className="loader"></div></div>;
+    if (loading) return (
+        <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
+            <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    );
 
     return (
-        <>
+        <div className="bg-light min-vh-100">
             <NavigationBar />
-            {/* <ToastContainer /> */}
-            <div className="report-page-wrapper">
-                <button className="back-btn" style={{ marginTop: "50px" }} onClick={() => navigate('/dashboard')}><FaArrowLeft /></button>
-                
-                <div className="report-card" style={{ maxWidth: "800px", margin: "40px auto", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
-                    <div className="profile-header-gradient" style={{ background: "linear-gradient(135deg, #2c3e50 0%, #3498db 100%)", height: "160px", borderRadius: "12px 12px 0 0", position: "relative" }}>
-                        <div className="profile-img-container" style={{ position: "absolute", bottom: "-55px", left: "40px" }}>
-                            <div style={{ position: "relative" }}>
+            
+            <div className="container py-5">
+                {/* Back Button */}
+                <button 
+                    onClick={() => navigate('/dashboard')}
+                    className="back-btn"
+                >
+                    <FaArrowLeft className="me-2" />
+                </button>
+
+                {/* Main Profile Card */}
+                <div className="card border-0 shadow-lg rounded-4 overflow-hidden mx-auto" style={{ maxWidth: "850px" }}>
+                    
+                    {/* Header Image/Gradient */}
+                    <div className="profile-banner position-relative" style={{ height: "180px", background: "linear-gradient(135deg, #001d3d 0%, #003566 100%)" }}>
+                        <div className="position-absolute" style={{ bottom: "-60px", left: "40px" }}>
+                            <div className="position-relative d-inline-block">
                                 {user?.profile_image ? (
-                                    <img src={`http://localhost:5000/uploads/${user.profile_image}`} alt="Profile" style={{ width: "130px", height: "130px", borderRadius: "50%", border: "5px solid white", objectFit: "cover" }} />
+                                    <img 
+                                        src={`${IMAGE_BASE_URL}/uploads/${user.profile_image}`} 
+                                        alt="Profile" 
+                                        className="rounded-circle border border-5 border-white shadow"
+                                        style={{ width: "130px", height: "130px", objectFit: "cover" }}
+                                    />
                                 ) : (
-                                    <FaUserCircle style={{ fontSize: "130px", color: "#ddd", background: "white", borderRadius: "50%", border: "5px solid white" }} />
+                                    <FaUserCircle className="rounded-circle bg-white border border-5 border-white shadow text-light" style={{ fontSize: "130px" }} />
                                 )}
-                                <button className="img-edit-btn" onClick={() => fileInputRef.current.click()} style={{ position: "absolute", bottom: "10px", right: "5px", background: "#007bff", color: "white", border: "none", borderRadius: "50%", width: "35px", height: "35px", cursor: "pointer", display: "flex", justifyContent: "center", alignItems: "center" }}><FaCamera size={16} /></button>
+                                <button 
+                                    onClick={() => fileInputRef.current.click()}
+                                    className="btn btn-primary rounded-circle position-absolute bottom-0 end-0 shadow-sm d-flex align-items-center justify-content-center"
+                                    style={{ width: "38px", height: "38px" }}
+                                >
+                                    <FaCamera size={14} />
+                                </button>
                                 <input type="file" ref={fileInputRef} hidden onChange={handleImageChange} accept="image/*" />
+                                {uploading && (
+                                    <div className="position-absolute top-0 start-0 w-100 h-100 rounded-circle d-flex align-items-center justify-content-center bg-dark bg-opacity-25">
+                                        <div className="spinner-border spinner-border-sm text-white"></div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    <div className="profile-body p-5" style={{ marginTop: "60px" }}>
-                        <div className="d-flex justify-content-between align-items-center mb-4">
+                    <div className="card-body p-4 p-md-5 mt-5">
+                        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
                             <div>
-                                <h2 className="m-0" style={{ fontWeight: "800", color: "#2c3e50", fontSize: "28px" }}>{user?.name}</h2>
-                                <span style={{ color: "#27ae60", fontWeight: "bold", fontSize: "14px" }}>● Active Session</span>
+                                <h2 className="fw-black text-dark mb-1 text-uppercase tracking-tighter">{user?.name}</h2>
+                                <div className="d-flex align-items-center">
+                                    <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle fw-bold">
+                                        <span className="d-inline-block rounded-circle bg-success me-2" style={{ width: "8px", height: "8px" }}></span>
+                                        ACTIVE SESSION
+                                    </span>
+                                </div>
                             </div>
-                            <button className="get-report-btn" style={{ borderRadius: "25px", padding: "10px 20px" }}>Edit Profile</button>
+                            <button className="btn btn-outline-dark rounded-pill px-4 fw-bold">Edit Profile</button>
                         </div>
 
-                        <hr style={{ opacity: "0.1" }} />
+                        <hr className="opacity-10 mb-5" />
 
-                        <div className="row mt-4">
-                            {/* Full Email */}
-                            <div className="col-md-6 mb-4">
-                                <div className="info-box p-3" style={{ background: "#f8f9fa", borderRadius: "10px", borderLeft: "4px solid #3498db" }}>
-                                    <label className="text-muted d-block mb-1" style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px" }}>EMAIL ADDRESS</label>
-                                    <span style={{ fontWeight: "600", color: "#34495e" }}><FaEnvelope className="me-2 text-primary" /> {user?.email}</span>
-                                </div>
-                            </div>
-                            {/* User ID */}
-                            <div className="col-md-6 mb-4">
-                                <div className="info-box p-3" style={{ background: "#f8f9fa", borderRadius: "10px", borderLeft: "4px solid #3498db" }}>
-                                    <label className="text-muted d-block mb-1" style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px" }}>USER ID</label>
-                                    <span style={{ fontWeight: "600", color: "#34495e" }}><FaIdBadge className="me-2 text-primary" /> #USR-{user?.id}</span>
-                                </div>
-                            </div>
-                            {/* Company ID */}
-                            <div className="col-md-6 mb-4">
-                                <div className="info-box p-3" style={{ background: "#f8f9fa", borderRadius: "10px", borderLeft: "4px solid #3498db" }}>
-                                    <label className="text-muted d-block mb-1" style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px" }}>COMPANY ID</label>
-                                    <span style={{ fontWeight: "600", color: "#34495e" }}><FaBuilding className="me-2 text-primary" /> CID-{user?.company_id}</span>
-                                </div>
-                            </div>
-                            {/* Member Since */}
-                            <div className="col-md-6 mb-4">
-                                <div className="info-box p-3" style={{ background: "#f8f9fa", borderRadius: "10px", borderLeft: "4px solid #3498db" }}>
-                                    <label className="text-muted d-block mb-1" style={{ fontSize: "11px", fontWeight: "700", letterSpacing: "1px" }}>MEMBER SINCE</label>
-                                    <span style={{ fontWeight: "600", color: "#34495e" }}><FaCalendarAlt className="me-2 text-primary" /> {user?.createdat ? new Date(user.createdat).toLocaleDateString("en-GB") : "N/A"}</span>
-                                </div>
-                            </div>
+                        {/* Information Grid */}
+                        <div className="row g-4">
+                            <ProfileInfoItem label="Email Address" value={user?.email} icon={<FaEnvelope className="text-primary" />} />
+                            <ProfileInfoItem label="User Identification" value={`#USR-${user?.id}`} icon={<FaIdBadge className="text-primary" />} />
+                            <ProfileInfoItem label="Company Reference" value={`CID-${user?.company_id}`} icon={<FaBuilding className="text-primary" />} />
+                            <ProfileInfoItem label="Registration Date" value={user?.createdat ? new Date(user.createdat).toLocaleDateString("en-GB") : "N/A"} icon={<FaCalendarAlt className="text-primary" />} />
                         </div>
 
-                        {/* Password Section */}
-                        <div className="mt-4 p-4 d-flex align-items-center justify-content-between" style={{ border: "1px dashed #3498db", borderRadius: "12px", background: "#f0f7ff" }}>
-                            <div className="d-flex align-items-center">
-                                <div style={{ background: "#3498db", padding: "10px", borderRadius: "10px", marginRight: "15px" }}>
-                                    <FaShieldAlt color="white" size={20} />
+                        {/* Security Alert Section */}
+                        <div className="mt-5 p-4 rounded-4 border border-primary border-dashed bg-primary bg-opacity-10">
+                            <div className="row align-items-center">
+                                <div className="col-auto">
+                                    <div className="bg-primary p-3 rounded-3 shadow">
+                                        <FaShieldAlt className="text-white fs-4" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <h5 className="m-0" style={{ fontSize: "16px", fontWeight: "700" }}>Account Security</h5>
-                                    <p className="m-0 text-muted" style={{ fontSize: "13px" }}>Reset your password using email verification.</p>
+                                <div className="col text-center text-md-start my-3 my-md-0">
+                                    <h6 className="fw-bold mb-1 text-dark">Security Settings</h6>
+                                    <p className="small text-muted mb-0">Manage your account security and password preferences.</p>
+                                </div>
+                                <div className="col-12 col-md-auto">
+                                    <button onClick={() => setShowModal(true)} className="btn btn-primary w-100 rounded-3 fw-bold px-4 py-2 shadow-sm">
+                                        Reset Password
+                                    </button>
                                 </div>
                             </div>
-                            <button className="primary-btn" onClick={() => setShowModal(true)} style={{ padding: "10px 25px", borderRadius: "8px" }}>Change Password</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* --- PASSWORD MODAL (Step Logic) --- */}
+            {/* PASSWORD MODAL (Bootstrap Logic) */}
             {showModal && (
-                <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 10000, backdropFilter: "blur(4px)" }}>
-                    <div className="modal-content" style={{ background: "white", padding: "35px", borderRadius: "20px", width: "420px", position: "relative", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-                        <button onClick={() => { setShowModal(false); setStep(1); }} style={{ position: "absolute", top: "20px", right: "20px", border: "none", background: "none", cursor: "pointer", color: "#999" }}><FaTimes size={22} /></button>
-                        
-                        <div className="text-center mb-4">
-                           <div style={{ width: "60px", height: "60px", background: "#f0f7ff", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "15px" }}>
-                                <FaLock size={24} color="#3498db" />
-                           </div>
-                            <h3 style={{ fontWeight: "800", fontSize: "22px" }}>
-                                {step === 1 && "Verify Identity"}
-                                {step === 2 && "Enter OTP Code"}
-                                {step === 3 && "Set New Password"}
-                            </h3>
+                <div className="modal show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(5px)" }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 rounded-4 shadow-2xl p-3">
+                            <div className="modal-header border-0">
+                                <button onClick={() => { setShowModal(false); setStep(1); }} className="btn-close shadow-none"></button>
+                            </div>
+                            <div className="modal-body text-center">
+                                <div className="bg-light rounded-circle d-inline-flex p-3 mb-4">
+                                    <FaLock className="text-primary fs-3" />
+                                </div>
+                                <h4 className="fw-black mb-3">
+                                    {step === 1 && "Identity Check"}
+                                    {step === 2 && "Verification"}
+                                    {step === 3 && "Update Password"}
+                                </h4>
+
+                                {step === 1 && (
+                                    <form onSubmit={handleSendOTP}>
+                                        <p className="text-muted small mb-4">Confirm your email to receive a 6-digit verification code.</p>
+                                        <input type="email" className="form-control form-control-lg text-center fw-bold bg-light mb-4 border-0" value={forgotEmail} readOnly />
+                                        <button className="btn btn-primary btn-lg w-100 rounded-3 fw-bold py-3" disabled={modalLoading}>
+                                            {modalLoading ? "Sending Code..." : "Send OTP"}
+                                        </button>
+                                    </form>
+                                )}
+
+                                {step === 2 && (
+                                    <form onSubmit={handleVerifyOTP}>
+                                        <p className="text-muted small mb-4">Enter the code sent to <strong>{forgotEmail}</strong></p>
+                                        <input type="text" className="form-control form-control-lg text-center fs-2 fw-bold mb-4 tracking-widest" placeholder="000000" maxLength="6" value={otp} onChange={(e)=>setOtp(e.target.value)} required />
+                                        <button className="btn btn-primary btn-lg w-100 rounded-3 fw-bold py-3" disabled={modalLoading}>
+                                            {modalLoading ? "Verifying..." : "Verify OTP"}
+                                        </button>
+                                    </form>
+                                )}
+
+                                {step === 3 && (
+                                    <form onSubmit={handleResetPassword}>
+                                        <input type="password" placeholder="New Password" className="form-control form-control-lg mb-3 rounded-3" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} required />
+                                        <input type="password" placeholder="Confirm Password" className="form-control form-control-lg mb-4 rounded-3" value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} required />
+                                        <button className="btn btn-success btn-lg w-100 rounded-3 fw-bold py-3" disabled={modalLoading}>
+                                            {modalLoading ? "Saving..." : "Change Password"}
+                                        </button>
+                                    </form>
+                                )}
+                            </div>
                         </div>
-
-                        {step === 1 && (
-                            <form onSubmit={handleSendOTP}>
-                                <p className="text-center text-muted mb-4" style={{ fontSize: "14px" }}>Click below to send a 6-digit verification code to your registered email.</p>
-                                <div className="mb-4">
-                                    <input type="email" className="form-control" value={forgotEmail} readOnly style={{ background: "#f8f9fa", border: "1px solid #ddd", padding: "12px", borderRadius: "8px", textAlign: "center", fontWeight: "600" }} />
-                                </div>
-                                <button type="submit" className="btn btn-primary w-100" style={{ padding: "12px", fontWeight: "600", borderRadius: "8px" }} disabled={modalLoading}>{modalLoading ? "Sending..." : "Get OTP Code"}</button>
-                            </form>
-                        )}
-
-                        {step === 2 && (
-                            <form onSubmit={handleVerifyOTP}>
-                                <p className="text-center text-muted mb-4" style={{ fontSize: "14px" }}>Enter the code sent to <b>{forgotEmail}</b></p>
-                                <input type="text" className="form-control text-center mb-4" placeholder="0 0 0 0 0 0" maxLength="6" style={{ fontSize: "24px", letterSpacing: "8px", fontWeight: "bold", padding: "10px", borderRadius: "8px" }} value={otp} onChange={(e)=>setOtp(e.target.value)} required />
-                                <button type="submit" className="btn btn-primary w-100" style={{ padding: "12px", fontWeight: "600", borderRadius: "8px" }} disabled={modalLoading}>{modalLoading ? "Verifying..." : "Verify Code"}</button>
-                            </form>
-                        )}
-
-                        {step === 3 && (
-                            <form onSubmit={handleResetPassword}>
-                                <div className="mb-3">
-                                    <input type="password" placeholder="Enter New Password" className="form-control" style={{ padding: "12px", borderRadius: "8px" }} value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} required />
-                                </div>
-                                <div className="mb-4">
-                                    <input type="password" placeholder="Confirm New Password"  className="form-control" style={{ padding: "12px", borderRadius: "8px" }} value={confirmPassword} onChange={(e)=>setConfirmPassword(e.target.value)} required />
-                                </div>
-                                <button type="submit" className="btn btn-success w-100" style={{ padding: "12px", fontWeight: "600", borderRadius: "8px" }} disabled={modalLoading}>{modalLoading ? "Saving..." : "Update Password"}</button>
-                            </form>
-                        )}
                     </div>
                 </div>
             )}
+
             <Footer />
-        </>
+
+            <style>{`
+                .fw-black { font-weight: 900; }
+                .tracking-tighter { letter-spacing: -0.5px; }
+                .tracking-widest { letter-spacing: 10px; }
+                .card { transition: transform 0.3s ease; }
+            `}</style>
+        </div>
     );
 };
+
+// Reusable Sub-component
+const ProfileInfoItem = ({ label, value, icon }) => (
+    <div className="col-md-6">
+        <div className="p-3 bg-white border-start border-4 border-primary rounded-3 h-100 shadow-sm">
+            <label className="text-uppercase text-muted fw-bold mb-1" style={{ fontSize: "10px", letterSpacing: "1.5px" }}>{label}</label>
+            <div className="d-flex align-items-center gap-2">
+                {icon}
+                <span className="fw-bold text-dark truncate">{value || 'N/A'}</span>
+            </div>
+        </div>
+    </div>
+);
 
 export default Profile;
