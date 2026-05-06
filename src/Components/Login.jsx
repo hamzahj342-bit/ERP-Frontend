@@ -159,7 +159,7 @@ const Login = () => {
                 <div className="login-box">
                     
                     <div className="login-header">
-                        <h1 className='company-name'>Chemical And Detergents Trader</h1>
+                        <h1 className='company-name'>Chemical And Detergents</h1>
                     </div>
 
                     {/* --- LOGIN VIEW --- */}
