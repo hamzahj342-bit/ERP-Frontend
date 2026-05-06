@@ -49,6 +49,27 @@ const RM_InvoiceDetail = () => {
     const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
     const user = JSON.parse(localStorage.getItem("user"));
 
+    // ✅ Smart Logo Logic: Cloudinary vs Local
+const getLogoUrl = () => {
+    if (!user?.profile_image) return null;
+    console.log("Current Profile Image State:", user.profile_image);
+
+    // Agar Cloudinary ka full URL hai
+    if (user.profile_image.startsWith("http")) {
+        return user.profile_image;
+    }
+
+    // Local path ke liye: Base URL + /uploads/ + filename
+   // Taake agar database mein "uploads\file.png" hai toh sirf "file.png" bache
+    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+
+    // 3. Final URL build karein (Windows backslash ko forward slash se badlein)
+    const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
+
+    console.log("Fixed URL:", finalUrl); 
+    return finalUrl;
+};
+
     // ✅ Fetch Companies to get dynamic name
     useEffect(() => {
         const fetchCompanies = async () => {
@@ -152,15 +173,18 @@ const RM_InvoiceDetail = () => {
                             <header className="invoice-header">
                                 <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                     {/* ✅ Dynamic Logo */}
-                                    {user?.profile_image ? (
-                                        <img 
-                                            src={`${IMAGE_BASE_URL}/uploads/${user.profile_image}`} 
-                                            alt="Logo" 
-                                            style={{ width: '70px', height: '70px', borderRadius: '5px', objectFit: 'cover' }} 
-                                        />
-                                    ) : (
-                                        <div style={{ width: '70px', height: '70px', background: '#eee', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888' }}>NO LOGO</div>
-                                    )}
+                                   {user?.profile_image ? (
+            <img 
+                src={getLogoUrl()} 
+                alt="Logo" 
+                style={{ width: '70px', height: '70px', borderRadius: '5px', objectFit: 'cover' }} 
+                crossOrigin="anonymous" 
+            />
+        ) : (
+            <div style={{ width: '70px', height: '70px', background: '#eee', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
+                NO LOGO
+            </div>
+        )}
                                     <div>
                                         {/* ✅ Dynamic Company Name */}
                                         <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.1rem', margin: 0 }}>

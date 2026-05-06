@@ -19,6 +19,27 @@ const FP_InvoiceDetail = () => {
     // ✅ LocalStorage se User nikalna
     const user = JSON.parse(localStorage.getItem("user"));
 
+    // ✅ Smart Logo Logic: Cloudinary vs Local
+const getCompanyLogo = () => {
+    if (!user?.profile_image) return null;
+    console.log("Current Profile Image State:", user.profile_image);
+
+    // Agar Cloudinary ka full URL hai to wahi return karein
+    if (user.profile_image.startsWith("http")) {
+        return user.profile_image;
+    }
+
+    // Local path ke liye Base URL join karein
+   // Taake agar database mein "uploads\file.png" hai toh sirf "file.png" bache
+    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+
+    // 3. Final URL build karein (Windows backslash ko forward slash se badlein)
+    const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
+
+    console.log("Fixed URL:", finalUrl); 
+    return finalUrl;
+};
+
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
@@ -90,16 +111,17 @@ const FP_InvoiceDetail = () => {
                     <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                         {/* ✅ Dynamic Logo */}
                         {user?.profile_image ? (
-                            <img 
-                                src={`${IMAGE_BASE_URL}/uploads/${user.profile_image}`} 
-                                alt="Company Logo" 
-                                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
-                            />
-                        ) : (
-                            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
-                                NO LOGO
-                            </div>
-                        )}
+            <img 
+                src={getCompanyLogo()} 
+                alt="Company Logo" 
+                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
+                crossOrigin="anonymous" // PDF generation mein CORS issue se bachne ke liye
+            />
+        ) : (
+            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
+                NO LOGO
+            </div>
+        )}
                         <div>
                             {/* ✅ Dynamic Company Name */}
                             <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>

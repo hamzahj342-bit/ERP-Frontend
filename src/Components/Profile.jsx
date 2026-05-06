@@ -24,6 +24,27 @@ const Profile = () => {
 
     const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
 
+    // ✅ Dynamic Logo URL Generator
+const getProfileImageUrl = () => {
+    if (!user?.profile_image) return null;
+    console.log("Current Profile Image State:", user.profile_image);
+
+    // Agar Cloudinary ka full URL hai (e.g. starts with http)
+    if (user.profile_image.startsWith("http")) {
+        return user.profile_image;
+    }
+
+    // Agar local upload hai toh path build karein
+  // Taake agar database mein "uploads\file.png" hai toh sirf "file.png" bache
+    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+
+    // 3. Final URL build karein (Windows backslash ko forward slash se badlein)
+    const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
+
+    console.log("Fixed URL:", finalUrl); 
+    return finalUrl;
+};
+
     useEffect(() => {
         fetchUserProfile();
     }, []);
@@ -137,11 +158,13 @@ const Profile = () => {
                             <div className="position-relative d-inline-block">
                                 {user?.profile_image ? (
                                     <img 
-                                        src={`${IMAGE_BASE_URL}/uploads/${user.profile_image}`} 
-                                        alt="Profile" 
-                                        className="rounded-circle border border-5 border-white shadow"
-                                        style={{ width: "130px", height: "130px", objectFit: "cover" }}
-                                    />
+                src={getProfileImageUrl()} 
+                alt="Profile" 
+                className="rounded-circle border border-5 border-white shadow"
+                style={{ width: "130px", height: "130px", objectFit: "cover" }}
+                // ✅ Added for html2canvas support in case you print profile
+                crossOrigin="anonymous" 
+            />
                                 ) : (
                                     <FaUserCircle className="rounded-circle bg-white border border-5 border-white shadow text-light" style={{ fontSize: "130px" }} />
                                 )}

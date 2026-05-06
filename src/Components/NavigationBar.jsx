@@ -10,13 +10,36 @@ import "../Bar.css";
 
 const NavigationBar = () => {
   const navigate = useNavigate();
+
+   // ✅ Vite Environment Variable for Image Base URL
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
+  // ✅ Smart Image Logic: Cloudinary vs Local
+const getProfileImage = () => {
+  if (!user?.profile_image) return null;
+  console.log("Current Profile Image State:", user.profile_image);
+
+  // Agar database mein pura URL (Cloudinary) save hai to wahi return karein
+  if (user.profile_image.startsWith("http")) {
+    return user.profile_image;
+  }
+
+  // Agar local path hai (jis mein humne backend pe '/uploads/' add kiya tha)
+  // To bas IMAGE_BASE_URL ke sath join karein
+ // Taake agar database mein "uploads\file.png" hai toh sirf "file.png" bache
+    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+
+    // 3. Final URL build karein (Windows backslash ko forward slash se badlein)
+    const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
+
+    console.log("Fixed URL:", finalUrl); 
+    return finalUrl;
+};
+
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarRef = useRef(null);
 
-  // ✅ Vite Environment Variable for Image Base URL
-  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
-
+ 
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
@@ -131,16 +154,15 @@ const NavigationBar = () => {
           <div className="avatar-wrapper" onClick={() => navigate("/profile")} style={{ cursor: 'pointer' }}>
             {user?.profile_image ? (
               <img 
-                src={`${IMAGE_BASE_URL}/uploads/${user.profile_image}`} 
-                alt="Profile" 
-                className="user-avatar" 
-                style={{ width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }}
-                onError={(e) => {
-                   // Agar image load na ho (invalid path), to hide karke icon dikhayein
-                   e.target.onerror = null; 
-                   e.target.src = "https://via.placeholder.com/35?text=U"; 
-                }}
-              />
+  src={getProfileImage()} 
+  alt="Profile" 
+  className="user-avatar" 
+  style={{ width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }}
+  onError={(e) => {
+    e.target.onerror = null; 
+    e.target.src = "https://via.placeholder.com/35?text=U"; 
+  }}
+/>
             ) : (
               <FaUserCircle size={28} className="user-icon" style={{ color: 'white' }} />
             )}
