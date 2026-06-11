@@ -6,12 +6,14 @@ import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
 import api from "../../api"; 
+import InvoiceTypeModal from '../Components/InvoiceTypeModal';
 
 const RM_Sale = () => {
   const [sales, setSales] = useState([]); 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -78,7 +80,7 @@ const RM_Sale = () => {
             <h3> 
               Raw Material Sales
             </h3>
-            <button className="add-sale-btn" onClick={() => navigate('/rm-sale-form')}>
+            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW SALE
             </button>
           </div>
@@ -138,6 +140,15 @@ const RM_Sale = () => {
           </div>
         </div>
       </div>
+      <InvoiceTypeModal
+        open={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        onSelect={(type) => {
+          setIsInvoiceModalOpen(false);
+          navigate(`/rm-sale-form?invoiceType=${type}`);
+        }}
+        title="Sale Invoice Type"
+      />
       <Footer />
     </>
   );

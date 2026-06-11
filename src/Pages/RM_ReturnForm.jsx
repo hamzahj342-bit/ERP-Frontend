@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import NavigationBar from '../Components/NavigationBar';
 import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
 import api from "../../api";
@@ -12,11 +12,22 @@ const RM_ReturnForm = () => {
     const [rows, setRows] = useState([
         { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }
     ]);
+    const location = useLocation();
+    const invoiceType = new URLSearchParams(location.search).get('invoiceType');
+
     const [materials, setMaterials] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [selectedSupplier, setSelectedSupplier] = useState("");
     const [date, setDate] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
+    const [subTotal, setSubTotal] = useState(0);
+    const [taxableAmount, setTaxableAmount] = useState(0);
+    const [taxAmount, setTaxAmount] = useState(0);
+    const [isTaxable, setIsTaxable] = useState(() => invoiceType !== 'nonTaxable');
+    const [taxMode, setTaxMode] = useState('exclusive');
+    const [taxRate, setTaxRate] = useState(0);
+    const [taxId, setTaxId] = useState(null);
+    const [globalDiscount, setGlobalDiscount] = useState(0);
     const [grandTotal, setGrandTotal] = useState(0);
 
     // 1. Fetch eligible suppliers
@@ -38,8 +49,27 @@ const RM_ReturnForm = () => {
                     console.error("Error fetching supplier materials:", err);
                     setMaterials([]);
                 });
+
+            api.get(`/rm-transactions/supplier-last-tax/${selectedSupplier}`)
+                .then((res) => {
+                    setTaxId(res.data.tax_id || null);
+                    setTaxRate(Number(res.data.tax_rate) || 0);
+                    setTaxMode(res.data.tax_mode || 'exclusive');
+                    updateGrandTotal(rows, isTaxable, res.data.tax_mode || 'exclusive', Number(res.data.tax_rate) || 0, globalDiscount);
+                })
+                .catch((err) => {
+                    console.error("Error fetching supplier tax rate:", err);
+                    setTaxId(null);
+                    setTaxRate(0);
+                    setTaxMode('exclusive');
+                    updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
+                });
         } else {
             setMaterials([]);
+            setTaxId(null);
+            setTaxRate(0);
+            setTaxMode('exclusive');
+            updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
         }
     }, [selectedSupplier]);
 
@@ -79,12 +109,45 @@ const RM_ReturnForm = () => {
             }
         }
         setRows(updatedRows);
-        updateGrandTotal(updatedRows);
+        updateGrandTotal(updatedRows, isTaxable, taxMode, taxRate);
     };
 
-    const updateGrandTotal = (rows) => {
-        const total = rows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
-        setGrandTotal(total.toFixed(2));
+    const updateGrandTotal = (rows, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate, discountValue = globalDiscount) => {
+        const currentSubTotal = rows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
+        const discount = parseFloat(discountValue) || 0;
+        const netValue = Math.max(0, currentSubTotal - discount);
+
+        let calculatedTaxable = netValue;
+        let calculatedTaxAmount = 0;
+        let calculatedGrand = netValue;
+
+        if (currentIsTaxable && (parseFloat(currentTaxRate) || 0) > 0) {
+            const rate = parseFloat(currentTaxRate) / 100;
+            if (currentTaxMode === 'inclusive') {
+                calculatedTaxable = netValue / (1 + rate);
+                calculatedTaxAmount = netValue - calculatedTaxable;
+                calculatedGrand = netValue;
+            } else {
+                calculatedTaxable = netValue;
+                calculatedTaxAmount = calculatedTaxable * rate;
+                calculatedGrand = calculatedTaxable + calculatedTaxAmount;
+            }
+        }
+
+        setSubTotal(currentSubTotal.toFixed(2));
+        setTaxableAmount(calculatedTaxable.toFixed(2));
+        setTaxAmount(calculatedTaxAmount.toFixed(2));
+        setGrandTotal(Math.max(0, calculatedGrand).toFixed(2));
+    };
+
+    const handleTaxableChange = (value) => {
+        setIsTaxable(value);
+        updateGrandTotal(rows, value, taxMode, taxRate);
+    };
+
+    const handleGlobalDiscountChange = (value) => {
+        setGlobalDiscount(value);
+        updateGrandTotal(rows, isTaxable, taxMode, taxRate, value);
     };
 
     const addRow = () => {
@@ -109,6 +172,13 @@ const RM_ReturnForm = () => {
         const returnData = {
             entityid: selectedSupplier,
             grand_total: parseFloat(grandTotal),
+            sub_total: parseFloat(subTotal),
+            taxable_amount: parseFloat(taxableAmount),
+            tax_amount: parseFloat(taxAmount),
+            is_taxable: isTaxable,
+            tax_mode: taxMode,
+            tax_rate: parseFloat(taxRate),
+            tax_id: taxId,
             type: "PurchaseReturn",
             createdby: user ? user.username : "guest",
             invoice_no: invoiceNo,
@@ -148,8 +218,8 @@ const RM_ReturnForm = () => {
                     {/* Top Info Grid - Same as Purchase */}
                     <div className="info-grid">
                         <div className="info-item">
-                            <label>Purchase Return Invoice No</label>
-                            <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" style={{backgroundColor: '#f3f3f3'}} />
+                            <label>Invoice No</label>
+                            <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
                         </div>
                         <div className="info-item">
                             <label>Select Supplier</label>
@@ -211,7 +281,7 @@ const RM_ReturnForm = () => {
                                     <small style={{ color: "#718096", marginTop: '4px', fontSize: '11px' }}>Available: {row.stock}</small>
                                 </div>
 
-                                <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name || ""} readOnly style={{backgroundColor: '#f3f3f3'}} />
+                                <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name || ""} readOnly />
                                 
                                 <input
                                     type="number"
@@ -229,7 +299,7 @@ const RM_ReturnForm = () => {
                                     onChange={(e) => handleChange(index, "unitPrice", e.target.value)}
                                 />
 
-                                <input type="text" className="rm-input-field readonly-input" value={row.total} readOnly style={{backgroundColor: '#f3f3f3'}} />
+                                <input type="text" className="rm-input-field readonly-input" value={row.total} readOnly placeholder='Total Price'/>
 
                                 <div style={{ display: "flex", gap: "8px" }}>
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}>
@@ -244,8 +314,39 @@ const RM_ReturnForm = () => {
                             </div>
                         ))}
 
-                        {/* Summary Section - Exact Same as Purchase */}
+                        {/* Summary Section - Updated to include Discount and consistent tax controls */}
                         <div className="summary-container">
+                            <div className="summary-row">
+                                <label>Sub Total:</label>
+                                <span>{subTotal}</span>
+                            </div>
+                            {isTaxable && (
+                                <>
+                                    {/* Tax Mode input is hidden; default is exclusive. */}
+                                    <div className="summary-row">
+                                        <label>Tax Rate (%)</label>
+                                        <input 
+                                            type="number"
+                                            className="rm-input-field readonly-input"
+                                            value={taxRate} 
+                                            readOnly
+                                            style={{ width: '120px' }}
+                                        />
+                                    </div>
+                                    <div className="summary-row">
+                                        <label>Taxable Amount:</label>
+                                        <span>{taxableAmount}</span>
+                                    </div>
+                                    <div className="summary-row">
+                                        <label>Tax Amount:</label>
+                                        <span>{taxAmount}</span>
+                                    </div>
+                                </>
+                            )}
+                             {/* <div className="summary-row">
+                                <label>Discount:</label>
+                                <input type="number" className="rm-input-field" value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />
+                            </div> */}
                             <div className="summary-row grand-total-box">
                                 <b>Grand Total:</b>
                                 <b>{grandTotal}</b>

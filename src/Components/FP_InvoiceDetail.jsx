@@ -196,13 +196,40 @@ const getCompanyLogo = () => {
                 <footer className="invoice-footer">
                     <div className="total-area">
                         <div className="total-box shadow">
-                            {/* ✅ Conditional Discount (Only shows if > 0) */}
-                            {Number(invoice.discount) > 0 && (
-                                <h4 style={{marginBottom: '10px' }}>
-                                    Discount: Rs.
-                                     {Number(invoice.discount).toLocaleString()}
-                                </h4>
-                            )}
+                            <div style={{ marginBottom: '10px' }}>
+                                
+                                {invoice.is_taxable ? (
+                                    <>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <span>Sub Total</span>
+                                    <span>Rs. {Number(invoice.subtotal || 0).toLocaleString()}</span>
+                                </div>
+                                        {Number(invoice.discount) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span>Discount</span>
+                                                <span>Rs. {Number(invoice.discount).toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span>Taxable Amount</span>
+                                            <span>Rs. {Number(invoice.taxable_amount || (invoice.subtotal - (invoice.discount||0))).toLocaleString()}</span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span>Tax ({Number(invoice.tax_rate || 0).toFixed(2)}%)</span>
+                                            <span>Rs. {Number(invoice.tax_amount || 0).toLocaleString()}</span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        {Number(invoice.discount) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span>Discount</span>
+                                                <span>Rs. {Number(invoice.discount).toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                             <h4 className="total-label">GRAND TOTAL</h4>
                             <h2 className="total-value">Rs. {Number(invoice.grand_total).toLocaleString()}</h2> 
                         </div>

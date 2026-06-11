@@ -6,12 +6,14 @@ import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
 import api from '../../api';
+import InvoiceTypeModal from '../Components/InvoiceTypeModal';
 
 const RM_Return = () => {
   const [returns, setReturns] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -65,7 +67,7 @@ const RM_Return = () => {
           {/* Title and Add Button Row */}
           <div className="card-header">
             <h3>Raw Material Returns</h3>
-            <button className="add-sale-btn" onClick={() => navigate('/rm-return-form')}>
+            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW RETURN
             </button>
           </div>
@@ -125,6 +127,15 @@ const RM_Return = () => {
           </div>
         </div>
       </div>
+      <InvoiceTypeModal
+        open={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        onSelect={(type) => {
+          setIsInvoiceModalOpen(false);
+          navigate(`/rm-return-form?invoiceType=${type}`);
+        }}
+        title="Return Invoice Type"
+      />
       <Footer />
     </>
   );

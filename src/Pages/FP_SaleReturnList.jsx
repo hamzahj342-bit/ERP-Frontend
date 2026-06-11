@@ -6,12 +6,14 @@ import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination'; 
 import api from "../../api"; 
+import InvoiceTypeModal from '../Components/InvoiceTypeModal';
 
 const FP_SaleReturnList = () => {
   const [sales, setSales] = useState([]); 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const limit = 50;
   const navigate = useNavigate();
@@ -80,7 +82,7 @@ const FP_SaleReturnList = () => {
             <h3>
               Finished Goods Sale Returns List
             </h3>
-            <button className="add-sale-btn" onClick={() => navigate('/fp-salereturn-form')}>
+            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW FG RETURN
             </button>
           </div>
@@ -140,6 +142,15 @@ const FP_SaleReturnList = () => {
           </div>
         </div>
       </div>
+      <InvoiceTypeModal
+        open={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        onSelect={(type) => {
+          setIsInvoiceModalOpen(false);
+          navigate(`/fp-salereturn-form?invoiceType=${type}`);
+        }}
+        title="FG Sale Return Invoice Type"
+      />
       <Footer />
     </>
   );

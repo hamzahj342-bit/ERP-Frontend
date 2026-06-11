@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import NavigationBar from "../Components/NavigationBar";
 import { FaArrowLeft, FaPlus, FaTrash } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
 import api from "../../api";
@@ -14,11 +14,21 @@ const FP_SaleReturnForm = () => {
     const [rows, setRows] = useState([
         { product_master_id: "", product_name: "", recipe_id: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }
     ]);
+    const location = useLocation();
+    const invoiceType = new URLSearchParams(location.search).get('invoiceType');
+
     const [products, setProducts] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
+    const [subTotal, setSubTotal] = useState(0);
+    const [taxableAmount, setTaxableAmount] = useState(0);
+    const [taxAmount, setTaxAmount] = useState(0);
+    const [isTaxable, setIsTaxable] = useState(() => invoiceType !== 'nonTaxable');
+    const [taxMode, setTaxMode] = useState('exclusive');
+    const [taxRate, setTaxRate] = useState(0);
+    const [taxId, setTaxId] = useState(null);
     const [grandTotal, setGrandTotal] = useState(0);
 
     // --- Data Fetching ---
@@ -61,6 +71,59 @@ const FP_SaleReturnForm = () => {
         fetchProductsForReturn(customerId);
     };
 
+    useEffect(() => {
+        if (!selectedCustomer) {
+            setTaxId(null);
+            setTaxRate(0);
+            setTaxMode('exclusive');
+            calculateTotals(rows, isTaxable, 'exclusive', 0);
+            return;
+        }
+
+        api.get(`/fp-sale/customer-last-tax/${selectedCustomer}`)
+            .then(res => {
+                setTaxId(res.data.tax_id || null);
+                setTaxRate(Number(res.data.tax_rate) || 0);
+                setTaxMode('exclusive');
+                calculateTotals(rows, isTaxable, 'exclusive', Number(res.data.tax_rate) || 0);
+            })
+            .catch(err => {
+                console.error("Error fetching customer last tax rate:", err);
+                setTaxId(null);
+                setTaxRate(0);
+                setTaxMode('exclusive');
+                calculateTotals(rows, isTaxable, 'exclusive', 0);
+            });
+    }, [selectedCustomer]);
+
+    const calculateTotals = (currentRows, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate) => {
+        const currentSubTotal = currentRows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
+        const discount = 0;
+        const netValue = Math.max(0, currentSubTotal - discount);
+
+        let calculatedTaxable = netValue;
+        let calculatedTaxAmount = 0;
+        let calculatedGrand = netValue;
+
+        if (currentIsTaxable && (parseFloat(currentTaxRate) || 0) > 0) {
+            const rate = parseFloat(currentTaxRate) / 100;
+            if (currentTaxMode === 'inclusive') {
+                calculatedTaxable = netValue / (1 + rate);
+                calculatedTaxAmount = netValue - calculatedTaxable;
+                calculatedGrand = netValue;
+            } else {
+                calculatedTaxable = netValue;
+                calculatedTaxAmount = calculatedTaxable * rate;
+                calculatedGrand = calculatedTaxable + calculatedTaxAmount;
+            }
+        }
+
+        setSubTotal(currentSubTotal.toFixed(2));
+        setTaxableAmount(calculatedTaxable.toFixed(2));
+        setTaxAmount(calculatedTaxAmount.toFixed(2));
+        setGrandTotal(Math.max(0, calculatedGrand).toFixed(2));
+    };
+
     const handleChange = (index, field, value) => {
         const updatedRows = [...rows];
         updatedRows[index][field] = value;
@@ -80,8 +143,12 @@ const FP_SaleReturnForm = () => {
         }
 
         setRows(updatedRows);
-        const total = updatedRows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
-        setGrandTotal(total.toFixed(2));
+        calculateTotals(updatedRows);
+    };
+
+    const handleTaxableChange = (value) => {
+        setIsTaxable(value);
+        calculateTotals(rows, value, taxMode, taxRate);
     };
 
     const addRow = () => setRows([...rows, { product_master_id: "", product_name: "", recipe_id: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }]);
@@ -104,6 +171,13 @@ const FP_SaleReturnForm = () => {
         const saleData = {
             entity_customer_id: selectedCustomer,
             grand_total: Number(grandTotal),
+            sub_total: Number(subTotal),
+            taxable_amount: Number(taxableAmount),
+            tax_amount: Number(taxAmount),
+            is_taxable: isTaxable,
+            tax_mode: taxMode,
+            tax_rate: Number(taxRate),
+            tax_id: taxId,
             type: "SaleReturn",
             date,
             createdby: user?.username || "guest",
@@ -219,13 +293,40 @@ const FP_SaleReturnForm = () => {
 
                         {/* Summary Section */}
                         <div className="summary-container">
+                            <div className="summary-row">
+                                <span>Sub Total:</span>
+                                <span>{subTotal}</span>
+                            </div>
+                            {isTaxable && (
+                                <>
+                                    {/* Tax Mode input is hidden; default is exclusive. */}
+                                    <div className="summary-row">
+                                        <span>Tax Rate (%)</span>
+                                        <input
+                                            type="number"
+                                            className="rm-input-field readonly-input"
+                                            value={taxRate}
+                                            readOnly
+                                            style={{ width: '120px' }}
+                                        />
+                                    </div>
+                                    <div className="summary-row">
+                                        <span>Taxable Amount:</span>
+                                        <span>{taxableAmount}</span>
+                                    </div>
+                                    <div className="summary-row">
+                                        <span>Tax Amount:</span>
+                                        <span>{taxAmount}</span>
+                                    </div>
+                                </>
+                            )}
                             <div className="summary-row grand-total-box">
                                 <b>Grand Total:</b>
                                 <b>{grandTotal}</b>
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">Save Sale Return</button>
+                        <button type="submit" className="save-btn-main">Save</button>
                     </form>
                 </div>
             </div>

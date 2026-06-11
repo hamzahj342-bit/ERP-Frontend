@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import NavigationBar from '../Components/NavigationBar';
 import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
 import api from '../../api';
@@ -16,11 +16,20 @@ const RM_PurchaseForm = () => {
     ]);
     const [materials, setMaterials] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
+    const location = useLocation();
+    const invoiceType = new URLSearchParams(location.search).get('invoiceType');
+
     const [selectedSupplier, setSelectedSupplier] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
     const [subTotal, setSubTotal] = useState(0);
     const [globalDiscount, setGlobalDiscount] = useState("");
+    const [taxableAmount, setTaxableAmount] = useState(0);
+    const [taxAmount, setTaxAmount] = useState(0);
+    const [isTaxable, setIsTaxable] = useState(() => invoiceType !== 'nonTaxable');
+    const [taxMode, setTaxMode] = useState('exclusive'); // hidden from user
+    const [taxRate, setTaxRate] = useState(0);
+    const [taxId, setTaxId] = useState(null);
     const [grandTotal, setGrandTotal] = useState(0);
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     const [showMaterialModal, setShowMaterialModal] = useState(false);
@@ -49,10 +58,21 @@ const RM_PurchaseForm = () => {
             })
             .catch(err => console.error("Error fetching suppliers:", err));
 
+        api.get("/tax-master/latest/active")
+            .then(res => {
+                setTaxId(res.data.id);
+                setTaxRate(Number(res.data.tax_rate) || 0);
+                setTaxMode(res.data.taxtype || 'exclusive');
+            })
+            .catch(err => {
+                console.error("Error fetching latest tax:", err);
+                setTaxMode('exclusive');
+            });
+
         fetchInvoiceNo();
     }, [fetchInvoiceNo]);
 
-    const calculateTotals = (currentRows, discountValue) => {
+    const calculateTotals = (currentRows, discountValue, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate) => {
         const currentSubTotal = currentRows.reduce((sum, row) => {
             const qty = parseFloat(row.quantity) || 0;
             const price = parseFloat(row.unitPrice) || 0;
@@ -60,11 +80,29 @@ const RM_PurchaseForm = () => {
         }, 0);
 
         const discount = parseFloat(discountValue) || 0;
-        let finalGrandTotal = currentSubTotal - discount;
-        if (finalGrandTotal < 0) finalGrandTotal = 0;
+        const netValue = Math.max(0, currentSubTotal - discount);
+
+        let calculatedTaxable = netValue;
+        let calculatedTaxAmount = 0;
+        let calculatedGrand = netValue;
+
+        if (currentIsTaxable && (parseFloat(currentTaxRate) || 0) > 0) {
+            const rate = parseFloat(currentTaxRate) / 100;
+            if (currentTaxMode === 'inclusive') {
+                calculatedTaxable = netValue / (1 + rate);
+                calculatedTaxAmount = netValue - calculatedTaxable;
+                calculatedGrand = netValue;
+            } else {
+                calculatedTaxable = netValue;
+                calculatedTaxAmount = calculatedTaxable * rate;
+                calculatedGrand = calculatedTaxable + calculatedTaxAmount;
+            }
+        }
 
         setSubTotal(currentSubTotal.toFixed(2));
-        setGrandTotal(finalGrandTotal.toFixed(2));
+        setTaxableAmount(calculatedTaxable.toFixed(2));
+        setTaxAmount(calculatedTaxAmount.toFixed(2));
+        setGrandTotal(Math.max(0, calculatedGrand).toFixed(2));
     };
 
     const handleChange = (index, field, value) => {
@@ -78,12 +116,17 @@ const RM_PurchaseForm = () => {
         }
 
         setRows(updated);
-        calculateTotals(updated, globalDiscount);
+        calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
     };
 
     const handleGlobalDiscountChange = (value) => {
         setGlobalDiscount(value);
-        calculateTotals(rows, value);
+        calculateTotals(rows, value, isTaxable, taxMode, taxRate);
+    };
+
+    const handleTaxableChange = (value) => {
+        setIsTaxable(value);
+        calculateTotals(rows, globalDiscount, value, taxMode, taxRate);
     };
 
     const addRow = () => {
@@ -113,7 +156,14 @@ const RM_PurchaseForm = () => {
         const purchaseData = {
             entityid: selectedSupplier,
             grand_total: parseFloat(grandTotal),
+            sub_total: parseFloat(subTotal),
             discount: disc,
+            taxable_amount: parseFloat(taxableAmount),
+            tax_amount: parseFloat(taxAmount),
+            is_taxable: isTaxable,
+            tax_mode: taxMode,
+            tax_rate: parseFloat(taxRate),
+            tax_id: taxId,
             type: "purchase",
             createdby: user?.username || "guest",
             invoice_no: invoiceNo,
@@ -252,6 +302,29 @@ const RM_PurchaseForm = () => {
                                 <label>Sub Total:</label>
                                 <span>{subTotal}</span>
                             </div>
+                            {isTaxable && (
+                                <>
+                                    {/* Tax Mode input is hidden; default is exclusive. */}
+                                    <div className="summary-row">
+                                        <label>Tax Rate (%)</label>
+                                        <input 
+                                            type="number"
+                                            className="rm-input-field readonly-input"
+                                            value={taxRate}
+                                            readOnly
+                                            style={{ width: '120px' }}
+                                        />
+                                    </div>
+                                    <div className="summary-row">
+                                        <label>Taxable Amount:</label>
+                                        <span>{taxableAmount}</span>
+                                    </div>
+                                    <div className="summary-row">
+                                        <label>Tax Amount:</label>
+                                        <span>{taxAmount}</span>
+                                    </div>
+                                </>
+                            )}
                             <div className="summary-row">
                                 <label>Discount:</label>
                                 <input type="number" className="rm-input-field" style={{ width: '120px' }} value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />

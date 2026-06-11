@@ -6,11 +6,13 @@ import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
 import api from "../../api"; 
+import InvoiceTypeModal from '../Components/InvoiceTypeModal';
 
 const RM_Purchase = () => {
   const [purchases, setPurchases] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -62,7 +64,7 @@ return (
         <div className="card">
           <div className="card-header">
             <h3>Raw Material Purchase</h3>
-            <button className="add-sale-btn" onClick={() => navigate('/rm-purchase-form')}>
+            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW PURCHASE
             </button>
           </div>
@@ -114,9 +116,19 @@ return (
             <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
           </div>
         </div>
+        <InvoiceTypeModal
+          open={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          onSelect={(type) => {
+            setIsInvoiceModalOpen(false);
+            navigate(`/rm-purchase-form?invoiceType=${type}`);
+          }}
+          title="Purchase Invoice Type"
+        />
       </div>
       <Footer />
     </>
-  );};
+  );
+};
 
 export default RM_Purchase;

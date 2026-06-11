@@ -147,7 +147,7 @@ const AddRecipe = () => {
                 </div>
 
                 {formData.details.map((detail, index) => (
-                  <div key={index} className="item-row">
+                  <div key={index} className="recipe-item-row">
                     <select
                       className="recipe-input"
                       value={detail.rm_id ? `RM-${detail.rm_id}` : detail.fp_id ? `FP-${detail.fp_id}` : ""}

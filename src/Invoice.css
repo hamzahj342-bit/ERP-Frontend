@@ -1,61 +1,65 @@
 :root {
-    /* Custom Variables for easy color change */
-    --primary-color: #007bff; /* Dark Blue / Primary Accent */
-    --dark-color: #343a40;   /* Dark Gray / Header Background */
-    --text-muted: #6c757d;   /* Secondary Text */
+    /* Custom Variables for easy color change with a professional palette */
+    --primary-color: #0284c7; /* Professional Sky Blue Accent */
+    --dark-color: #1e293b;   /* Modern Deep Slate for text/borders */
+    --text-muted: #64748b;   /* Clean Secondary Text */
     --white: #fff;
-    --light-bg: #f8f9fa;     /* Light Gray Background */
+    --light-bg: #f8fafc;     /* Soft Light Gray-Blue Background */
 }
 
 /* --- Global Container and Box --- */
 .invoice-container {
-    padding: 30px;
+    padding: 40px 20px;
     background-color: var(--light-bg);
     min-height: 100vh;
     display: flex;
     justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .invoice-box {
-    max-width: 900px;
+    max-width: 850px; /* Standard A4 size optimization for PDF */
     width: 100%;
     background: var(--white);
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e2e8f0;
 }
 
-/* 1. Header Style */
+/* 1. Header Style - Updated to Pure White Background */
 .invoice-header {
-    background-color: var(--dark-color);
-    color: var(--white);
-    padding: 25px 40px;
+    background-color: var(--white); /* White Background */
+    color: var(--dark-color);
+    padding: 35px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 2px solid var(--light-bg); /* Clean border to separate from details */
 }
 .invoice-header .subtitle {
     margin: 0;
-    font-size: 1.0rem;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+    color: var(--text-muted); /* Darker text for white background readability */
+    font-weight: 400;
 }
 .invoice-header .id-number {
     margin: 0;
-    font-size: larger;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary-color); /* Emphasized invoice ID with primary accent */
 }
 .invoice-header .title {
     margin: 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--primary-color); /* Primary accent for company name/title */
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--dark-color); /* Deep Slate for professional company title */
 }
 
 /* 2. Details Section Style */
 .invoice-details-section {
     padding: 40px;
-    border-bottom: 1px solid var(--light-bg);
+    border-bottom: 1px solid #e2e8f0;
 }
 .details-row {
     display: flex;
@@ -73,25 +77,27 @@
 }
 .billed-to .customer-name {
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     color: var(--dark-color);
-    margin-bottom: 5px;
+    margin-bottom: 6px;
 }
 .billed-to .customer-detail {
     color: var(--text-muted);
     font-size: 0.9rem;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
+    line-height: 1.4;
 }
 .label {
     text-transform: uppercase;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
     font-weight: 700;
-    margin-bottom: 5px;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
 }
 .value {
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: var(--dark-color);
 }
 .date-item {
@@ -100,11 +106,12 @@
 
 /* 3. Item Table Style */
 .item-table-section {
-    padding: 40px 40px 20px 40px;
+    padding: 30px 40px 20px 40px;
 }
 .section-title {
     font-weight: 700;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    color: var(--dark-color);
     margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 2px solid var(--light-bg);
@@ -118,31 +125,33 @@
     text-align: left;
     padding: 12px 10px;
     background-color: var(--light-bg);
-    color: var(--text-muted);
+    color: var(--dark-color);
     font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
-    border-bottom: 1px solid var(--text-muted);
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #cbd5e1;
 }
 .item-table td {
-    padding: 12px 10px;
-    border-bottom: 1px solid var(--light-bg);
+    padding: 14px 10px;
+    border-bottom: 1px solid #f1f5f9;
     font-size: 0.9rem;
+    color: #334155;
 }
 .item-table tbody tr:last-child td {
     border-bottom: none;
 }
 .item-table .product-col { width: 40%; font-weight: 600; color: var(--dark-color); }
 .item-table .qty-col, .item-table .uom-col { width: 10%; text-align: right; }
-.item-table .price-col { width: 15%; color: var(--text-muted); }
-.item-table .amount-col { width: 25%; font-weight: 700; color: var(--dark-color); }
+.item-table .price-col { width: 15%; text-align: right; color: var(--text-muted); }
+.item-table .amount-col { width: 25%; font-weight: 700; color: var(--dark-color); text-align: right; }
 
 .text-right { text-align: right !important; }
 
 /* 4. Footer and Total Style */
 .invoice-footer {
-    padding: 40px;
-    background-color: var(--light-bg);
-    border-top: 2px solid var(--white);
+    padding: 30px 40px 40px 40px;
+    background-color: var(--white);
     border-radius: 0 0 8px 8px;
 }
 .total-area {
@@ -153,87 +162,79 @@
 .total-box {
     width: 100%;
     max-width: 320px;
-    padding: 20px 25px;
-    color: var(--primary-color);
-    background-color: var(--dark-color); /* Primary Color for Emphasis */
-    border-radius: 5px;
+    padding: 18px 22px;
+    color: var(--white);
+    background-color: var(--dark-color); /* Keep emphasis on the total amount box */
+    border-radius: 6px;
+    border: 1px solid #0f172a;
 }
 .total-box .total-label {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 5px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: rgba(255, 255, 255, 0.75);
 }
 .total-box .total-value {
     margin: 0;
-    font-size: 2rem;
-    font-weight: 600;
+    font-size: 1.8rem;
+    font-weight: 700;
     text-align: right;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--white);
 }
 .note-section {
-    border-top: 1px solid var(--text-muted);
+    border-top: 1px solid #e2e8f0;
     padding-top: 20px;
     text-align: center;
 }
 .note {
-    font-size: 0.8rem;
+    font-size: 0.825rem;
     color: var(--text-muted);
     margin-bottom: 10px;
-}
-/* .back-button {
-    background: none;
-    border: none;
-    color: var(--dark-color);
-    font-size: 0.9rem;
-    cursor: pointer;
-    text-decoration: underline;
-    transition: color 0.2s;
-}
-.back-button:hover {
-    color: var(--primary-color);
-} */
- /* Grouping the buttons for side-by-side display */
-.action-buttons-group {
-    margin-top: 15px;
-    display: flex;
-    justify-content: center;
-    gap: 20px; /* Space between buttons */
+    line-height: 1.4;
 }
 
-/* Styling for the new Download PDF button (Primary Color) */
+/* Grouping the buttons for side-by-side display */
+.action-buttons-group {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px; /* Space between buttons */
+}
+
+/* Styling for the Download PDF button (Dark Red) */
 .download-pdf-button {
-    /* background-color: var(--primary-color); */
-    background-color: darkred;
+    background-color: #9f1239; /* Premium Rose/Dark Red */
     color: var(--white);
     border: none;
-    padding: 10px 20px;
+    padding: 11px 22px;
     font-size: 0.9rem;
     font-weight: 600;
-    border-radius: 7px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease;
 }
 
 .download-pdf-button:hover {
-    background-color: rgb(186, 65, 65) /* Darker shade of primary on hover */
+    background-color: #881337; /* Darker shade on hover */
 }
 
 /* Adjusting the existing back-button to fit the group */
 .back-button {
-    /* Existing styles are fine, just ensuring it looks like a secondary action */
     margin: 0; 
-    padding: 10px 20px;
+    padding: 10px 22px;
     text-decoration: none;
-    border: 1px solid var(--text-muted);
-    border-radius: 5px;
-    background: none;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: var(--white);
     color: var(--dark-color);
+    font-weight: 600;
+    font-size: 0.9rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
 }
 .back-button:hover {
-    background-color: var(--white);
+    background-color: var(--light-bg);
     color: var(--primary-color);
     border-color: var(--primary-color);
 }
@@ -261,5 +262,20 @@
     }
     .total-box {
         max-width: 100%;
+    }
+}
+
+/* 🔥 Print view safety configuration */
+@media print {
+    .action-buttons-group {
+        display: none !important; /* Hides buttons on actual PDF download/print */
+    }
+    .invoice-container {
+        padding: 0;
+        background: none;
+    }
+    .invoice-box {
+        box-shadow: none;
+        border: none;
     }
 }

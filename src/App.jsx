@@ -69,6 +69,7 @@ import CustomerInvoices from './Pages/CustomerInvoices';
 import SupplierInvoices from './Pages/SupplierInvoices';
 import StockReport from './Reports/StockReport';
 import EntityBalanceReport from './Reports/EntityBalanceReport';
+import CapitalReport from './Reports/CapitalReport';
 
 const App = () => {
   return (
@@ -151,6 +152,7 @@ const App = () => {
         <Route path='/inventory-adjustment' element={<ProtectedRoute > <InventoryAdjustment /> </ProtectedRoute>} /> 
         <Route path='/stock-report' element={<ProtectedRoute > <StockReport /> </ProtectedRoute>} /> 
         <Route path='/entity-balance-report' element={<ProtectedRoute > <EntityBalanceReport /> </ProtectedRoute>} />
+        <Route path='/capital-report' element={<ProtectedRoute > <CapitalReport /> </ProtectedRoute>} />
       </Routes>  
        <ToastContainer position="top-right" autoClose={3000} style={{ zIndex: 99999 }}/>
     </Router>

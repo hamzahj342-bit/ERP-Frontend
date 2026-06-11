@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import NavigationBar from '../Components/NavigationBar';
 import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
 import api from "../../api"; 
@@ -14,16 +14,50 @@ const RM_SaleReturnForm = () => {
     const [rows, setRows] = useState([
         { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }
     ]);
+    const location = useLocation();
+    const invoiceType = new URLSearchParams(location.search).get('invoiceType');
+
     const [materials, setMaterials] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
+    const [subTotal, setSubTotal] = useState(0);
+    const [taxableAmount, setTaxableAmount] = useState(0);
+    const [taxAmount, setTaxAmount] = useState(0);
+    const [isTaxable, setIsTaxable] = useState(() => invoiceType !== 'nonTaxable');
+    const [taxMode, setTaxMode] = useState('exclusive');
+    const [taxRate, setTaxRate] = useState(0);
+    const [taxId, setTaxId] = useState(null);
+    const [globalDiscount, setGlobalDiscount] = useState(0);
     const [grandTotal, setGrandTotal] = useState(0);
 
-    const updateGrandTotal = (currentRows) => {
-        const total = currentRows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
-        setGrandTotal(total.toFixed(2));
+    const updateGrandTotal = (currentRows, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate, discountValue = globalDiscount) => {
+        const currentSubTotal = currentRows.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
+        const discount = parseFloat(discountValue) || 0;
+        const netValue = Math.max(0, currentSubTotal - discount);
+
+        let calculatedTaxable = netValue;
+        let calculatedTaxAmount = 0;
+        let calculatedGrand = netValue;
+
+        if (currentIsTaxable && (parseFloat(currentTaxRate) || 0) > 0) {
+            const rate = parseFloat(currentTaxRate) / 100;
+            if (currentTaxMode === 'inclusive') {
+                calculatedTaxable = netValue / (1 + rate);
+                calculatedTaxAmount = netValue - calculatedTaxable;
+                calculatedGrand = netValue;
+            } else {
+                calculatedTaxable = netValue;
+                calculatedTaxAmount = calculatedTaxable * rate;
+                calculatedGrand = calculatedTaxable + calculatedTaxAmount;
+            }
+        }
+
+        setSubTotal(currentSubTotal.toFixed(2));
+        setTaxableAmount(calculatedTaxable.toFixed(2));
+        setTaxAmount(calculatedTaxAmount.toFixed(2));
+        setGrandTotal(Math.max(0, calculatedGrand).toFixed(2));
     };
 
     const fetchInvoiceNo = useCallback(async () => {
@@ -36,20 +70,42 @@ const RM_SaleReturnForm = () => {
     }, []);
 
     useEffect(() => {
+        // Fetch Eligible Customers
         api.get("/rm-transactions/eligible-customers")
             .then(res => setCustomers(res.data))
             .catch(err => console.error("Error fetching customers:", err));
+
         fetchInvoiceNo();
     }, [fetchInvoiceNo]);
 
     useEffect(() => {
         if (!selectedCustomer) {
             setMaterials([]);
+            setTaxId(null);
+            setTaxRate(0);
+            setTaxMode('exclusive');
+            updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
             return;
         }
+
         api.get(`/rm-transactions/sold-materials/${selectedCustomer}`)
             .then(res => setMaterials(res.data))
             .catch(err => console.error("Error fetching materials:", err));
+
+        api.get(`/rm-transactions/customer-last-tax/${selectedCustomer}`)
+            .then(res => {
+                setTaxId(res.data.tax_id || null);
+                setTaxRate(Number(res.data.tax_rate) || 0);
+                setTaxMode(res.data.tax_mode || 'exclusive');
+                updateGrandTotal(rows, isTaxable, res.data.tax_mode || 'exclusive', Number(res.data.tax_rate) || 0, globalDiscount);
+            })
+            .catch(err => {
+                console.error("Error fetching customer tax rate:", err);
+                setTaxId(null);
+                setTaxRate(0);
+                setTaxMode('exclusive');
+                updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
+            });
     }, [selectedCustomer]);
 
     const handleChange = (index, field, value) => {
@@ -71,7 +127,12 @@ const RM_SaleReturnForm = () => {
         }
 
         setRows(updatedRows);
-        updateGrandTotal(updatedRows);
+        updateGrandTotal(updatedRows, isTaxable, taxMode, taxRate);
+    };
+
+    const handleTaxableChange = (value) => {
+        setIsTaxable(value);
+        updateGrandTotal(rows, value, taxMode, taxRate);
     };
 
     const addRow = () => setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }]);
@@ -79,13 +140,19 @@ const RM_SaleReturnForm = () => {
     const deleteRow = (i) => { 
         const updated = rows.filter((_, idx) => idx !== i); 
         setRows(updated); 
-        updateGrandTotal(updated); 
+        updateGrandTotal(updated, isTaxable, taxMode, taxRate); 
+    };
+
+    const handleGlobalDiscountChange = (value) => {
+        setGlobalDiscount(value);
+        updateGrandTotal(rows, isTaxable, taxMode, taxRate, value);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!selectedCustomer) return toast.error("Please select a customer.");
         if (!date) return toast.error("Please select a return date.");
+        if (isTaxable && (!taxRate || Number(taxRate) <= 0)) return toast.error("Please select a valid tax configuration for taxable returns.");
         
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one valid row.");
@@ -94,6 +161,13 @@ const RM_SaleReturnForm = () => {
         const returnData = {
             entityid: selectedCustomer,
             grand_total: parseFloat(grandTotal),
+            sub_total: parseFloat(subTotal),
+            taxable_amount: parseFloat(taxableAmount),
+            tax_amount: parseFloat(taxAmount),
+            is_taxable: isTaxable,
+            tax_mode: taxMode,
+            tax_rate: parseFloat(taxRate),
+            tax_id: taxId,
             type: "SaleReturn",
             createdby: user?.username || "guest",
             invoice_no: invoiceNo,
@@ -218,13 +292,44 @@ const RM_SaleReturnForm = () => {
                         ))}
 
                         <div className="summary-container">
+                            <div className="summary-row">
+                                <label>Sub Total:</label>
+                                <span>{subTotal}</span>
+                            </div>
+                            {isTaxable && (
+                                <>
+                                    {/* Tax Mode input is hidden; default is exclusive. */}
+                                    <div className="summary-row">
+                                        <label>Tax Rate (%)</label>
+                                        <input 
+                                            type="number" 
+                                            className="rm-input-field readonly-input" 
+                                            style={{ width: '120px' }} 
+                                            value={taxRate} 
+                                            readOnly 
+                                        />
+                                    </div>
+                                    <div className="summary-row">
+                                        <label>Taxable Amount:</label>
+                                        <span>{taxableAmount}</span>
+                                    </div>
+                                    <div className="summary-row">
+                                        <label>Tax Amount:</label>
+                                        <span>{taxAmount}</span>
+                                    </div>
+                                </>
+                            )}
+                            <div className="summary-row">
+                                <label>Discount:</label>
+                                <input type="number" className="rm-input-field" style={{ width: '120px' }} value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />
+                            </div>
                             <div className="summary-row grand-total-box">
                                 <b>Grand Total:</b>
                                 <b>{grandTotal}</b>
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">Save Sale Return</button>
+                        <button type="submit" className="save-btn-main">Save</button>
                     </form>
                 </div>
             </div>

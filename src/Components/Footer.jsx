@@ -15,7 +15,7 @@ const Footer = () => {
         
         {/* Powered by section */}
         <p className="powered-by">
-          Powered by <span className="brand-name">CODEBASE SOLUTIONS</span>
+          Powered by <span className="brand-name"><a href="https://www.codebasesln.com" target="_blank" rel="noopener noreferrer">CODEBASE SOLUTIONS</a></span>
         </p>
 
         <div className="footer-links">
