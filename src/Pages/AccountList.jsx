@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaPlus, FaEdit, FaTrashAlt, FaBook } from "react-icons/fa";
+import { FaArrowLeft, FaPlus, FaEdit, FaTrashAlt, FaBook, FaSearch } from "react-icons/fa"; // 🔎 Added FaSearch
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import Swal from "sweetalert2";
@@ -10,6 +10,8 @@ import "../css/Accounts/AccountList.css"; // CSS Link
 
 const AccountList = () => {
   const [accounts, setAccounts] = useState([]);
+  const [filteredAccounts, setFilteredAccounts] = useState([]); // 🎯 State for holding search results
+  const [searchQuery, setSearchQuery] = useState(""); // 🎯 State for search string
   const [loading, setLoading] = useState(true);
   const [onUpdate, setOnUpdate] = useState(null);
   const [formData, setFormData] = useState({
@@ -25,6 +27,7 @@ const AccountList = () => {
     try {
       const res = await api.get("/accounts");
       setAccounts(res.data);
+      setFilteredAccounts(res.data); // Initial loading sync
     } catch (err) {
       console.error("Error fetching accounts:", err);
       toast.error("Failed to load accounts list.");
@@ -36,6 +39,23 @@ const AccountList = () => {
   useEffect(() => {
     fetchAccounts();
   }, []);
+
+  // 🎯 Real-time dynamic search filter handler
+  useEffect(() => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) {
+      setFilteredAccounts(accounts);
+    } else {
+      const filtered = accounts.filter(acc => {
+        const nameMatch = acc.account_name ? acc.account_name.toLowerCase().includes(query) : false;
+        // matching explicitly with category_code column field from database structure
+        const categoryMatch = acc.category_code ? acc.category_code.toLowerCase().includes(query) : false;
+        
+        return nameMatch || categoryMatch;
+      });
+      setFilteredAccounts(filtered);
+    }
+  }, [searchQuery, accounts]);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -105,9 +125,32 @@ const AccountList = () => {
           </div>
 
           <div className="acc-card">
-            <h2 style={{ margin: '0 0 20px 0', fontSize: '1.3rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FaBook style={{ color: '#3b82f6' }} /> Chart of Accounts
-            </h2>
+            {/* 🎯 Updated Title Section to hold both Title & Search Box inline */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <FaBook style={{ color: '#3b82f6' }} /> Chart of Accounts
+              </h2>
+              
+              {/* 🔎 Live Search Bar Input Component */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <FaSearch style={{ position: 'absolute', left: '12px', color: '#94a3b8', pointerEvents: 'none' }} />
+                <input 
+                  type="text"
+                  placeholder="Search by name or category code..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    padding: '8px 12px 8px 35px',
+                    fontSize: '0.9rem',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    width: '280px',
+                    outline: 'none',
+                    color: '#334155'
+                  }}
+                />
+              </div>
+            </div>
 
             {/* Edit Modal */}
             {onUpdate && (
@@ -165,15 +208,21 @@ const AccountList = () => {
                       <th style={{ width: '60px' }}>#</th>
                       <th>Code</th>
                       <th>Account Name</th>
+                      <th>Category Code</th> {/* Added display column for testing visualization */}
                       <th style={{ textAlign: 'center' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {accounts.map((acc, index) => (
+                    {filteredAccounts.map((acc, index) => (
                       <tr key={acc.id}>
                         <td>{index + 1}</td>
                         <td><span className="acc-code-pill">{acc.account_code}</span></td>
                         <td style={{ fontWeight: '500', color: '#1e293b' }}>{acc.account_name}</td>
+                        <td>
+                          <span className="badge bg-light text-secondary border px-2 py-1" style={{ fontSize: '0.8rem', borderRadius: '4px' }}>
+                            {acc.category_code || 'N/A'}
+                          </span>
+                        </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button className="edit-btn" onClick={() => handleEdit(acc)} title="Edit">
@@ -186,10 +235,10 @@ const AccountList = () => {
                         </td>
                       </tr>
                     ))}
-                    {accounts.length === 0 && (
+                    {filteredAccounts.length === 0 && (
                       <tr>
-                        <td colSpan="4" style={{ textAlign: "center", padding: "40px", color: '#94a3b8' }}>
-                          No accounts found. Start by adding a new one!
+                        <td colSpan="5" style={{ textAlign: "center", padding: "40px", color: '#94a3b8' }}>
+                          No accounts match your search criteria.
                         </td>
                       </tr>
                     )}
