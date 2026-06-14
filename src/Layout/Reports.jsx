@@ -5,7 +5,8 @@ import {
     FaChartLine,        // Icon for Profit & Loss / Performance
     FaArrowRight, 
     FaArrowLeft,
-    FaBalanceScale      // Icon for Capital & Net Worth Report
+    FaBalanceScale,    // Icon for Capital & Net Worth Report
+    FaBookOpen         // Icon for Trial Balance Report
 } from 'react-icons/fa';
 import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
@@ -127,6 +128,14 @@ const Reports = () => {
    icon={<FaBalanceScale size={40} />}
    path="/capital-report" 
    color="#0d47a1" // Professional Deep Blue color for Financial Structure, Capital & Equity
+/>
+
+<ReportCard 
+   title="📊 Detailed Trial Balance"
+   description="Comprehensive ledger audit statement displaying Opening Balances, Period Debit/Credit Transactions, and Final Closing Balances across all chart of accounts."
+   icon={<FaBookOpen size={40} />}
+   path="/trial-balance" 
+   color="#495057" // Professional Dark Charcoal/Slate gray for accounting ledgers and balancing metrics
 />
 
                 </div>

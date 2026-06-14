@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2'; // 💡 SweetAlert2 Import
 import NavigationBar from '../Components/NavigationBar';
@@ -18,6 +18,9 @@ const AddMaterial = () => {
     unit_quantity: '',
   });
   const [uoms, setUoms] = useState([]);
+  const [showUomModal, setShowUomModal] = useState(false);
+  const [newUomName, setNewUomName] = useState("");
+  const [isAddingUom, setIsAddingUom] = useState(false);
 
   const fetchMaterials = async () => {
       try {
@@ -38,6 +41,36 @@ const AddMaterial = () => {
       setUoms(res.data);
     } catch (error) {
       toast.error('Failed to fetch UOMs');
+    }
+  };
+
+  const openUomModal = () => {
+    setNewUomName("");
+    setShowUomModal(true);
+  };
+
+  const closeUomModal = () => {
+    setShowUomModal(false);
+    setNewUomName("");
+    setIsAddingUom(false);
+  };
+
+  const handleAddUom = async (e) => {
+    e.preventDefault();
+    if (!newUomName || !newUomName.trim()) return toast.error('UOM name required');
+    setIsAddingUom(true);
+    try {
+      const payload = { name: newUomName.trim() };
+      const res = await api.post('/uoms', payload);
+      toast.success('UOM added');
+      // refresh uoms and select the new one
+      await fetchUoms();
+      setFormData((f) => ({ ...f, uom_id: res.data.id }));
+      closeUomModal();
+    } catch (err) {
+      console.error('Add UOM error', err);
+      toast.error(err.response?.data?.error || 'Failed to add UOM');
+      setIsAddingUom(false);
     }
   };
 
@@ -118,20 +151,41 @@ const AddMaterial = () => {
               required
             />
 
-            <select
-              className="form"
-              name="uom_id"
-              value={formData.uom_id}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">Select UOM</option>
-              {uoms.map((uom) => (
-                <option key={uom.id} value={uom.id}>
-                  {uom.name}
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select
+                className="form"
+                name="uom_id"
+                value={formData.uom_id}
+                onChange={handleInputChange}
+                required
+                style={{ flex: 1 }}
+              >
+                <option value="">Select UOM</option>
+                {uoms.map((uom) => (
+                  <option key={uom.id} value={uom.id}>
+                    {uom.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="add-btn"
+                onClick={openUomModal}
+                title="Add UOM"
+                style={{
+                  width: 46,
+                  height: 46,
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 10,
+                  marginTop: '8px'
+                }}
+              >
+                <FaPlus />
+              </button>
+            </div>
 
             {/* Conditional input for Bag, Drum, Piece */}
             {['Bag', 'Drum', 'Piece', 'Bottle Piece', 'Cap Piece'].includes(
@@ -151,6 +205,28 @@ const AddMaterial = () => {
               Add Raw Material
             </button>
           </form>
+          {/* UOM modal */}
+          {showUomModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+              <div style={{ background: 'white', padding: 20, borderRadius: 8, width: 360 }}>
+                <h4>Add UOM</h4>
+                <form onSubmit={handleAddUom}>
+                  <input
+                    type="text"
+                    value={newUomName}
+                    onChange={(e) => setNewUomName(e.target.value)}
+                    placeholder="e.g. kg, liter"
+                    style={{ width: '100%', marginBottom: 10 }}
+                    required
+                  />
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <button type="button" className="btn btn-secondary" onClick={closeUomModal}>Cancel</button>
+                    <button type="submit" className="save-btn" disabled={isAddingUom}>{isAddingUom ? 'Adding...' : 'Add'}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <Footer />

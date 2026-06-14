@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import NavigationBar from '../Components/NavigationBar';
 import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -9,11 +9,17 @@ import '../Transactions.css';
 
 const RM_ReturnForm = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    // URL parameters and Edit Mode flags
+    const queryParams = new URLSearchParams(location.search);
+    const invoiceType = queryParams.get('invoiceType');
+    const editId = queryParams.get('editId'); 
+    const isEditMode = !!editId;
+
     const [rows, setRows] = useState([
         { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }
     ]);
-    const location = useLocation();
-    const invoiceType = new URLSearchParams(location.search).get('invoiceType');
 
     const [materials, setMaterials] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
@@ -37,19 +43,32 @@ const RM_ReturnForm = () => {
             .catch((err) => console.error("Error fetching eligible suppliers:", err));
     }, []);
 
-    // 2. Fetch materials of selected supplier only
+    // 2. Fetch materials & tax info of selected supplier (Only runs automatically in Creation Mode)
     useEffect(() => {
-        if (selectedSupplier) {
-            api.get(`/rm-transactions/materials/${selectedSupplier}`)
-                .then((res) => {
-                    if (Array.isArray(res.data)) setMaterials(res.data);
-                    else setMaterials([]);
-                })
-                .catch((err) => {
-                    console.error("Error fetching supplier materials:", err);
-                    setMaterials([]);
-                });
+        if (!selectedSupplier) {
+            setMaterials([]);
+            if (!isEditMode) {
+                setTaxId(null);
+                setTaxRate(0);
+                setTaxMode('exclusive');
+                updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
+            }
+            return;
+        }
 
+        // Fetch supplier specific raw materials
+        api.get(`/rm-transactions/materials/${selectedSupplier}`)
+            .then((res) => {
+                if (Array.isArray(res.data)) setMaterials(res.data);
+                else setMaterials([]);
+            })
+            .catch((err) => {
+                console.error("Error fetching supplier materials:", err);
+                setMaterials([]);
+            });
+
+        // Fetch tax configurations only if creating a new form instance
+        if (!isEditMode) {
             api.get(`/rm-transactions/supplier-last-tax/${selectedSupplier}`)
                 .then((res) => {
                     setTaxId(res.data.tax_id || null);
@@ -64,24 +83,100 @@ const RM_ReturnForm = () => {
                     setTaxMode('exclusive');
                     updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
                 });
-        } else {
-            setMaterials([]);
-            setTaxId(null);
-            setTaxRate(0);
-            setTaxMode('exclusive');
-            updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
         }
-    }, [selectedSupplier]);
+    }, [selectedSupplier, isEditMode]);
 
-    // 3. Fetch Next Invoice Number
+    // 3. Fetch Next Invoice Number (Only if not editing)
     useEffect(() => {
+        if (isEditMode) return;
         api.get("/rm-transactions/rm-invoice", { params: { type: "Return" } })
             .then(res => setInvoiceNo(res.data.invoice_no))
             .catch(err => console.error("Error fetching invoice number:", err));
-    }, []);
+    }, [isEditMode]);
 
-    // 4. Fetch Stock
+    // ---------------------------------------------------------
+    // 🔥 EDIT MODE: Fetch and Populate Draft Data
+    // ---------------------------------------------------------
+    useEffect(() => {
+        const loadDraftDataForEdit = async () => {
+            if (!isEditMode) return;
+
+            try {
+                const res = await api.get(`/rm-transactions/edit-preview/${editId}`);
+                const { master, details, invoiceDate } = res.data;
+
+                setInvoiceNo(master.invoice_no);
+                setSelectedSupplier(master.entityid);
+                
+                if (invoiceDate) {
+                    setDate(new Date(invoiceDate).toISOString().split('T')[0]);
+                }
+                
+                setIsTaxable(master.is_taxable);
+                setTaxMode(master.tax_mode || 'exclusive');
+                setTaxRate(Number(master.tax_rate) || 0);
+                setTaxId(master.tax_id);
+                setGlobalDiscount(master.discount || 0);
+
+                // Map database rows smoothly
+                if (Array.isArray(details) && details.length > 0) {
+                    const mappedRows = await Promise.all(details.map(async (d) => {
+                        const qty = Math.abs(parseFloat(d.quantity) || 0);
+                        const price = parseFloat(d.unit_price) || 0;
+                        
+                        let itemStock = 0;
+                        try {
+                            const stockRes = await api.get(`/rm-transactions/stock/${d.rm_id}/${master.entityid}`);
+                            itemStock = stockRes.data.stock || 0;
+                        } catch(e) { console.error("Error fetching stock during edit mapping:", e); }
+
+                        return {
+                            rm_id: d.rm_id,
+                            rm_name: d.rm_name || "",
+                            quantity: qty,
+                            unitPrice: price,
+                            total: (qty * price).toFixed(2),
+                            uom_id: d.uom_id,
+                            uom_name: d.uom_name || "", // Synced continuously below
+                            stock: itemStock
+                        };
+                    }));
+                    setRows(mappedRows);
+                    updateGrandTotal(mappedRows, master.is_taxable, master.tax_mode || 'exclusive', Number(master.tax_rate) || 0, master.discount || 0);
+                }
+            } catch (err) {
+                console.error("Error loading return draft data:", err);
+                toast.error("Failed to load return transaction draft details.");
+                navigate("/rm-return");
+            }
+        };
+
+        loadDraftDataForEdit();
+    }, [editId, isEditMode]);
+
+    // ---------------------------------------------------------
+    // 🔥 AUTO-SYNC LOGIC FOR UOM NAMES (Identical to Purchase Form)
+    // ---------------------------------------------------------
+    useEffect(() => {
+        if (materials.length > 0 && rows.length > 0) {
+            const updatedRows = rows.map(row => {
+                if (row.rm_id && !row.uom_name) {
+                    const found = materials.find(m => m.rm_id === parseInt(row.rm_id));
+                    if (found) {
+                        return { ...row, uom_name: found.uom?.uom_name || found.uom?.name || "" };
+                    }
+                }
+                return row;
+            });
+            if (JSON.stringify(updatedRows) !== JSON.stringify(rows)) {
+                setRows(updatedRows);
+            }
+        }
+    }, [materials, rows]);
+
+    // 4. Fetch Stock Function
     const fetchStock = async (rm_id, index) => {
+        if (!selectedSupplier) return;
         try {
             const res = await api.get(`/rm-transactions/stock/${rm_id}/${selectedSupplier}`);
             const updatedRows = [...rows];
@@ -112,8 +207,8 @@ const RM_ReturnForm = () => {
         updateGrandTotal(updatedRows, isTaxable, taxMode, taxRate);
     };
 
-    const updateGrandTotal = (rows, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate, discountValue = globalDiscount) => {
-        const currentSubTotal = rows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
+    const updateGrandTotal = (currentRows, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate, discountValue = globalDiscount) => {
+        const currentSubTotal = currentRows.reduce((sum, row) => sum + (parseFloat(row.total) || 0), 0);
         const discount = parseFloat(discountValue) || 0;
         const netValue = Math.max(0, currentSubTotal - discount);
 
@@ -138,16 +233,6 @@ const RM_ReturnForm = () => {
         setTaxableAmount(calculatedTaxable.toFixed(2));
         setTaxAmount(calculatedTaxAmount.toFixed(2));
         setGrandTotal(Math.max(0, calculatedGrand).toFixed(2));
-    };
-
-    const handleTaxableChange = (value) => {
-        setIsTaxable(value);
-        updateGrandTotal(rows, value, taxMode, taxRate);
-    };
-
-    const handleGlobalDiscountChange = (value) => {
-        setGlobalDiscount(value);
-        updateGrandTotal(rows, isTaxable, taxMode, taxRate, value);
     };
 
     const addRow = () => {
@@ -185,7 +270,7 @@ const RM_ReturnForm = () => {
             details: validRows.map(r => ({
                 rm_id: r.rm_id,
                 rm_name: r.rm_name,
-                quantity: r.quantity,
+                quantity: parseFloat(r.quantity),
                 unit_price: r.unitPrice,
                 total_price: r.total,
                 uom_id: r.uom_id,
@@ -194,11 +279,16 @@ const RM_ReturnForm = () => {
         };
 
         try {
-            await api.post("/rm-transactions", returnData);
-            toast.success("Purchase Return Transaction Successful");
+            if (isEditMode) {
+                await api.put(`/rm-transactions/${editId}`, returnData);
+                toast.success("Purchase Return Draft Updated Successfully");
+            } else {
+                await api.post("/rm-transactions", returnData);
+                toast.success("Purchase Return Transaction Successful");
+            }
             navigate('/rm-return');
         } catch (err) {
-            toast.error(err.response?.data?.message || "Error creating return!");
+            toast.error(err.response?.data?.message || "Error saving return transaction data!");
         }
     };
 
@@ -211,15 +301,14 @@ const RM_ReturnForm = () => {
                     <button className="back-btn" onClick={() => navigate('/rm-return')}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">Raw Material Purchase Return</h2>
+                    <h2 className="form-title">{isEditMode ? `Modify Return Draft (${invoiceNo})` : "Raw Material Purchase Return"}</h2>
                 </div>
 
                 <div className="rm-main-card">
-                    {/* Top Info Grid - Same as Purchase */}
                     <div className="info-grid">
                         <div className="info-item">
                             <label>Invoice No</label>
-                            <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
+                            <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" style={{backgroundColor: '#e2e8f0'}} />
                         </div>
                         <div className="info-item">
                             <label>Select Supplier</label>
@@ -246,7 +335,6 @@ const RM_ReturnForm = () => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
-                        {/* Table Header - Same Layout */}
                         <div className="items-table-header">
                             <span>Material</span>
                             <span>UOM</span>
@@ -266,8 +354,9 @@ const RM_ReturnForm = () => {
                                             const selected = materials.find(m => m.rm_id === parseInt(e.target.value));
                                             handleChange(index, "rm_id", e.target.value);
                                             handleChange(index, "rm_name", selected ? selected.rm_name : "");
-                                            handleChange(index, "uom_id", selected ? selected.uom.id : "");
-                                            handleChange(index, "uom_name", selected ? selected.uom.uom_name : "");
+                                            handleChange(index, "uom_id", selected ? selected.uom?.id : "");
+                                            handleChange(index, "uom_name", selected ? (selected.uom?.uom_name || selected.uom?.name) : "");
+                                            
                                             const id = parseInt(e.target.value);
                                             if (!isNaN(id)) fetchStock(id, index);
                                         }}
@@ -278,7 +367,7 @@ const RM_ReturnForm = () => {
                                             <option key={m.rm_id} value={m.rm_id}>{m.rm_name}</option>
                                         ))}
                                     </select>
-                                    <small style={{ color: "#718096", marginTop: '4px', fontSize: '11px' }}>Available: {row.stock}</small>
+                                    <small style={{ marginTop: '4px', fontSize: '11px', fontWeight: 'bold' }} className="text-success">Available: {row.stock}</small>
                                 </div>
 
                                 <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name || ""} readOnly />
@@ -314,7 +403,6 @@ const RM_ReturnForm = () => {
                             </div>
                         ))}
 
-                        {/* Summary Section - Updated to include Discount and consistent tax controls */}
                         <div className="summary-container">
                             <div className="summary-row">
                                 <label>Sub Total:</label>
@@ -322,7 +410,6 @@ const RM_ReturnForm = () => {
                             </div>
                             {isTaxable && (
                                 <>
-                                    {/* Tax Mode input is hidden; default is exclusive. */}
                                     <div className="summary-row">
                                         <label>Tax Rate (%)</label>
                                         <input 
@@ -343,10 +430,6 @@ const RM_ReturnForm = () => {
                                     </div>
                                 </>
                             )}
-                             {/* <div className="summary-row">
-                                <label>Discount:</label>
-                                <input type="number" className="rm-input-field" value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />
-                            </div> */}
                             <div className="summary-row grand-total-box">
                                 <b>Grand Total:</b>
                                 <b>{grandTotal}</b>
@@ -354,7 +437,7 @@ const RM_ReturnForm = () => {
                         </div>
 
                         <button type="submit" className="save-btn-main">
-                            Save
+                            {isEditMode ? "Update Return Draft" : "Save"}
                         </button>
                     </form>
                 </div>

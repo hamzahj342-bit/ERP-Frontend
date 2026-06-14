@@ -1,62 +1,126 @@
 import React, { useState, useEffect } from 'react';
 import NavigationBar from '../Components/NavigationBar';
-import { FaArrowLeft, FaPlus, FaEye, FaFileInvoice, FaUserAlt, FaCalendarAlt, FaUndo } from 'react-icons/fa';
+import { FaArrowLeft, FaEye, FaPlus, FaFileInvoice, FaUserAlt, FaCalendarAlt, FaEdit, FaCheckCircle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
-import api from '../../api';
+import api from "../../api"; 
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
+import Swal from 'sweetalert2'; 
 
 const RM_Return = () => {
   const [returns, setReturns] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchReturns = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get("/rm-transactions", {
-          params: {
-            type: "Return",
-            page: page,
-            limit: 50
-          }
-        });
-        
-        const data = res.data;
-        if (data && Array.isArray(data.data)) {
-          setReturns(data.data);
-          setTotalPages(data.totalPages || 1); 
-        } else {
-          setReturns([]);
-          setTotalPages(1);
+  // Fetch paginated data using exact same structure
+  const fetchReturns = async () => {
+    try {
+      const res = await api.get("/rm-transactions", {
+        params: {
+          type: "Return", // Purchase Return k liye standard identifier
+          page: page,
+          limit: 50
         }
-      } catch (error) {
-        console.error("Error fetching RM Returns:", error);
+      });
+
+      const data = res.data;
+      console.log("RM Return API Response:", data);
+
+      if (Array.isArray(data.data)) {
+        setReturns(data.data);
+        setTotalPages(data.totalPages);
+      } else {
         setReturns([]);
-      } finally {
-        setLoading(false);
       }
-    };
-    
+    } catch (err) {
+      console.error("Error fetching returns:", err);
+      setReturns([]);
+    }
+  };
+
+  useEffect(() => {
     fetchReturns();
   }, [page]);
 
-  const handleViewDetails = (invoiceNo) => {
-    navigate(`/rm-invoice/${invoiceNo}`); 
+  // ---------------------------------------------------------
+  // 1️⃣ Approve Handler with SweetAlert2 (Exact Purchase Pattern)
+  // ---------------------------------------------------------
+  const handleApproveInvoice = async (masterId, invoiceNo) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: `Do you want to Approve Return Invoice No: ${invoiceNo}? This action will post entries to Stock & Accounts and cannot be reversed!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#2b6cb0',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, Approve it!',
+      cancelButtonText: 'No, Cancel'
+    });
+
+    if (result.isConfirmed) {
+      Swal.fire({
+        title: 'Processing...',
+        text: 'Posting ledger accounts and updating inventory stock.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      try {
+        const res = await api.put(`/rm-transactions/${masterId}/approve`);
+        
+        if (res.status === 200 || res.status === 201) {
+          Swal.fire({
+            title: 'Approved!',
+            text: `Return Invoice ${invoiceNo} has been successfully approved and posted.`,
+            icon: 'success',
+            confirmButtonColor: '#2b6cb0'
+          });
+          fetchReturns(); // Table refresh
+        }
+      } catch (err) {
+        console.error("Error approving return invoice:", err);
+        Swal.fire({
+          title: 'Error!',
+          text: err.response?.data?.message || 'Something went wrong while approving the return invoice.',
+          icon: 'error',
+          confirmButtonColor: '#2b6cb0'
+        });
+      }
+    }
   };
-    
+
+  // ---------------------------------------------------------
+  // 2️⃣ Edit Handler with SweetAlert2 Confirmation
+  // ---------------------------------------------------------
+  const handleEditInvoice = async (masterId) => {
+    const result = await Swal.fire({
+      title: 'Edit Draft?',
+      text: 'Do you want to modify this return invoice draft?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#2b6cb0',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Yes, Edit',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      // Return form code par navigate krega standard flow me
+      navigate(`/rm-return-form?editId=${masterId}`);
+    }
+  };
+
   return (
     <>
       <NavigationBar />
       <div className="rm-page">
-        {/* Top Header Section */}
         <div className="top-nav-container" style={{marginTop: '30px'}}>
           <button className="back-btn" onClick={() => navigate('/rm-transactions')}>
             <FaArrowLeft />
@@ -64,78 +128,94 @@ const RM_Return = () => {
         </div>
 
         <div className="card">
-          {/* Title and Add Button Row */}
           <div className="card-header">
             <h3>Raw Material Returns</h3>
             <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW RETURN
             </button>
           </div>
-          
+
           <div className="table-container">
-            {loading ? (
-              <div style={{ textAlign: 'center', padding: '50px', color: '#718096' }}>Loading returns data...</div>
-            ) : returns.length === 0 ? (
-              <div className="no-data">No Raw Material Return records found.</div>
-            ) : (
-               <table className="product-table">
-                 <thead>
-                   <tr>
-                     <th>ID</th>
-                     <th><FaFileInvoice /> INVOICE NO</th>
-                     <th>CREATED AT</th>
-                     <th><FaCalendarAlt /> DATE</th>
-                     <th><FaUserAlt /> CREATED BY</th>
-                     <th>SUPPLIER</th>
-                     <th>GRAND TOTAL</th>
-                     <th style={{ textAlign: 'center' }}>ACTION</th>
-                   </tr>
-                 </thead>
-                 <tbody>
-                   {returns.map((ret) => (
-                     <tr key={ret.master_id}>
-                       <td className="id-cell">#{ret.master_id}</td>
-                       <td className="invoice-cell">{ret.invoice_no}</td>
-                       <td>{ret.createdat ? new Date(ret.createdat).toLocaleDateString() : "N/A"}</td>
-                       <td>{ret.date ? new Date(ret.date).toLocaleDateString() : "N/A"}</td>
-                       <td><span className="user-tag">{ret.createdby}</span></td>
-                       <td><span className="supplier-tag">{ret.entity_name}</span></td>
-                       <td className="total-cell">
-                         {parseFloat(ret.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
-                       </td>
-                       <td className="action-cell">
-                           <button 
-                               onClick={() => handleViewDetails(ret.invoice_no)} 
-                               className="primary-btn"
-                           >
-                               <FaEye /> VIEW
-                           </button>
-                       </td>
-                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-            )}
+            <table className="product-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th><FaFileInvoice /> INVOICE NO</th>
+                  <th>CREATED AT</th>
+                  <th><FaCalendarAlt /> DATE</th>
+                  <th><FaUserAlt /> CREATED BY</th>
+                  <th>SUPPLIER</th>
+                  <th>GRAND TOTAL</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: 'center' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {returns.length > 0 ? (
+                  returns.map((r) => (
+                    <tr key={r.master_id}>
+                      <td style={{ color: '#94a3b8' }}>#{r.master_id}</td>
+                      <td style={{ fontWeight: '700' }}>{r.invoice_no}</td>
+                      <td>{r.createdat ? new Date(r.createdat).toLocaleDateString() : "-"}</td>
+                      <td>{r.date ? new Date(r.date).toLocaleDateString() : "-"}</td>
+                      <td><span className="user-tag">{r.createdby}</span></td>
+                      <td><span className="supplier-tag">{r.entity_name}</span></td>
+                      <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                        {parseFloat(r.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                      </td>
+                      <td>
+                        <span className={`status-badge ${r.status === 'Approved' ? 'status-approved' : 'status-draft'}`}>
+                          {r.status || 'Draft'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                          <button onClick={() => navigate(`/rm-invoice/${r.invoice_no}`)} className="primary-btn">
+                            <FaEye /> VIEW
+                          </button>
+
+                          {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
+                          {r.status === 'Approved' ? (
+                            <span className="approved-text-btn">
+                              <FaCheckCircle /> APPROVED
+                            </span>
+                          ) : (
+                            <>
+                              <button onClick={() => handleEditInvoice(r.master_id)} className="edit-btn-action">
+                                <FaEdit /> EDIT
+                              </button>
+                              <button onClick={() => handleApproveInvoice(r.master_id, r.invoice_no)} className="approve-btn-action">
+                                <FaCheckCircle /> APPROVE
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>No Transactions Found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          
-          <div className="pagination-footer">
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={(newPage) => setPage(newPage)}
-            />
+
+          <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+            <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
           </div>
         </div>
+        <InvoiceTypeModal
+          open={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          onSelect={(type) => {
+            setIsInvoiceModalOpen(false);
+            navigate(`/rm-return-form?invoiceType=${type}`);
+          }}
+          title="Return Invoice Type"
+        />
       </div>
-      <InvoiceTypeModal
-        open={isInvoiceModalOpen}
-        onClose={() => setIsInvoiceModalOpen(false)}
-        onSelect={(type) => {
-          setIsInvoiceModalOpen(false);
-          navigate(`/rm-return-form?invoiceType=${type}`);
-        }}
-        title="Return Invoice Type"
-      />
       <Footer />
     </>
   );

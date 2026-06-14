@@ -10,14 +10,18 @@ import '../Transactions.css';
 
 const RM_PurchaseForm = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    const queryParams = new URLSearchParams(location.search);
+    const invoiceType = queryParams.get('invoiceType');
+    const editId = queryParams.get('editId'); 
+    const isEditMode = !!editId;
 
     const [rows, setRows] = useState([
         { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }
     ]);
     const [materials, setMaterials] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
-    const location = useLocation();
-    const invoiceType = new URLSearchParams(location.search).get('invoiceType');
 
     const [selectedSupplier, setSelectedSupplier] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
@@ -27,7 +31,7 @@ const RM_PurchaseForm = () => {
     const [taxableAmount, setTaxableAmount] = useState(0);
     const [taxAmount, setTaxAmount] = useState(0);
     const [isTaxable, setIsTaxable] = useState(() => invoiceType !== 'nonTaxable');
-    const [taxMode, setTaxMode] = useState('exclusive'); // hidden from user
+    const [taxMode, setTaxMode] = useState('exclusive'); 
     const [taxRate, setTaxRate] = useState(0);
     const [taxId, setTaxId] = useState(null);
     const [grandTotal, setGrandTotal] = useState(0);
@@ -36,6 +40,7 @@ const RM_PurchaseForm = () => {
     const [uoms, setUoms] = useState([]);
 
     const fetchInvoiceNo = useCallback(async () => {
+        if (isEditMode) return; 
         try {
             const res = await api.get("/rm-transactions/rm-invoice", {
                 params: { type: "Purchase" }
@@ -44,34 +49,11 @@ const RM_PurchaseForm = () => {
         } catch (err) {
             console.error("Error fetching invoice:", err);
         }
-    }, []);
+    }, [isEditMode]);
 
-    useEffect(() => {
-        api.get("/add-materials")
-            .then(res => setMaterials(res.data))
-            .catch(err => console.error("Error fetching materials:", err));
-
-        api.get("/entities/transactions")
-            .then(res => {
-                const onlySuppliers = res.data.filter(ent => ent.type === "supplier");
-                setSuppliers(onlySuppliers);
-            })
-            .catch(err => console.error("Error fetching suppliers:", err));
-
-        api.get("/tax-master/latest/active")
-            .then(res => {
-                setTaxId(res.data.id);
-                setTaxRate(Number(res.data.tax_rate) || 0);
-                setTaxMode(res.data.taxtype || 'exclusive');
-            })
-            .catch(err => {
-                console.error("Error fetching latest tax:", err);
-                setTaxMode('exclusive');
-            });
-
-        fetchInvoiceNo();
-    }, [fetchInvoiceNo]);
-
+    // ---------------------------------------------------------
+    // 🔥 FIXED CALCULATION LOGIC (REUSED SAFELY)
+    // ---------------------------------------------------------
     const calculateTotals = (currentRows, discountValue, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate) => {
         const currentSubTotal = currentRows.reduce((sum, row) => {
             const qty = parseFloat(row.quantity) || 0;
@@ -105,6 +87,90 @@ const RM_PurchaseForm = () => {
         setGrandTotal(Math.max(0, calculatedGrand).toFixed(2));
     };
 
+    // ---------------------------------------------------------
+    // 🔥 MASTER DATA & EDIT MODE AUTO-FILL (COMBINED TO PREVENT LOOPS)
+    // ---------------------------------------------------------
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                // Parallel API Requests
+                const [materialsRes, suppliersRes, uomsRes] = await Promise.all([
+                    api.get("/add-materials"),
+                    api.get("/entities/transactions"),
+                    api.get('/uoms')
+                ]);
+
+                setMaterials(materialsRes.data);
+                setUoms(uomsRes.data);
+
+                const onlySuppliers = suppliersRes.data.filter(ent => ent.type === "supplier");
+                setSuppliers(onlySuppliers);
+
+                // If NOT Edit Mode, load default tax
+                if (!isEditMode) {
+                    try {
+                        const taxRes = await api.get("/tax-master/latest/active");
+                        setTaxId(taxRes.data.id);
+                        setTaxRate(Number(taxRes.data.tax_rate) || 0);
+                        setTaxMode(taxRes.data.taxtype || 'exclusive');
+                    } catch (taxErr) {
+                        console.error("Error fetching latest tax:", taxErr);
+                        setTaxMode('exclusive');
+                    }
+                    fetchInvoiceNo();
+                } else {
+                    // IF EDIT MODE -> Fetch data after dependencies are loaded
+                    const editRes = await api.get(`/rm-transactions/edit-preview/${editId}`);
+                    const { master, details, invoiceDate } = editRes.data;
+
+                    setInvoiceNo(master.invoice_no);
+                    setSelectedSupplier(master.entityid);
+                    
+                    if (invoiceDate) {
+                        setDate(new Date(invoiceDate).toISOString().split('T')[0]);
+                    }
+                    
+                    setSubTotal(parseFloat(master.subtotal || 0).toFixed(2));
+                    setGlobalDiscount(master.discount || "");
+                    setIsTaxable(master.is_taxable);
+                    setTaxMode(master.tax_mode || 'exclusive');
+                    setTaxRate(Number(master.tax_rate) || 0);
+                    setTaxId(master.tax_id);
+                    setTaxableAmount(parseFloat(master.taxable_amount || 0).toFixed(2));
+                    setTaxAmount(parseFloat(master.tax_amount || 0).toFixed(2));
+                    setGrandTotal(parseFloat(master.grand_total || 0).toFixed(2));
+
+                    if (Array.isArray(details) && details.length > 0) {
+                        const mappedRows = details.map(d => {
+                            const qty = Math.abs(parseFloat(d.quantity) || 0);
+                            const price = parseFloat(d.unit_price) || 0;
+                            
+                            // Materials response se fallback UOM check karna
+                            const matchingMaterial = materialsRes.data.find(m => m.rm_id === parseInt(d.rm_id));
+
+                            return {
+                                rm_id: d.rm_id,
+                                rm_name: d.rm_name,
+                                quantity: qty,
+                                unitPrice: price,
+                                total: (qty * price).toFixed(2),
+                                uom_id: d.uom_id || matchingMaterial?.uom?.id || "",
+                                uom_name: d.uom_name || matchingMaterial?.uom?.name || ""
+                            };
+                        });
+                        setRows(mappedRows);
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading initial form data:", err);
+                toast.error("Failed to load required data.");
+                if (isEditMode) navigate("/rm-purchase");
+            }
+        };
+
+        loadInitialData();
+    }, [editId, isEditMode, navigate, fetchInvoiceNo]);
+
     const handleChange = (index, field, value) => {
         const updated = [...rows];
         updated[index][field] = value;
@@ -122,11 +188,6 @@ const RM_PurchaseForm = () => {
     const handleGlobalDiscountChange = (value) => {
         setGlobalDiscount(value);
         calculateTotals(rows, value, isTaxable, taxMode, taxRate);
-    };
-
-    const handleTaxableChange = (value) => {
-        setIsTaxable(value);
-        calculateTotals(rows, globalDiscount, value, taxMode, taxRate);
     };
 
     const addRow = () => {
@@ -170,9 +231,9 @@ const RM_PurchaseForm = () => {
             details: validRows.map(r => ({
                 rm_id: r.rm_id,
                 rm_name: r.rm_name,
-                quantity: r.quantity,
-                unit_price: r.unitPrice,
-                total_price: r.total,
+                quantity: parseFloat(r.quantity),
+                unit_price: parseFloat(r.unitPrice),
+                total_price: parseFloat(r.total),
                 uom_id: r.uom_id,
                 date,
                 entity_supplier_id: selectedSupplier,
@@ -180,8 +241,13 @@ const RM_PurchaseForm = () => {
         };
 
         try {
-            const res = await api.post("/rm-transactions", purchaseData);
-            toast.success(`Purchase Transaction Successful! Invoice: ${res.data.invoice_no}`);
+            if (isEditMode) {
+                await api.put(`/rm-transactions/${editId}`, purchaseData);
+                toast.success(`Invoice Draft Updated Successfully! Code: ${invoiceNo}`);
+            } else {
+                const res = await api.post("/rm-transactions", purchaseData);
+                toast.success(`Purchase Transaction Saved as Draft! Invoice: ${res.data.invoice_no}`);
+            }
             navigate("/rm-purchase");
         } catch (err) {
             toast.error(err.response?.data?.message || "Error saving purchase transaction.");
@@ -214,10 +280,6 @@ const RM_PurchaseForm = () => {
         } catch (err) { toast.error("Failed to add material"); }
     };
 
-    useEffect(() => {
-        api.get('/uoms').then(res => setUoms(res.data)).catch(() => toast.error('Failed to fetch UOMs'));
-    }, []);
-
     return (
         <div className="rm-page-wrapper">
             <NavigationBar />
@@ -227,15 +289,14 @@ const RM_PurchaseForm = () => {
                     <button className="back-btn" onClick={() => navigate("/rm-purchase")}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">Raw Material Purchase</h2>
+                    <h2 className="form-title">{isEditMode ? `Modify Draft (${invoiceNo})` : "Raw Material Purchase"}</h2>
                 </div>
 
                 <div className="rm-main-card">
-                    {/* Top Info Grid */}
                     <div className="info-grid">
                         <div className="info-item">
                             <label>Invoice No</label>
-                            <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
+                            <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" style={{backgroundColor: isEditMode ? '#e2e8f0' : '#f1f5f9'}} />
                         </div>
                         <div className="info-item">
                             <label>Supplier</label>
@@ -273,8 +334,8 @@ const RM_PurchaseForm = () => {
                                             const selected = materials.find(m => m.rm_id === parseInt(e.target.value));
                                             handleChange(index, "rm_id", e.target.value);
                                             handleChange(index, "rm_name", selected?.name || "");
-                                            handleChange(index, "uom_id", selected?.uom.id || "");
-                                            handleChange(index, "uom_name", selected?.uom.name || "");
+                                            handleChange(index, "uom_id", selected?.uom?.id || "");
+                                            handleChange(index, "uom_name", selected?.uom?.name || "");
                                         }}
                                     >
                                         <option value="">Select Material</option>
@@ -304,7 +365,6 @@ const RM_PurchaseForm = () => {
                             </div>
                             {isTaxable && (
                                 <>
-                                    {/* Tax Mode input is hidden; default is exclusive. */}
                                     <div className="summary-row">
                                         <label>Tax Rate (%)</label>
                                         <input 
@@ -335,13 +395,12 @@ const RM_PurchaseForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">Save</button>
+                        <button type="submit" className="save-btn-main">{isEditMode ? "Update Draft" : "Save Draft"}</button>
                     </form>
                 </div>
             </div>
             <Footer />
 
-            {/* Modals remain same as your logic but with better classes */}
             {showSupplierModal && (
                 <div className="modal-overlay" onClick={() => setShowSupplierModal(false)}>
                     <div className="modal-box" onClick={(e) => e.stopPropagation()}>

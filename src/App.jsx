@@ -44,6 +44,7 @@ import CreateAccount from './Pages/CreateAccount';
 import AccountList from './Pages/AccountList';
 import PaymentTransactionForm from './Components/PaymentTransactionForm';
 import PaymentTransactionList from './Components/PaymentTransctionList';
+import PaymentTransactionInvoice from './Components/PaymentTransactionInvoice';
 import InvestmentList from './Components/InvestmentList';
 import InvestmentForm from './Components/InvestmentForm';
 import AccountCategoryList from './Pages/AccountCategoryList';
@@ -70,6 +71,7 @@ import SupplierInvoices from './Pages/SupplierInvoices';
 import StockReport from './Reports/StockReport';
 import EntityBalanceReport from './Reports/EntityBalanceReport';
 import CapitalReport from './Reports/CapitalReport';
+import TrialBalanceReport from './Reports/TrialBalanceReport';
 
 const App = () => {
   return (
@@ -133,6 +135,8 @@ const App = () => {
         <Route path="/create-account" element={<ProtectedRoute> <CreateAccount /> </ProtectedRoute>} />
         <Route path="/payments" element={<ProtectedRoute> <PaymentTransactionForm /> </ProtectedRoute>} />
         <Route path="/payments-list" element={<ProtectedRoute> <PaymentTransactionList /> </ProtectedRoute>} />
+        <Route path="/payment-transaction/:invoiceNo" element={<ProtectedRoute> <PaymentTransactionInvoice /> </ProtectedRoute>} />
+        <Route path="/payment-transactions/:invoiceNo" element={<ProtectedRoute> <PaymentTransactionInvoice /> </ProtectedRoute>} />
         <Route path="/investment-list" element={<ProtectedRoute> <InvestmentList /> </ProtectedRoute>} />
         <Route path="/investment" element={<ProtectedRoute> <InvestmentForm /> </ProtectedRoute>} />
 
@@ -153,6 +157,7 @@ const App = () => {
         <Route path='/stock-report' element={<ProtectedRoute > <StockReport /> </ProtectedRoute>} /> 
         <Route path='/entity-balance-report' element={<ProtectedRoute > <EntityBalanceReport /> </ProtectedRoute>} />
         <Route path='/capital-report' element={<ProtectedRoute > <CapitalReport /> </ProtectedRoute>} />
+        <Route path='/trial-balance' element={<ProtectedRoute > <TrialBalanceReport /> </ProtectedRoute>} />
       </Routes>  
        <ToastContainer position="top-right" autoClose={3000} style={{ zIndex: 99999 }}/>
     </Router>

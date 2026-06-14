@@ -10,12 +10,17 @@ import '../Transactions.css'; // Standardized CSS
 
 const RM_SaleReturnForm = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    
+    // URL parameters and Edit Mode flags
+    const queryParams = new URLSearchParams(location.search);
+    const invoiceType = queryParams.get('invoiceType');
+    const editId = queryParams.get('editId');
+    const isEditMode = !!editId;
 
     const [rows, setRows] = useState([
         { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }
     ]);
-    const location = useLocation();
-    const invoiceType = new URLSearchParams(location.search).get('invoiceType');
 
     const [materials, setMaterials] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -61,52 +66,170 @@ const RM_SaleReturnForm = () => {
     };
 
     const fetchInvoiceNo = useCallback(async () => {
+        if (isEditMode) return;
         try {
             const res = await api.get("/rm-transactions/rm-invoice", { params: { type: "SaleReturn" } });
             setInvoiceNo(res.data.invoice_no);
         } catch (err) {
             console.error("Error fetching invoice:", err);
         }
-    }, []);
+    }, [isEditMode]);
 
+    // ---------------------------------------------------------
+    // 🔥 MASTER DATA & EDIT MODE AUTO-FILL
+    // ---------------------------------------------------------
     useEffect(() => {
-        // Fetch Eligible Customers
-        api.get("/rm-transactions/eligible-customers")
-            .then(res => setCustomers(res.data))
-            .catch(err => console.error("Error fetching customers:", err));
+        const loadInitialData = async () => {
+            try {
+                // Fetch Eligible Customers
+                const customersRes = await api.get("/rm-transactions/eligible-customers");
+                const customersData = Array.isArray(customersRes.data) ? customersRes.data : [];
+                setCustomers(customersData);
 
-        fetchInvoiceNo();
-    }, [fetchInvoiceNo]);
+                if (!isEditMode) {
+                    // Create Mode: Fetch invoice number
+                    fetchInvoiceNo();
+                } else {
+                    // Edit Mode: Fetch draft data and populate
+                    try {
+                        const editRes = await api.get(`/rm-transactions/edit-preview/${editId}`);
+                        const { master, details, invoiceDate } = editRes.data;
+
+                        setInvoiceNo(master.invoice_no);
+                        setSelectedCustomer(master.entityid);
+                        
+                        if (invoiceDate) {
+                            setDate(new Date(invoiceDate).toISOString().split('T')[0]);
+                        }
+                        
+                        setSubTotal(parseFloat(master.subtotal || master.sub_total || 0).toFixed(2));
+                        setGlobalDiscount(master.discount || 0);
+                        setIsTaxable(master.is_taxable);
+                        setTaxMode(master.tax_mode || 'exclusive');
+                        setTaxRate(Number(master.tax_rate) || 0);
+                        setTaxId(master.tax_id);
+                        setTaxableAmount(parseFloat(master.taxable_amount || 0).toFixed(2));
+                        setTaxAmount(parseFloat(master.tax_amount || 0).toFixed(2));
+                        setGrandTotal(parseFloat(master.grand_total || 0).toFixed(2));
+
+                        // Map database rows with exact structure from details
+                        if (Array.isArray(details) && details.length > 0) {
+                            const mappedRows = details.map(d => {
+                                const qty = Math.abs(parseFloat(d.quantity) || 0);
+                                const price = parseFloat(d.unit_price) || 0;
+
+                                return {
+                                    rm_id: d.rm_id,
+                                    rm_name: d.rm_name || "",
+                                    quantity: qty,
+                                    unitPrice: price,
+                                    total: (qty * price).toFixed(2),
+                                    uom_id: d.uom_id,
+                                    uom_name: d.uom_name || "",
+                                    soldQty: qty,
+                                    supplier_name: d.supplier_name || "",
+                                    original_supplier_id: d.original_supplier_id || ""
+                                };
+                            });
+                            setRows(mappedRows);
+                        }
+                        
+                        // Explicitly fetch sold materials AFTER setting selectedCustomer
+                        // This ensures materials dropdown is populated on edit
+                        try {
+                            const matsRes = await api.get(`/rm-transactions/sold-materials/${master.entityid}`);
+                            if (Array.isArray(matsRes.data)) {
+                                setMaterials(matsRes.data);
+                            } else {
+                                setMaterials([]);
+                            }
+                        } catch (matErr) {
+                            console.error("Error fetching sold materials in edit mode:", matErr);
+                            setMaterials([]);
+                        }
+                    } catch (err) {
+                        console.error("Error loading sale return draft data:", err);
+                        toast.error("Failed to load sale return transaction draft details.");
+                        navigate("/rm-sale-return");
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading initial data:", err);
+                toast.error("Failed to load required data.");
+                if (isEditMode) navigate("/rm-sale-return");
+            }
+        };
+
+        loadInitialData();
+    }, [editId, isEditMode, navigate, fetchInvoiceNo]);
 
     useEffect(() => {
         if (!selectedCustomer) {
             setMaterials([]);
-            setTaxId(null);
-            setTaxRate(0);
-            setTaxMode('exclusive');
-            updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
-            return;
-        }
-
-        api.get(`/rm-transactions/sold-materials/${selectedCustomer}`)
-            .then(res => setMaterials(res.data))
-            .catch(err => console.error("Error fetching materials:", err));
-
-        api.get(`/rm-transactions/customer-last-tax/${selectedCustomer}`)
-            .then(res => {
-                setTaxId(res.data.tax_id || null);
-                setTaxRate(Number(res.data.tax_rate) || 0);
-                setTaxMode(res.data.tax_mode || 'exclusive');
-                updateGrandTotal(rows, isTaxable, res.data.tax_mode || 'exclusive', Number(res.data.tax_rate) || 0, globalDiscount);
-            })
-            .catch(err => {
-                console.error("Error fetching customer tax rate:", err);
+            if (!isEditMode) {
                 setTaxId(null);
                 setTaxRate(0);
                 setTaxMode('exclusive');
                 updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
+            }
+            return;
+        }
+
+        // Fetch sold materials for selected customer (works in both create and edit modes)
+        api.get(`/rm-transactions/sold-materials/${selectedCustomer}`)
+            .then(res => {
+                if (Array.isArray(res.data)) {
+                    setMaterials(res.data);
+                } else {
+                    setMaterials([]);
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching materials:", err);
+                setMaterials([]);
             });
-    }, [selectedCustomer]);
+
+        // Only fetch tax info in create mode; edit mode already has it from draft
+        if (!isEditMode) {
+            api.get(`/rm-transactions/customer-last-tax/${selectedCustomer}`)
+                .then(res => {
+                    setTaxId(res.data.tax_id || null);
+                    setTaxRate(Number(res.data.tax_rate) || 0);
+                    setTaxMode(res.data.tax_mode || 'exclusive');
+                    updateGrandTotal(rows, isTaxable, res.data.tax_mode || 'exclusive', Number(res.data.tax_rate) || 0, globalDiscount);
+                })
+                .catch(err => {
+                    console.error("Error fetching customer tax rate:", err);
+                    setTaxId(null);
+                    setTaxRate(0);
+                    setTaxMode('exclusive');
+                    updateGrandTotal(rows, isTaxable, 'exclusive', 0, globalDiscount);
+                });
+        }
+    }, [selectedCustomer, isEditMode]);
+
+    // ---------------------------------------------------------
+    // 🔥 AUTO-SYNC LOGIC FOR UOM NAMES
+    // ---------------------------------------------------------
+    useEffect(() => {
+        if (Array.isArray(materials) && materials.length > 0 && rows.length > 0) {
+            const updatedRows = rows.map(row => {
+                if (row.rm_id && (!row.uom_name || row.uom_name === "")) {
+                    // Try to find matching material by rm_id
+                    const found = materials.find(m => String(m.rm_id) === String(row.rm_id));
+                    if (found) {
+                        return { ...row, uom_name: found.uom_name || "" };
+                    }
+                }
+                return row;
+            });
+            
+            // Only update if something changed
+            if (JSON.stringify(updatedRows) !== JSON.stringify(rows)) {
+                setRows(updatedRows);
+            }
+        }
+    }, [materials, rows]);
 
     const handleChange = (index, field, value) => {
         const updatedRows = [...rows];
@@ -185,8 +308,13 @@ const RM_SaleReturnForm = () => {
         };
 
         try {
-            await api.post("/rm-transactions", returnData);
-            toast.success("Sale Return Successful!");
+            if (isEditMode) {
+                await api.put(`/rm-transactions/${editId}`, returnData);
+                toast.success("Sale Return Draft Updated Successfully");
+            } else {
+                await api.post("/rm-transactions", returnData);
+                toast.success("Sale Return Successful!");
+            }
             navigate('/rm-sale-return');
         } catch (err) {
             toast.error(err.response?.data?.message || "Error saving return.");
@@ -202,7 +330,7 @@ const RM_SaleReturnForm = () => {
                     <button className="back-btn" onClick={() => navigate("/rm-sale-return")}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">Raw Material Sale Return</h2>
+                    <h2 className="form-title">{isEditMode ? `Modify Sale Return Draft (${invoiceNo})` : "Raw Material Sale Return"}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -247,7 +375,7 @@ const RM_SaleReturnForm = () => {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <select 
                                         className="rm-input-field" 
-                                        value={row.rm_id && row.original_supplier_id ? `${row.rm_id}-${row.original_supplier_id}` : ""} 
+                                        value={row.rm_id ? `${row.rm_id}-${row.original_supplier_id}` : ""} 
                                         onChange={(e) => {
                                             const combinedValue = e.target.value;
                                             if (!combinedValue) return handleChange(index, "rm_id", "");
@@ -256,19 +384,26 @@ const RM_SaleReturnForm = () => {
                                             const selected = materials.find(m => String(m.rm_id) === rmIdStr && String(m.original_supplier_id) === supplierIdStr);
 
                                             if (selected) {
-                                                handleChange(index, "rm_id", rmIdStr);
+                                                handleChange(index, "rm_id", selected.rm_id);
                                                 handleChange(index, "rm_name", selected.rm_name);
                                                 handleChange(index, "uom_id", selected.uom_id);
                                                 handleChange(index, "uom_name", selected.uom_name);
                                                 handleChange(index, "soldQty", selected.soldQty);
                                                 handleChange(index, "supplier_name", selected.shop_name);
-                                                handleChange(index, "original_supplier_id", supplierIdStr);
+                                                handleChange(index, "original_supplier_id", selected.original_supplier_id);
                                             }
                                         }}
                                         style={{ marginTop: '20px'}}
                                     >
                                         <option value="">Select Material</option>
-                                        {materials.map(m => (
+                                        {/* Always show current row's material selection if set */}
+                                        {row.rm_id ? (
+                                            <option value={`${row.rm_id}-${row.original_supplier_id}`}>
+                                                {row.rm_name} - {row.supplier_name}
+                                            </option>
+                                        ) : null}
+                                        {/* Show other available materials from API */}
+                                        {Array.isArray(materials) && materials.length > 0 && materials.map(m => (
                                             <option key={`${m.rm_id}-${m.original_supplier_id}`} value={`${m.rm_id}-${m.original_supplier_id}`}>
                                                 {m.rm_name} - {m.shop_name}
                                             </option>

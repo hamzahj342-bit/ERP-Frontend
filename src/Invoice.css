@@ -279,3 +279,113 @@
         border: none;
     }
 }
+/*Payment voucher */
+
+.voucher-summary {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 15px;
+  padding: 30px 40px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.voucher-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.voucher-card span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.voucher-card p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.amount-card {
+  background: linear-gradient(
+      135deg,
+      #0284c7,
+      #0369a1
+  );
+}
+
+.amount-card span,
+.amount-card h2 {
+  color: white;
+}
+
+.amount-card h2 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.payment-detail-box {
+  padding: 30px 40px;
+}
+
+.payment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payment-table td {
+  padding: 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.payment-table td:first-child {
+  width: 220px;
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.amount-row td {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.signature-section {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.signature-box {
+  flex: 1;
+  text-align: center;
+}
+
+.signature-line {
+  border-top: 2px solid #1e293b;
+  margin-bottom: 10px;
+}
+
+.signature-box p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media(max-width:768px){
+
+  .voucher-summary{
+      grid-template-columns:1fr;
+  }
+
+  .signature-section{
+      flex-direction:column;
+  }
+}
