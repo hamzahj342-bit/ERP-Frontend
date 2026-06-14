@@ -1,71 +1,128 @@
 import React, { useState, useEffect } from 'react';
 import NavigationBar from '../Components/NavigationBar';
-import { FaArrowLeft, FaPlus, FaEye, FaFileInvoice, FaUserAlt, FaCalendarAlt, FaShoppingCart } from 'react-icons/fa';
+import { FaArrowLeft, FaEye, FaPlus, FaFileInvoice, FaUserAlt, FaCalendarAlt, FaEdit, FaCheckCircle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
 import api from "../../api"; 
+import InvoiceTypeModal from '../Components/InvoiceTypeModal';
+import Swal from 'sweetalert2'; // Swal import kiya confirmation dialogs k liye
 
 const RM_Sale = () => {
-  const [sales, setSales] = useState([]); 
+  const [sales, setSales] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchSales = async () => {
-        setLoading(true);
-        try {
-            const res = await api.get("/rm-transactions", {
-              params: {
-                type: "sale",
-                page: page,
-                limit: 50
-              }
-            });
-            
-            const data = res.data;
-            let records = [];
-            let total = 1;
-
-            if (data && Array.isArray(data.data)) {
-                records = data.data;
-                total = data.totalPages || 1;
-            } else if (data && Array.isArray(data.rows)) {
-                records = data.rows;
-                total = data.totalPages || 1;
-            } else if (Array.isArray(data)) {
-                records = data;
-                total = 1;
-            }
-
-            setSales(records);
-            setTotalPages(total);
-
-        } catch (error) {
-            console.error("Error fetching RM Sales:", error);
-            setSales([]);
-            setTotalPages(1);
-        } finally {
-            setLoading(false);
+  // Fetch paginated data using api.js
+  const fetchSales = async () => {
+    try {
+      const res = await api.get("/rm-transactions", {
+        params: {
+          type: "sale",
+          page: page,
+          limit: 50
         }
-    };
-    
-    fetchSales();
-  }, [page]); 
+      });
 
-  const handleViewDetails = (invoiceNo) => {
-    navigate(`/rm-invoice/${invoiceNo}`); 
+      const data = res.data;
+      console.log("RM Sale API Response:", data);
+
+      if (Array.isArray(data.data)) {
+        setSales(data.data);
+        setTotalPages(data.totalPages);
+      } else {
+        setSales([]);
+      }
+    } catch (err) {
+      console.error("Error fetching sales:", err);
+      setSales([]);
+    }
   };
-    
+
+  useEffect(() => {
+    fetchSales();
+  }, [page]); // Runs whenever the page changes
+
+  // ---------------------------------------------------------
+  // 1️⃣ Approve Handler with SweetAlert2 (Yes/No Confirmation)
+  // ---------------------------------------------------------
+  const handleApproveInvoice = async (masterId, invoiceNo) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: `Do you want to Approve Invoice No: ${invoiceNo}? This action will post entries to Stock & Accounts and cannot be reversed!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#2b6cb0',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, Approve it!',
+      cancelButtonText: 'No, Cancel'
+    });
+
+    if (result.isConfirmed) {
+      // Loading screen lagana taake backend processing k dauran user double-click na kare
+      Swal.fire({
+        title: 'Processing...',
+        text: 'Posting ledger accounts and updating inventory stock.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      try {
+        // Controller route template match: /:id/approve
+        const res = await api.put(`/rm-transactions/${masterId}/approve`);
+        
+        if (res.status === 200 || res.status === 201) {
+          Swal.fire({
+            title: 'Approved!',
+            text: `Invoice ${invoiceNo} has been successfully approved and posted.`,
+            icon: 'success',
+            confirmButtonColor: '#2b6cb0'
+          });
+          fetchSales(); // Table refresh taake dynamic button change ho jaye
+        }
+      } catch (err) {
+        console.error("Error approving invoice:", err);
+        Swal.fire({
+          title: 'Error!',
+          text: err.response?.data?.message || 'Something went wrong while approving the invoice.',
+          icon: 'error',
+          confirmButtonColor: '#2b6cb0'
+        });
+      }
+    }
+  };
+
+  // ---------------------------------------------------------
+  // 2️⃣ Edit Handler with SweetAlert2 Confirmation
+  // ---------------------------------------------------------
+  const handleEditInvoice = async (masterId) => {
+    const result = await Swal.fire({
+      title: 'Edit Draft?',
+      text: 'Do you want to modify this invoice draft?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#2b6cb0',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Yes, Edit',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      // Edit form screen par navigate karega query parameter pass kar ke
+      navigate(`/rm-sale-form?editId=${masterId}`);
+    }
+  };
+
   return (
     <>
       <NavigationBar />
       <div className="rm-page">
-        {/* Top Header Section */}
         <div className="top-nav-container" style={{marginTop: '30px'}}>
           <button className="back-btn" onClick={() => navigate('/rm-transactions')}>
             <FaArrowLeft />
@@ -73,70 +130,96 @@ const RM_Sale = () => {
         </div>
 
         <div className="card">
-          {/* Header with Title and Add Button */}
           <div className="card-header">
-            <h3> 
-              Raw Material Sales
-            </h3>
-            <button className="add-sale-btn" onClick={() => navigate('/rm-sale-form')}>
+            <h3>Raw Material Sales</h3>
+            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW SALE
             </button>
           </div>
-          
+
           <div className="table-container">
-            {loading ? (
-                <div className="loading-state">Loading sales data...</div>
-            ) : sales.length === 0 ? (
-                <div className="no-data">No Raw Material Sale records found.</div>
-            ) : (
-                <table className="product-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th><FaFileInvoice /> INVOICE NO</th>
-                            <th>CREATED AT</th>
-                            <th><FaCalendarAlt /> DATE</th>
-                            <th><FaUserAlt /> CREATED BY</th>
-                            <th>CUSTOMER</th>
-                            <th>GRAND TOTAL</th>
-                            <th style={{ textAlign: 'center' }}>ACTION</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sales.map((sale) => (
-                            <tr key={sale.master_id}>
-                                <td className="id-cell">#{sale.master_id}</td>
-                                <td className="invoice-cell">{sale.invoice_no}</td>
-                                <td>{sale.createdat ? new Date(sale.createdat).toLocaleDateString() : "N/A"}</td>
-                                <td>{sale.date ? new Date(sale.date).toLocaleDateString() : "N/A"}</td>
-                                <td><span className="user-tag">{sale.createdby}</span></td>
-                                <td><span className="supplier-tag">{sale.entity_name}</span></td>
-                                <td className="total-cell">
-                                  {parseFloat(sale.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
-                                </td>
-                                <td className="action-cell">
-                                    <button 
-                                        onClick={() => handleViewDetails(sale.invoice_no)} 
-                                        className="primary-btn"
-                                    >
-                                        <FaEye /> VIEW
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <table className="product-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th><FaFileInvoice /> INVOICE NO</th>
+                  <th>CREATED AT</th>
+                  <th><FaCalendarAlt /> DATE</th>
+                  <th><FaUserAlt /> CREATED BY</th>
+                  <th>CUSTOMER</th>
+                  <th>GRAND TOTAL</th>
+                  <th>STATUS</th>
+                  <th style={{ textAlign: 'center' }}>ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sales.length > 0 ? (
+                  sales.map((s) => (
+                    <tr key={s.master_id}>
+                      <td style={{ color: '#94a3b8' }}>#{s.master_id}</td>
+                      <td style={{ fontWeight: '700' }}>{s.invoice_no}</td>
+                      <td>{s.createdat ? new Date(s.createdat).toLocaleDateString() : "-"}</td>
+                      <td>{s.date ? new Date(s.date).toLocaleDateString() : "-"}</td>
+                      <td><span className="user-tag">{s.createdby}</span></td>
+                      <td><span className="supplier-tag">{s.entity_name}</span></td>
+                      <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                        {parseFloat(s.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                      </td>
+                      <td>
+                        {/* Dynamic Status Text Badge */}
+                        <span className={`status-badge ${s.status === 'Approved' ? 'status-approved' : 'status-draft'}`}>
+                          {s.status || 'Draft'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                          <button onClick={() => navigate(`/rm-invoice/${s.invoice_no}`)} className="primary-btn">
+                            <FaEye /> VIEW
+                          </button>
+
+                          {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
+                          {s.status === 'Approved' ? (
+                            // Button shape text display for Approved status
+                            <span className="approved-text-btn">
+                              <FaCheckCircle /> APPROVED
+                            </span>
+                          ) : (
+                            // Show Edit and Approve buttons only when invoice is 'Draft'
+                            <>
+                              <button onClick={() => handleEditInvoice(s.master_id)} className="edit-btn-action">
+                                <FaEdit /> EDIT
+                              </button>
+                              <button onClick={() => handleApproveInvoice(s.master_id, s.invoice_no)} className="approve-btn-action">
+                                <FaCheckCircle /> APPROVE
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>No Transactions Found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-          
-          <div className="pagination-footer">
-                <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={(newPage) => setPage(newPage)}
-                />
+
+          <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+            <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
           </div>
         </div>
+        <InvoiceTypeModal
+          open={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          onSelect={(type) => {
+            setIsInvoiceModalOpen(false);
+            navigate(`/rm-sale-form?invoiceType=${type}`);
+          }}
+          title="Sale Invoice Type"
+        />
       </div>
       <Footer />
     </>

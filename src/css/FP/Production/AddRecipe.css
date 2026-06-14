@@ -58,7 +58,7 @@
     margin-bottom: 10px;
 }
 
-.item-row {
+.recipe-item-row {
     display: grid;
     grid-template-columns: 2.5fr 1fr 1fr 1fr 100px;
     gap: 15px;
@@ -123,13 +123,13 @@
 /* Responsive Logic */
 @media (max-width: 850px) {
     .items-grid-header { display: none; }
-    .item-row {
+    .recipe-item-row {
         grid-template-columns: 1fr 1fr;
         background: #f8fafc;
         padding: 15px;
         border-radius: 10px;
         border: 1px solid #e2e8f0;
     }
-    .item-row > *:first-child { grid-column: span 2; } /* Item Selection full width */
+    .recipe-item-row > *:first-child { grid-column: span 2; } /* Item Selection full width */
     .action-icon-btns { grid-column: span 2; justify-content: flex-end; }
 }

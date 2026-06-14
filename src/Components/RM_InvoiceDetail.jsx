@@ -249,12 +249,42 @@ const getLogoUrl = () => {
                             <footer className="invoice-footer">
                                 <div className="total-area">
                                     <div className="total-box shadow">
-                                        {/* ✅ Conditional Discount */}
-                                        {Number(invoice.discount) > 0 && (
-                                            <h5 style={{ marginBottom: '5px' }}>Discount: Rs. {Number(invoice.discount).toLocaleString()}</h5>
+                                        {/* If invoice is taxable show breakdown, else simple total */}
+                                        {invoice.is_taxable ? (
+                                            <div>
+                                                <div style={{ marginBottom: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <span>Sub Total</span>
+                                    <span>Rs. {Number(invoice.subtotal || 0).toLocaleString()}</span>
+                                </div>
+                                {Number(invoice.discount) > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                        <span>Discount</span>
+                                        <span>Rs. {Number(invoice.discount).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <span>Taxable Amount</span>
+                                    <span>Rs. {Number(invoice.taxable_amount || invoice.subtotal - invoice.discount || 0).toLocaleString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                    <span>Tax ({Number(invoice.tax_rate || 0).toFixed(2)}%)</span>
+                                    <span>Rs. {Number(invoice.tax_amount || 0).toLocaleString()}</span>
+                                </div>
+                            </div>
+                                                <h4 className="total-label">GRAND TOTAL</h4>
+                                                <h2 className="total-value">Rs. {Number(invoice.grand_total).toLocaleString()}</h2>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                {/* ✅ Conditional Discount */}
+                                                {Number(invoice.discount) > 0 && (
+                                                    <h5 style={{ marginBottom: '5px' }}>Discount: Rs. {Number(invoice.discount).toLocaleString()}</h5>
+                                                )}
+                                                <h4 className="total-label">GRAND TOTAL</h4>
+                                                <h2 className="total-value">Rs. {Number(invoice.grand_total).toLocaleString()}</h2>
+                                            </div>
                                         )}
-                                        <h4 className="total-label">GRAND TOTAL</h4>
-                                        <h2 className="total-value">Rs. {Number(invoice.grand_total).toLocaleString()}</h2> 
                                     </div>
                                 </div>
                                 

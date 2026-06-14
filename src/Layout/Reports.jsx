@@ -5,6 +5,8 @@ import {
     FaChartLine,        // Icon for Profit & Loss / Performance
     FaArrowRight, 
     FaArrowLeft,
+    FaBalanceScale,    // Icon for Capital & Net Worth Report
+    FaBookOpen         // Icon for Trial Balance Report
 } from 'react-icons/fa';
 import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
@@ -111,12 +113,29 @@ const Reports = () => {
                        color="#10b981" // Professional Emerald/Green color for Inventory & Growth
                     />
 
+
                     <ReportCard 
   title="💰 Balance Summary"
   description="View real-time closing balances for Customers, Suppliers, and Employees. Track Receivables and Payables at a glance."
   icon={<FaFileInvoiceDollar size={40} />} 
   path="/entity-balance-report" 
   color="#3f51b5" 
+/>
+
+<ReportCard 
+   title="⚖️ Capital & Net Worth Report"
+   description="Comprehensive statement of owner's equity using the structural balance equation (Assets - Liabilities). Monitor real-time enterprise net worth and capital reserves."
+   icon={<FaBalanceScale size={40} />}
+   path="/capital-report" 
+   color="#0d47a1" // Professional Deep Blue color for Financial Structure, Capital & Equity
+/>
+
+<ReportCard 
+   title="📊 Detailed Trial Balance"
+   description="Comprehensive ledger audit statement displaying Opening Balances, Period Debit/Credit Transactions, and Final Closing Balances across all chart of accounts."
+   icon={<FaBookOpen size={40} />}
+   path="/trial-balance" 
+   color="#495057" // Professional Dark Charcoal/Slate gray for accounting ledgers and balancing metrics
 />
 
                 </div>

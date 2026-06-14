@@ -5,10 +5,11 @@ import * as XLSX from "xlsx-js-style";
 import { FaArrowLeft, FaBook, FaFileExcel, FaFilePdf, FaImage } from "react-icons/fa";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import Select from "react-select"; // Import React-Select for Searchable dropdown
 import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
 import api from "../../api";
-import "../Profitloss.css"; // Wahi CSS use kar rahe hain consistent look ke liye
+import "../Profitloss.css"; // Consistent global styles
 
 const EntityLedgerReport = () => {
   const navigate = useNavigate();
@@ -20,12 +21,18 @@ const EntityLedgerReport = () => {
   const [toDate, setToDate] = useState("");
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [taxFilter, setTaxFilter] = useState('all');
 
   useEffect(() => {
     const fetchEntities = async () => {
       try {
         const res = await api.get("/entities/transactions");
-        setEntities(res.data);
+        // React-Select standard structures formatting array object (value & label mandatory keys)
+        const formattedEntities = res.data.map(e => ({
+          value: e.id,
+          label: `${e.name} (${e.type})`
+        }));
+        setEntities(formattedEntities);
       } catch (err) {
         toast.error("Failed to load entities");
       }
@@ -41,7 +48,7 @@ const EntityLedgerReport = () => {
     setLoading(true);
     try {
       const res = await api.get("/reports/entity-ledger", {
-        params: { entity_id: selectedEntity, fromDate, toDate }
+        params: { entity_id: selectedEntity, fromDate, toDate, tax_filter: taxFilter }
       });
       setReport(res.data);
       toast.success("Ledger loaded successfully");
@@ -83,6 +90,7 @@ const EntityLedgerReport = () => {
     const rows = [
       [{ v: `Ledger Report: ${report.entity.name}`, s: { font: { bold: true, sz: 14 } } }, "", "", "", ""],
       [{ v: `Period: ${fromDate} to ${toDate}`, s: { font: { italic: true } } }, "", "", "", ""],
+      [{ v: `Tax Filter: ${taxFilter.charAt(0).toUpperCase() + taxFilter.slice(1)}`, s: { font: { italic: true, color: { rgb: "666666" } } } }, "", "", "", ""],
       [],
       [{ v: "Opening Balance", s: subHeaderStyle }, "", "", "", { v: Number(report.openingBalance), s: { ...numStyle, font: { bold: true } } }],
       [{ v: "DATE", s: headerStyle }, { v: "DESCRIPTION", s: headerStyle }, { v: "DEBIT", s: headerStyle }, { v: "CREDIT", s: headerStyle }, { v: "BALANCE", s: headerStyle }],
@@ -162,6 +170,26 @@ const EntityLedgerReport = () => {
     );
   };
 
+  // Modern UI layout compatibility styles for React-Select matching your form elements
+  const customSelectStyles = {
+    control: (provided) => ({
+      ...provided,
+      minWidth: "220px",
+      height: "38px",
+      borderRadius: "6px",
+      borderColor: "#cbd5e1",
+      fontSize: "14px",
+      boxShadow: "none",
+      "&:hover": {
+        borderColor: "#94a3b8"
+      }
+    }),
+    menu: (provided) => ({
+      ...provided,
+      zIndex: 9999
+    })
+  };
+
   return (
     <>
       <NavigationBar />
@@ -170,14 +198,48 @@ const EntityLedgerReport = () => {
         <div className="report-card" style={{marginTop: "15px"}}>
           <div className="report-header">
             <h3 className="report-title"><FaBook className="mr-2"/> Entity Ledger Report</h3>
-            <div className="filter-group">
-              <select className="date-input" style={{minWidth: '180px'}} value={selectedEntity} onChange={(e) => setSelectedEntity(e.target.value)}>
-                <option value="">Select Entity</option>
-                {entities.map((e) => <option key={e.id} value={e.id}>{e.name} ({e.type})</option>)}
-              </select>
+            <div className="filter-group" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              
+              {/* 🔍 Searchable Entity Selection Field */}
+              <Select
+                options={entities}
+                value={entities.find(option => option.value === selectedEntity) || null}
+                onChange={(selectedOption) => setSelectedEntity(selectedOption ? selectedOption.value : "")}
+                placeholder="Search & Select Entity..."
+                isClearable
+                isSearchable
+                styles={customSelectStyles}
+                className="entity-search-select"
+              />
+
               <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               <button className="get-report-btn" onClick={fetchLedger}>{loading ? "..." : "Get Report"}</button>
+              
+              {/* 🏷️ Tax Filter Toggle Buttons */}
+              <div style={{ display: "flex", gap: "5px", padding: "0 10px" }}>
+                {['all', 'taxable', 'non-taxable'].map(filter => (
+                  <button
+                    key={filter}
+                    onClick={() => setTaxFilter(filter)}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                      backgroundColor: taxFilter === filter ? "#3b82f6" : "#f8fafc",
+                      color: taxFilter === filter ? "#ffffff" : "#475569",
+                      fontWeight: taxFilter === filter ? "600" : "500",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      fontSize: "13px",
+                      textTransform: "capitalize"
+                    }}
+                    title={`Filter by ${filter === 'all' ? 'all transactions' : filter} transactions`}
+                  >
+                    {filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
               
               {report && (
                 <div className="export-btn-group">
