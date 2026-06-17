@@ -121,7 +121,7 @@ const RM_SaleReturn = () => {
                   <th><FaUserAlt /> CREATED BY</th>
                   <th>CUSTOMER</th>
                   <th>GRAND TOTAL</th>
-                  <th>STATUS</th>
+                  <th>INVOICE STATUS</th>
                   <th style={{ textAlign: 'center' }}>ACTION</th>
                 </tr>
               </thead>
@@ -141,9 +141,15 @@ const RM_SaleReturn = () => {
                         {parseFloat(s.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
                       </td>
                       <td>
-                        <span className={`status-badge ${s.status === 'Approved' ? 'status-approved' : 'status-draft'}`}>
-                          {s.status || 'Draft'}
-                        </span>
+ <span className={`status-badge ${
+  s.status === 'Approved' 
+    ? 'status-approved' 
+    : (s.status === 'Draft' || !s.status) 
+      ? 'status-draft' // Red color wali class yahan lagegi
+      : 'status-draft'
+}`}>
+  {s.status === 'Draft' || !s.status ? 'Unapproved' : s.status}
+</span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>

@@ -175,8 +175,9 @@
   font-weight: 600;
 }
 .status-draft {
-  background-color: #fef3c7;
-  color: #d97706;
+ background-color: #fee2e2; /* Light Red background */
+    color: #dc2626;            /* Dark Red text */
+    border: 1px solid #fca5a5;
 }
 .status-approved {
   background-color: #dcfce7;

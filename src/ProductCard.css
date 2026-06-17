@@ -61,7 +61,7 @@ h3 {
   font-size: 15px;
   background-color: #f9f9f9;
   color: #333;
-  margin-bottom: 16px;
+  /* margin-bottom: 16px; */
   width: 100%;
   box-sizing: border-box;
   transition: border-color 0.3s ease, background-color 0.3s ease;

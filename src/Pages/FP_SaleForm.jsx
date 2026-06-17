@@ -353,12 +353,12 @@ const FP_SaleForm = () => {
                                                 handleChange(index, "stock", 0);
                                             }
                                         }}
-                                        style={{ marginTop : "20px" }}
+                                        style={{ marginTop : "20px"}}
                                     >
                                         <option value="">Select Product</option>
                                         {products.map((p) => <option key={p.recipe_id} value={p.recipe_id}>{p.display_name || p.product_name}</option>)}
                                     </select>
-                                    <small style={{ color: "gray", fontSize: '11px', paddingLeft: '2px' }}>Available: {row.stock}</small>
+                                    <small className="text-success" style={{fontSize: '11px', paddingLeft: '2px' }}>Available: {row.stock}</small>
                                 </div>
 
                                 <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />

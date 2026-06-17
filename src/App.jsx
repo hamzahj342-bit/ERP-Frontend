@@ -72,6 +72,7 @@ import StockReport from './Reports/StockReport';
 import EntityBalanceReport from './Reports/EntityBalanceReport';
 import CapitalReport from './Reports/CapitalReport';
 import TrialBalanceReport from './Reports/TrialBalanceReport';
+import SegmentedProfitLossReport from './Reports/Product_ProfitLoss';
 
 const App = () => {
   return (
@@ -158,6 +159,7 @@ const App = () => {
         <Route path='/entity-balance-report' element={<ProtectedRoute > <EntityBalanceReport /> </ProtectedRoute>} />
         <Route path='/capital-report' element={<ProtectedRoute > <CapitalReport /> </ProtectedRoute>} />
         <Route path='/trial-balance' element={<ProtectedRoute > <TrialBalanceReport /> </ProtectedRoute>} />
+        <Route path='/segmented-profit-loss' element={<ProtectedRoute > <SegmentedProfitLossReport /> </ProtectedRoute>} />
       </Routes>  
        <ToastContainer position="top-right" autoClose={3000} style={{ zIndex: 99999 }}/>
     </Router>

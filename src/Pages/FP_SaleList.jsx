@@ -158,7 +158,7 @@ const FP_SaleList = () => {
                     <th><FaCalendarAlt /> DATE</th>
                     <th>CUSTOMER</th>
                     <th>GRAND TOTAL</th>
-                    <th>STATUS</th>
+                    <th>INVOICE STATUS</th>
                     <th><FaUserAlt /> CREATED BY</th>
                     <th style={{ textAlign: 'center' }}>ACTION</th>
                   </tr>
@@ -178,9 +178,15 @@ const FP_SaleList = () => {
                         </td>
                         <td>
                           {/* Dynamic Status Text Badge */}
-                          <span className={`status-badge ${sale.status === 'Approved' ? 'status-approved' : 'status-draft'}`}>
-                            {sale.status || 'Draft'}
-                          </span>
+                          <span className={`status-badge ${
+  sale.status === 'Approved' 
+    ? 'status-approved' 
+    : (sale.status === 'Draft' || !sale.status) 
+      ? 'status-draft' // Red color wali class yahan lagegi
+      : 'status-draft'
+}`}>
+  {sale.status === 'Draft' || !sale.status ? 'Unapproved' : sale.status}
+</span>
                         </td>
                         <td><span className="user-tag">{sale.createdby || "—"}</span></td>
                         <td className="action-cell" style={{ textAlign: 'center' }}>
