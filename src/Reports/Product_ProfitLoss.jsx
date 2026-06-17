@@ -14,7 +14,6 @@ import api from "../../api";
 const SegmentedProfitLossReport = () => {
     const navigate = useNavigate();
     const reportRef = useRef(null);
-    const isInitialMount = useRef(true); // Double toast aur double API call rokne ke liye tracking ref
 
     const [fromDate, setFromDate] = useState(`${new Date().getFullYear()}-01-01`);
     const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
@@ -46,25 +45,21 @@ const SegmentedProfitLossReport = () => {
         }
     };
 
-    // Strict validation tracking taake page navigate hone par sirf 1 baar API chale
     useEffect(() => {
-    let isMounted = true;
+        let isMounted = true;
+        if (fromDate && toDate) {
+            const delayCall = setTimeout(() => {
+                if (isMounted) {
+                    loadReportData();
+                }
+            }, 50);
 
-    // Sirf tab call karein jab dono dates active hon
-    if (fromDate && toDate) {
-        // Chota sa timeout lagane se React ke internal virtual DOM re-renders settle ho jate hain
-        const delayCall = setTimeout(() => {
-            if (isMounted) {
-                loadReportData();
-            }
-        }, 50); // 50ms ka delay double navigation call ko block kar dega
-
-        return () => {
-            isMounted = false;
-            clearTimeout(delayCall);
-        };
-    }
-}, [fromDate, toDate]);
+            return () => {
+                isMounted = false;
+                clearTimeout(delayCall);
+            };
+        }
+    }, [fromDate, toDate]);
 
     const formatCurr = (v) => {
         const num = Number(v || 0);
@@ -75,7 +70,7 @@ const SegmentedProfitLossReport = () => {
     const calcMarginRatio = (gp, sales) => sales > 0 ? ((gp / sales) * 100).toFixed(1) + '%' : '0.0%';
 
     // ────────────────────────────────────────────────────────────────────────
-    // 📗 FIXED EXCEL EXPORT
+    // 📗 FIXED EXCEL EXPORT (MATH SIGN FIX)
     // ────────────────────────────────────────────────────────────────────────
     const downloadExcel = () => {
         if (!report) return;
@@ -105,7 +100,6 @@ const SegmentedProfitLossReport = () => {
         const amountStyle = { font: { name: "Calibri", sz: 10 }, alignment: { horizontal: "right" }, numFmt: "#,##0.00" };
         const totalStyle = { font: { name: "Calibri", bold: true, sz: 11 }, fill: { fgColor: { rgb: "E2E8F0" } }, border: { top: { style: "thin" }, bottom: { style: "double" } } };
 
-        // Ratio strings safe calculation to avoid styling crash
         const rmRatio = calcMarginRatio(report.segments.raw_material.gross_profit, report.segments.raw_material.net_sales);
         const fpRatio = calcMarginRatio(report.segments.finished_product.gross_profit, report.segments.finished_product.net_sales);
         const totalRatio = calcMarginRatio(report.totals.total_gross_profit, report.totals.total_sales);
@@ -117,28 +111,35 @@ const SegmentedProfitLossReport = () => {
             [{ v: "Financial Line Elements", s: headerStyle }, { v: "Raw Material (RM)", s: headerStyle }, { v: "Finished Goods (FP)", s: headerStyle }, { v: "Consolidated Total", s: headerStyle }],
             [{ v: "Operational Revenue", s: sectionStyle }, "", "", ""],
             [{ v: "Gross Sales Revenue" }, { v: Number(report.segments.raw_material.sales), s: amountStyle }, { v: Number(report.segments.finished_product.sales), s: amountStyle }, { v: Number(report.segments.raw_material.sales + report.segments.finished_product.sales), s: amountStyle }],
-            [{ v: "Less: Sales Returns" }, { v: -Number(report.segments.raw_material.returns), s: amountStyle }, { v: -Number(report.segments.finished_product.returns), s: amountStyle }, { v: -Number(report.segments.raw_material.returns + report.segments.finished_product.returns), s: amountStyle }],
+            
+            // 🌟 Math Signs aligned to mirror accounting formatting standards
+            [{ v: "Less: Sales Returns" }, { v: Number(report.segments.raw_material.returns) * -1, s: amountStyle }, { v: Number(report.segments.finished_product.returns) * -1, s: amountStyle }, { v: Number(report.segments.raw_material.returns + report.segments.finished_product.returns) * -1, s: amountStyle }],
+            
             [{ v: "Total Net Revenue", s: totalStyle }, { v: Number(report.segments.raw_material.net_sales), s: amountStyle }, { v: Number(report.segments.finished_product.net_sales), s: amountStyle }, { v: Number(report.totals.total_sales), s: totalStyle }],
             [{ v: "Direct Costs Breakdown", s: sectionStyle }, "", "", ""],
-            [{ v: "Less: Cost of Goods Sold (COGS)" }, { v: -Number(report.segments.raw_material.cogs), s: amountStyle }, { v: -Number(report.segments.finished_product.cogs), s: amountStyle }, { v: -Number(report.totals.total_cogs), s: amountStyle }],
+            [{ v: "Less: Cost of Goods Sold (COGS)" }, { v: Number(report.segments.raw_material.cogs) * -1, s: amountStyle }, { v: Number(report.segments.finished_product.cogs) * -1, s: amountStyle }, { v: Number(report.totals.total_cogs) * -1, s: amountStyle }],
             [{ v: "Gross Profit Margin", s: totalStyle }, { v: Number(report.segments.raw_material.gross_profit), s: amountStyle }, { v: Number(report.segments.finished_product.gross_profit), s: amountStyle }, { v: Number(report.totals.total_gross_profit), s: totalStyle }],
             [{ v: "Gross Profit Margin Ratio (%)" }, { v: rmRatio }, { v: fpRatio }, { v: totalRatio }],
             [{ v: "Indirect Overheads & Adjustments", s: sectionStyle }, "", "", ""],
             [{ v: "Add: Inventory System Adjustment Profit" }, "", "", { v: Number(report.totals.inventory_adjustment_revenue), s: amountStyle }],
-            [{ v: "Less: General Expenses & Wastages" }, "", "", { v: -Number(report.totals.other_expenses), s: amountStyle }],
+            
+            // 🌟 FIXED: Multiplication by -1 makes sure Excel prints negative format natively
+            [{ v: "Less: General Expenses & Wastages" }, "", "", { v: Number(report.totals.other_expenses) * -1, s: amountStyle }],
+            
             [{ v: "Consolidated Net Profit", s: totalStyle }, "", "", { v: Number(report.totals.actual_net_profit), s: totalStyle }]
         ];
 
         const ws = XLSX.utils.aoa_to_sheet(rows);
         ws['!cols'] = [{ wch: 38 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Segmented_P_L");
+        wb.SheetNames.push("Segmented_P_L");
+        wb.Sheets["Segmented_P_L"] = ws;
         XLSX.writeFile(wb, `Segmented_Profit_Loss_${fromDate}_to_${toDate}.xlsx`);
         toast.success("Excel Report Exported");
     };
 
     // ────────────────────────────────────────────────────────────────────────
-    // 📸 FIXED IMAGE EXPORT
+    // 📸 IMAGE EXPORT
     // ────────────────────────────────────────────────────────────────────────
     const downloadImage = async () => {
         if (!reportRef.current) {
@@ -146,7 +147,6 @@ const SegmentedProfitLossReport = () => {
             return;
         }
         try {
-            // html2canvas rendering configurations with background matching support
             const canvas = await html2canvas(reportRef.current, { 
                 scale: 2,
                 useCORS: true,
@@ -164,7 +164,7 @@ const SegmentedProfitLossReport = () => {
     };
 
     // ────────────────────────────────────────────────────────────────────────
-    // 📄 FIXED PDF EXPORT
+    // 📄 PDF EXPORT
     // ────────────────────────────────────────────────────────────────────────
     const downloadPDF = () => {
         if (!reportRef.current) {
@@ -175,7 +175,7 @@ const SegmentedProfitLossReport = () => {
         toast.info("Generating PDF format...");
         
         html2canvas(reportRef.current, { 
-            scale: 2, // 2 ya 3 scale standard desktop viewports ko perfect fit krta hai bina memory overflow k
+            scale: 2, 
             useCORS: true,
             backgroundColor: "#ffffff"
         }).then((canvas) => {
@@ -188,13 +188,11 @@ const SegmentedProfitLossReport = () => {
             const contentWidth = canvas.width;
             const contentHeight = canvas.height;
             
-            // Layout scale ratio calculation taake container widths table edge se compress na hon
             const ratio = Math.min((pdfWidth - 10) / contentWidth, (pdfHeight - 10) / contentHeight);
             
             const imgWidth = contentWidth * ratio;
             const imgHeight = contentHeight * ratio;
             
-            // Center tracking margins
             const pageX = (pdfWidth - imgWidth) / 2;
             const pageY = 6; 
 
@@ -211,7 +209,7 @@ const SegmentedProfitLossReport = () => {
         <MainLayout>
             <div className="p-2 p-md-4 mx-auto" style={{ width: '98%' }}>
                 
-                {/* ─── CLEAN TOP LAYOUT PANEL ─── */}
+                {/* TOP LAYOUT PANEL */}
                 <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
                     <div className="d-flex align-items-center gap-2 gap-md-3">
                         <button onClick={() => navigate(-1)} className='back-btn'>
@@ -268,7 +266,7 @@ const SegmentedProfitLossReport = () => {
                     </div>
                 </div>
 
-                {/* ─── CONDITIONAL RENDER AREA ─── */}
+                {/* CONDITIONAL RENDER AREA */}
                 {loading ? (
                     <div className="text-center bg-white rounded shadow-sm p-5 text-muted small border">
                         <div className="spinner-border text-secondary spinner-border-sm me-2" role="status"></div>
