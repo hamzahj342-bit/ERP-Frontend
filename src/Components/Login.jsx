@@ -76,6 +76,7 @@ const Login = () => {
                 navigate("/dashboard");
             }
         } catch (error) {
+            console.error("Login error:", error.response || error);
             toast.error(error.response?.data?.message || "Invalid Credentials");
         }
     };
@@ -110,12 +111,16 @@ const Login = () => {
     const handleSendOTP = async (e) => {
         e.preventDefault();
         setLoading(true);
+        console.log("forget email: " + forgotEmail);
         try {
+            
             await api.post('/send-otp', { email: forgotEmail });
             toast.success("Code sent to your email!");
             setStep(2);
         } catch (error) {
-            toast.error("Email not found or Server Error");
+            console.error("Send OTP error:", error.response || error);
+            const message = error.response?.data?.message || "Email not found or Server Error";
+            toast.error(message);
         } finally { setLoading(false); }
     };
 

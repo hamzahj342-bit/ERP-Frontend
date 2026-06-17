@@ -6,7 +6,9 @@ import {
     FaArrowRight, 
     FaArrowLeft,
     FaBalanceScale,    // Icon for Capital & Net Worth Report
-    FaBookOpen         // Icon for Trial Balance Report
+    FaBookOpen,       // Icon for Trial Balance Report
+    FaChartBar         // Icon for Segmented Profit & Loss Report
+
 } from 'react-icons/fa';
 import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
@@ -136,6 +138,14 @@ const Reports = () => {
    icon={<FaBookOpen size={40} />}
    path="/trial-balance" 
    color="#495057" // Professional Dark Charcoal/Slate gray for accounting ledgers and balancing metrics
+/>
+
+<ReportCard 
+   title="📈 Segmented Profit & Loss Report"
+   description="Analyze profitability by different segments, products, or regions. Identify top-performing areas and optimize resource allocation."
+   icon={<FaChartBar size={40} />}
+   path="/segmented-profit-loss" 
+   color="#ff9800" // Professional Amber/Orange color for Performance & Analytics
 />
 
                 </div>

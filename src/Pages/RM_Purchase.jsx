@@ -148,7 +148,7 @@ const RM_Purchase = () => {
                   <th><FaUserAlt /> CREATED BY</th>
                   <th>SUPPLIER</th>
                   <th>GRAND TOTAL</th>
-                  <th>STATUS</th>
+                  <th>INVOICE STATUS</th>
                   <th style={{ textAlign: 'center' }}>ACTION</th>
                 </tr>
               </thead>
@@ -167,9 +167,15 @@ const RM_Purchase = () => {
                       </td>
                       <td>
                         {/* Dynamic Status Text Badge */}
-                        <span className={`status-badge ${p.status === 'Approved' ? 'status-approved' : 'status-draft'}`}>
-                          {p.status || 'Draft'}
-                        </span>
+                       <span className={`status-badge ${
+  p.status === 'Approved' 
+    ? 'status-approved' 
+    : (p.status === 'Draft' || !p.status) 
+      ? 'status-draft' // Red color wali class yahan lagegi
+      : 'status-draft'
+}`}>
+  {p.status === 'Draft' || !p.status ? 'Unapproved' : p.status}
+</span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
