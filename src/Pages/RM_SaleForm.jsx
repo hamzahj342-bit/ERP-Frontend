@@ -446,6 +446,25 @@ const RM_SaleForm = () => {
                 </div>
             </div>
             <Footer />
+            {showCustomerModal && (
+                <div className="modal-overlay" onClick={() => setShowCustomerModal(false)}>
+                    <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Add New Customer</h3>
+                           
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group"><label>Name *</label><input type="text" id="new_cust_name" className="rm-input-field" /></div>
+                            <div className="form-group"><label>Address</label><input type="text" id="new_cust_address" className="rm-input-field" /></div>
+                            <div className="form-group"><label>Contact</label><input type="text" id="new_cust_contact" className="rm-input-field" /></div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="save-btn-main" onClick={handleQuickCustomerAdd}>Save Customer</button>
+                            <button className="quick-add-btn" onClick={() => setShowCustomerModal(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

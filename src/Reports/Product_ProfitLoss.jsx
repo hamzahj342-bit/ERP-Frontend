@@ -9,6 +9,7 @@ import {
 } from 'react-icons/fa';
 
 import MainLayout from "../Layout/MainLayout"; 
+
 import api from "../../api"; 
 
 const SegmentedProfitLossReport = () => {
@@ -206,7 +207,8 @@ const SegmentedProfitLossReport = () => {
     };
 
     return (
-        <MainLayout>
+        <>
+        <MainLayout />
             <div className="p-2 p-md-4 mx-auto" style={{ width: '98%' }}>
                 
                 {/* TOP LAYOUT PANEL */}
@@ -372,8 +374,9 @@ const SegmentedProfitLossReport = () => {
                         </div>
                     </div>
                 )}
+            
             </div>
-        </MainLayout>
+        </>
     );
 };
 
