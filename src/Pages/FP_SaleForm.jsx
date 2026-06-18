@@ -424,7 +424,7 @@ const FP_SaleForm = () => {
                     <div className="modal-box" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Add New Customer</h3>
-                            <button className="close-x" onClick={() => setShowCustomerModal(false)}>×</button>
+                            
                         </div>
                         <div className="modal-body">
                             <div className="form-group"><label>Name *</label><input type="text" id="new_cust_name" className="rm-input-field" /></div>
