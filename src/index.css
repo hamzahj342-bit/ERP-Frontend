@@ -1,277 +1,93 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;&display=swap');
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* ==========================================================================
+   CORE PLATFORM RESETS & FIXES
+   ========================================================================== */
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
 
 body {
     font-family: 'Montserrat', sans-serif;
-    background-color: #f5f5f5;
+    background-color: #f8fafc;
+    overflow-x: hidden;
 }
 
-.login-wrapper { display: flex; height: 100vh; width: 100%; }
-
-/* Left Side: Image */
-.image-section {
-    width: 60%;
-    background-size: cover;
-    background-position: center;
-     box-shadow: -15px 0px 15px -5px rgba(0, 0, 0, 0.35);
-
-}
-
-/* Right Side: Container */
-.login-container {
-    width: 40%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #f5f5f5;
-    padding: 40px;
-}
-
-.login-box {
-    width: 100%;
-    max-width: 420px;
-    text-align: center;
-}
-
-/* Header & Logo */
-.admin-logo {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 3px solid #1a73e8;
-    margin-bottom: 15px;
-    object-fit: cover;
-}
-
-.company-name {
-    font-size: 27px;
-    color: #1a73e8;
-    font-weight: 700;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-}
-
-.login-title {
-    color: #333;
-    font-size: 22px;
-    margin-bottom: 30px;
-    font-weight: 600;
-}
-
-/* Forms & Inputs */
-.input-box {
-    position: relative;
-    margin-bottom: 20px;
-}
-
-.input-box input {
-    width: 100%;
-    padding: 14px 45px 14px 15px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    background: #fdfdfd;
-    outline: none;
-    transition: 0.3s;
-}
-
-.input-box input:focus {
-    border-color: #1a73e8;
-    box-shadow: 0 0 8px rgba(26, 115, 232, 0.1);
-}
-
-/* Input box ke andar select ko set karein */
-.company-select-field {
-    width: 100%;
-    height: 100%;
-    border: none;
-    outline: none;
-    font-size: 16px;
-    color: #333; /* Dark text for the light blue background */
-    padding: 12px; 
-    border-radius: 10px;
-    border: 1px solid #ddd;
-    cursor: pointer;
-    appearance: none; /* Default arrow hatane ke liye */
-    -webkit-appearance: none;
-    -moz-appearance: none;
-
-}
-
-/* Dropdown options (the list) ko style karein */
-.company-select-field option {
-    background-color: #ffffff;
-    color: #333;
-    padding: 10px;
-}
-
-/* Agar aapki icon ki position hil rahi ho toh isay use karein */
-.input-box .icon {
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 18px;
-    color: #888;
-}
-/* Buttons & Links */
-.login-btn {
-    width: 100%;
-    padding: 14px;
-    background: #1a73e8;
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-.login-btn:hover { background: #155ab6; }
-
-.options {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    font-size: 0.85rem;
-}
-
-.forgot-link {
-    color: #1a73e8;
-    font-weight: 600;
-    cursor: pointer;
-}
+/* Base Utility Classes */
+.max-w-450 { max-width: 450px; }
+.max-w-400 { max-width: 400px; }
+.fs-7 { font-size: 0.75rem; }
+.uppercase-text { text-transform: uppercase; }
 
 /* Slide Animations */
-.animate-slide-left { animation: slideInLeft 0.5s ease-out; }
-.animate-slide-right { animation: slideInRight 0.5s ease-out; }
+.animate-slide-left { animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-right { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 @keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(30px); }
+    from { opacity: 0; transform: translateX(20px); }
     to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes slideInRight {
-    from { opacity: 0; transform: translateX(-30px); }
+    from { opacity: 0; transform: translateX(-20px); }
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* Back Arrow */
-.back-arrow {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #1a73e8;
-    cursor: pointer;
-    font-weight: 600;
-    margin-bottom: 20px;
-    font-size: 0.9rem;
-}
-
-.back-arrow:hover { text-decoration: underline; }
-
-.step-info {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 20px;
-}
-
-.otp-center {
-    text-align: center;
-    letter-spacing: 10px;
-    font-size: 1.3rem !important;
-    font-weight: bold;
-    color: #1a73e8;
-}
-
-/* Responsive */
-@media (max-width: 900px) {
-    .image-section { display: none; }
-    .login-container { width: 100%; }
-}
-
-.error-message {
-  color: red;
-  text-align: center;
-  margin-top: 10px;
-}
-.pdf-btn{
-  background-color: rgb(176, 0, 0);
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 5px;
-}
-.excel-btn{
-   background-color: rgb(6, 94, 1);
-    color: var(--white);
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-}
-.excel-btn:hover {
-       background-color: rgb(12, 131, 1);
-        color: var(--white);
-    margin-bottom: 20px;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ==========================================================================
-   PREMIUM ENTERPRISE GLOBAL ERP ARCHITECTURE THEME
+   PREMIUM ENTERPRISE STRUCTURE (100% SCREEN VIEW PERFECTED)
    ========================================================================== */
 
-.premium-layout {
+/* Outer wrapper viewport control standard height compression */
+.login-wrapper.premium-layout {
     display: flex;
+    width: 100vw;
+    height: 100vh;
     min-height: 100vh;
+    max-height: 100vh;
+    overflow: hidden; /* Prevents global page scroll completely */
     background-color: #f8fafc;
 }
 
-/* Left Hero Tech Stack Panel */
-.premium-erp-panel {
+/* Left Hero Technical Graphics Panel */
+.image-section.premium-erp-panel {
+    flex: 1.2; /* Takes slightly more workspace than right side */
     background: linear-gradient(145deg, #020617 0%, #0f172a 50%, #1e1b4b 100%) !important;
     position: relative;
-    box-shadow: inset -30px 0 60px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    box-shadow: inset -20px 0 40px rgba(0,0,0,0.3);
 }
 
 .erp-mesh-grid-premium {
     position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0; left: 0;
+    inset: 0;
     opacity: 0.04;
     background-image: linear-gradient(#38bdf8 1px, transparent 1px), linear-gradient(90deg, #38bdf8 1px, transparent 1px);
     background-size: 25px 25px;
     z-index: 1;
+    pointer-events: none;
 }
 
-/* Luxury Ambient Glow Elements */
 .glowing-orb-1 {
     position: absolute;
-    width: 350px;
-    height: 350px;
+    width: 300px;
+    height: 300px;
     background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0) 70%);
-    top: 10%; left: 10%;
+    top: 15%; left: 10%;
     z-index: 1;
     filter: blur(40px);
 }
 .glowing-orb-2 {
     position: absolute;
-    width: 400px;
-    height: 400px;
+    width: 350px;
+    height: 350px;
     background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0) 70%);
-    bottom: -10%; right: 10%;
+    bottom: 5%; right: 10%;
     z-index: 1;
     filter: blur(50px);
 }
@@ -288,111 +104,128 @@ body {
     letter-spacing: 0.05rem;
 }
 
-/* Corporate Micro Analytics Mockup Animation */
+/* Analytics Chart Mockup Component */
 .premium-chart-mock {
-    height: 140px;
-    opacity: 0.6;
+    height: 100px; /* Reduced to match strict layout bounds */
+    opacity: 0.5;
     border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     padding-bottom: 5px;
 }
 .transition-bar-premium {
-    width: 10px;
+    width: 8px;
     transform-origin: bottom;
     animation: premiumBarScale 4s infinite cubic-bezier(0.4, 0, 0.2, 1) alternate;
 }
-.h-40 { height: 40px; animation-delay: 0.1s; }
-.h-60 { height: 60px; animation-delay: 0.6s; }
-.h-75 { height: 75px; animation-delay: 0.3s; }
-.h-90 { height: 90px; animation-delay: 0.8s; }
-.h-110 { height: 115px; animation-delay: 0.4s; }
+.h-40 { height: 35px; animation-delay: 0.1s; }
+.h-60 { height: 55px; animation-delay: 0.6s; }
+.h-75 { height: 70px; animation-delay: 0.3s; }
+.h-90 { height: 85px; animation-delay: 0.8s; }
+.h-110 { height: 105px; animation-delay: 0.4s; }
 
 @keyframes premiumBarScale {
-    0% { transform: scaleY(0.85); filter: saturate(0.9); }
-    100% { transform: scaleY(1.15); filter: saturate(1.3); }
+    0% { transform: scaleY(0.9); }
+    100% { transform: scaleY(1.1); }
 }
 
-.rotating-icon {
-    animation: spinIcon 12s linear infinite;
-}
+.rotating-icon { animation: spinIcon 12s linear infinite; }
 @keyframes spinIcon { 100% { transform: rotate(30deg); } }
 
-/* Right Login Form Workspace */
-.premium-form-container {
+/* ==========================================================================
+   RIGHT SIDE WORKSPACE (FORM WORKSPACE INTEGRITY)
+   ========================================================================== */
+.login-container.premium-form-container {
+    flex: 1;
+    height: 100%;
     background: #fdfdfd;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 24px;
+    overflow-y: auto; /* Internal scroll only triggers if device height is super low */
 }
 
+/* Sizing Compactness Override (Stops bloated scaling on 100%) */
 .premium-box {
     background: #ffffff !important;
     border: 1px solid rgba(226, 232, 240, 0.8) !important;
     border-radius: 16px !important;
-    padding: 3.2rem 3rem !important;
-    max-width: 480px;
+    padding: 2rem 2.2rem !important; /* Scaled down padding from 3.2rem */
+    max-width: 410px; /* Locked standard width */
     width: 100%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02) !important;
 }
 
 .company-name-premium {
-    font-size: 1.6rem !important;
+    font-size: 1.45rem !important; /* Crisp & clear */
     font-weight: 800 !important;
     color: #0f172a !important;
     margin-bottom: 4px;
 }
 
 .form-subtitle-premium {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.12rem;
+    letter-spacing: 0.1rem;
     font-weight: 600;
 }
 
 .view-header-badge {
-    display: inline-block;
-    font-size: 0.78rem;
+    text-align: center;
+    font-size: 0.72rem;
     text-transform: uppercase;
-    letter-spacing: 0.08rem;
+    letter-spacing: 0.06rem;
     color: #1e40af;
     background: #eff6ff;
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: 6px;
     font-weight: 700;
 }
 
-/* Premium Inputs fields styling overrides */
+/* Premium Engineered Input Overrides */
 .premium-input {
     position: relative;
-    margin-bottom: 20px !important;
+    margin-bottom: 15px !important; /* Compact distance spacing */
 }
 
 .premium-input input, 
-.premium-input select {
+.premium-input select.company-select-field {
     width: 100%;
-    padding: 14px 16px 14px 48px !important;
-    font-size: 0.95rem !important;
+    height: 48px !important; /* Precise input height bounds */
+    padding: 10px 16px 10px 46px !important;
+    font-size: 0.9rem !important;
     background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 10px !important;
     color: #0f172a !important;
+    outline: none !important;
     transition: all 0.2s ease-in-out !important;
 }
 
 .premium-input input:focus, 
-.premium-input select:focus {
+.premium-input select.company-select-field:focus {
     background: #ffffff !important;
     border-color: #3b82f6 !important;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
-    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Custom select element configuration fallback overrides */
+select.company-select-field {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    cursor: pointer;
 }
 
 .icon-premium {
     position: absolute;
-    left: 18px;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
     color: #94a3b8;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    pointer-events: none;
+    z-index: 5;
     transition: color 0.2s;
 }
 
@@ -403,66 +236,119 @@ body {
 
 .password-toggle-premium {
     position: absolute;
-    right: 18px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
     color: #94a3b8;
     z-index: 10;
+    font-size: 0.95rem;
 }
-.password-toggle-premium:hover { color: #64748b; }
+.password-toggle-premium:hover { color: #475569; }
 
-/* Dynamic CTA Action Button */
-.premium-btn {
-    background: linear-gradient(to right, #2563eb, #1d4ed8) !important;
-    border: none !important;
-    border-radius: 10px !important;
-    color: #ffffff !important;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
-    transition: all 0.2s ease !important;
-}
-.premium-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3) !important;
-    background: linear-gradient(to right, #1d4ed8, #1e40af) !important;
+/* Control Options Area */
+.premium-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px !important;
+    margin-bottom: 18px !important;
 }
 
-/* Links & Utilities */
 .forgot-link-premium {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #64748b;
     cursor: pointer;
+    font-weight: 500;
     transition: color 0.15s;
 }
 .forgot-link-premium:hover { color: #2563eb; }
 
+/* Action CTA Base Button Styling */
+.premium-btn {
+    width: 100%;
+    height: 48px !important; /* Perfect align match with input elements */
+    background: linear-gradient(to right, #2563eb, #1d4ed8) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    color: #ffffff !important;
+    font-size: 0.88rem !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+    transition: all 0.2s ease !important;
+}
+.premium-btn:hover {
+    transform: translateY(-0.5px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25) !important;
+    background: linear-gradient(to right, #1d4ed8, #1e40af) !important;
+}
+
 .back-arrow-premium {
-    font-size: 0.88rem;
+    font-size: 0.82rem;
     color: #64748b;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-weight: 500;
 }
 .back-arrow-premium:hover { color: #0f172a; }
+.step-info-premium { font-size: 0.82rem; color: #64748b; }
+.otp-center-premium { font-size: 1.25rem !important; font-weight: 700 !important; letter-spacing: 6px !important; color: #2563eb !important; }
 
-/* Signature Footnote for Dev Brand Studio */
+/* Corporate Footnote */
 .codebase-branding {
-    border-color: #f1f5f9 !important;
+    margin-top: 2rem !important;
+    padding-top: 1rem !important;
+    border-top: 1px solid #f1f5f9 !important;
 }
 .dynamic-footer-text {
-    font-size: 0.72rem;
-    letter-spacing: 0.15rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.12rem;
     color: #94a3b8 !important;
 }
 .text-gradient-codebase {
     background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-weight: 700;
 }
 
-.max-w-450 { max-width: 450px; }
-.max-w-400 { max-width: 400px; }
-.fs-7 { font-size: 0.75rem; }
-.uppercase-text { text-transform: uppercase; }
+/* ==========================================================================
+   ADVANCED MOBILE COMPATIBILITY BREAKPOINTS
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+    /* Safe-scaling scaling adjustments for medium displays/tablets */
+    .image-section.premium-erp-panel { flex: 1; }
+    .premium-box { padding: 2rem !important; }
+}
+
+@media (max-width: 768px) {
+    /* Mobile core layout shift logic */
+    .login-wrapper.premium-layout {
+        flex-direction: column;
+        overflow-y: auto; /* Natural mobile scroll capability allowed */
+        max-height: none;
+    }
+
+    /* Instantly drop heavy dark visual panels to clean space clutter */
+    .image-section.premium-erp-panel {
+        display: none !important;
+    }
+
+    /* Right core interaction panel spans full bounds smoothly */
+    .login-container.premium-form-container {
+        width: 100%;
+        min-height: 100vh;
+        padding: 30px 20px;
+        align-items: center;
+        background: #ffffff;
+    }
+
+    .premium-box {
+        max-width: 100%;
+        border: none !important; /* Flat layout execution strategy on micro screens */
+        box-shadow: none !important;
+        padding: 1rem 0.5rem !important;
+    }
+}
