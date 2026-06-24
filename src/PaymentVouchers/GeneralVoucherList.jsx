@@ -4,14 +4,14 @@ import { FaArrowLeft, FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import "../RMForm.css";
 import Footer from "../Components/Footer";
-import Pagination from "../Components/Pagination"; // Import your Pagination component
+import Pagination from "../Components/Pagination"; 
 import api from "../../api";
 
-const PaymentTransactionList = () => {
+const GeneralVoucherList = () => {
   const [transactions, setTransactions] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false); // Added loading state
+  const [loading, setLoading] = useState(false); 
   const navigate = useNavigate();
 
   const fetchTransactions = async () => {
@@ -19,13 +19,12 @@ const PaymentTransactionList = () => {
     try {
       const res = await api.get("/payment-transactions/list", {
         params: { 
-          type: "payments",
-          page: page, // Pass page to API
-          limit: 50 // Optional: set a limit for items per page
+          type: "JV", // Strictly target General/Journal Vouchers only
+          page: page, 
+          limit: 20   
         }
       });
       
-      // Response structured as { data: [...], totalPages: X, ... }
       const { data, totalPages } = res.data;
       
       if (Array.isArray(data)) {
@@ -35,7 +34,7 @@ const PaymentTransactionList = () => {
         setTransactions([]);
       }
     } catch (err) {
-      console.error("Error fetching transactions:", err);
+      console.error("Error fetching general vouchers:", err);
       setTransactions([]);
     } finally {
       setLoading(false);
@@ -44,7 +43,7 @@ const PaymentTransactionList = () => {
 
   useEffect(() => {
     fetchTransactions();
-  }, [page]); // Re-fetch when page changes
+  }, [page]); 
 
   return (
     <>
@@ -60,37 +59,38 @@ const PaymentTransactionList = () => {
 
         <div className="card">
           <div className="card-header">
-            <h3>Payment Transactions</h3>
+            <h3>Journal Vouchers (JV)</h3>
             <button className="add-sale-btn" onClick={() => navigate("/payments")}>
-              <FaPlus /> NEW PAYMENT
+              <FaPlus /> NEW JOURNAL VOUCHER
             </button>
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>
+            <div style={{ textAlign: 'center', padding: '50px' }}>Loading Vouchers...</div>
           ) : (
             <table className="product-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Invoice No</th>
-                  <th>From Account</th>
-                  <th>To Account</th>
-                  <th>Transaction Date</th> {/* Updated header */}
-                  <th>Action</th>
+                  <th style={{ width: "80px" }}>ID</th> {/* 🌟 ID Column Wapas Add Kar Diya */}
+                  <th>Voucher No</th>
+                  <th>Transaction Date</th> 
+                  <th >Total Amount</th>
+                  <th style={{ textAlign: "center" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((tx) => (
-                  <tr key={tx.id}>
-                    <td>{tx.id}</td>
-                    <td>{tx.invoice_no}</td>
-                    <td>{tx.from_account_name}</td>
-                    <td>{tx.to_account_name}</td>
-                    <td>{tx.transaction_date || "-"}</td> {/* Show transaction_date */}
-                    <td>
+                  <tr key={tx.invoice_no}>
+                    <td style={{ color: "#6c757d", fontWeight: "500" }}>{tx.id}</td> {/* 🌟 Database key ID rendering */}
+                    <td style={{ fontWeight: "600", color: "#495057" }}>{tx.invoice_no}</td>
+                    <td>{tx.transaction_date || "-"}</td> 
+                    <td style={{ fontWeight: "600", color: "#0d6efd" }}>
+                      {parseFloat(tx.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ textAlign: "center", flexDirection: "row", display: "flex", justifyContent: "center" }}>
                       <button
                         className="primary-btn"
+                        style={{ width: "140px" }}
                         onClick={() => navigate(`/payment-transaction/${tx.invoice_no}`)}
                       >
                         View Details
@@ -100,8 +100,8 @@ const PaymentTransactionList = () => {
                 ))}
                 {transactions.length === 0 && (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: '20px' }}>
-                      No payment transactions found.
+                    <td colSpan={5} style={{ textAlign: "center", padding: '30px', color: "#6c757d" }}>
+                      No general vouchers found.
                     </td>
                   </tr>
                 )}
@@ -126,4 +126,4 @@ const PaymentTransactionList = () => {
   );
 };
 
-export default PaymentTransactionList;
+export default GeneralVoucherList;

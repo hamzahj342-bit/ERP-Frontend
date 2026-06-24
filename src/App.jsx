@@ -42,8 +42,8 @@ import Employees from './Pages/Emloyees';
 import EmployeesForm from './Components/EmployeesForm';
 import CreateAccount from './Pages/CreateAccount';
 import AccountList from './Pages/AccountList';
-import PaymentTransactionForm from './Components/PaymentTransactionForm';
-import PaymentTransactionList from './Components/PaymentTransctionList';
+import GeneralVoucherForm from './PaymentVouchers/GeneralVoucherForm';
+import GeneralVoucherList from './PaymentVouchers/GeneralVoucherList';
 import PaymentTransactionInvoice from './Components/PaymentTransactionInvoice';
 import InvestmentList from './Components/InvestmentList';
 import InvestmentForm from './Components/InvestmentForm';
@@ -73,6 +73,10 @@ import EntityBalanceReport from './Reports/EntityBalanceReport';
 import CapitalReport from './Reports/CapitalReport';
 import TrialBalanceReport from './Reports/TrialBalanceReport';
 import SegmentedProfitLossReport from './Reports/Product_ProfitLoss';
+import CashVoucherList from './PaymentVouchers/CashVoucherList';
+import CashVoucherForm from './PaymentVouchers/CashVoucherForm';
+import BankVoucherList from './PaymentVouchers/BankVoucherList';
+import BankVoucherForm from './PaymentVouchers/BankVoucherForm';
 
 const App = () => {
   return (
@@ -134,8 +138,13 @@ const App = () => {
         <Route path="/create-category" element={<ProtectedRoute> <CreateAccountCategory /> </ProtectedRoute>} />
         <Route path="/accounts" element={<ProtectedRoute> <AccountList /> </ProtectedRoute>} />
         <Route path="/create-account" element={<ProtectedRoute> <CreateAccount /> </ProtectedRoute>} />
-        <Route path="/payments" element={<ProtectedRoute> <PaymentTransactionForm /> </ProtectedRoute>} />
-        <Route path="/payments-list" element={<ProtectedRoute> <PaymentTransactionList /> </ProtectedRoute>} />
+        <Route path="/payments" element={<ProtectedRoute> <GeneralVoucherForm /> </ProtectedRoute>} />
+        <Route path="/payments-list" element={<ProtectedRoute> <GeneralVoucherList /> </ProtectedRoute>} />
+        <Route path="/cash-vouchers-list" element={<ProtectedRoute> <CashVoucherList /> </ProtectedRoute>} />
+        <Route path="/cash-voucher-form" element={<ProtectedRoute> <CashVoucherForm /> </ProtectedRoute>} />
+        <Route path="/bank-vouchers-list" element={<ProtectedRoute> <BankVoucherList /> </ProtectedRoute>} />
+        <Route path="/bank-voucher-form" element={<ProtectedRoute> <BankVoucherForm /> </ProtectedRoute>} />
+        <Route path="/payments-list" element={<ProtectedRoute> <GeneralVoucherList /> </ProtectedRoute>} />
         <Route path="/payment-transaction/:invoiceNo" element={<ProtectedRoute> <PaymentTransactionInvoice /> </ProtectedRoute>} />
         <Route path="/payment-transactions/:invoiceNo" element={<ProtectedRoute> <PaymentTransactionInvoice /> </ProtectedRoute>} />
         <Route path="/investment-list" element={<ProtectedRoute> <InvestmentList /> </ProtectedRoute>} />
