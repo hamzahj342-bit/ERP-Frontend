@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { 
     FaArrowRight,
     FaArrowLeft,
-    FaMoneyBillWave, // Icon for money/payment/general finance
-    FaChartLine, // Icon for investment/growth
+    FaMoneyBillWave, // General Voucher Icon
+    FaWallet,        // Cash Voucher Icon
+    FaUniversity,    // Bank Voucher Icon
 } from 'react-icons/fa';
-import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
+import '../FP_Production.css'; 
 import Footer from '../Components/Footer';
 import NavigationBar from '../Components/NavigationBar';
 
@@ -15,7 +16,6 @@ const TransactionTypeCard = ({ title, description, icon, path, color }) => {
     const navigate = useNavigate();
     
     return (
-        // Reusing .production-card class for consistent styling
         <div className="production-card" style={{ borderLeft: `5px solid ${color}` }}>
             <div className="card-header-prod">
                 <span className="card-icon-prod" style={{ color: color }}>
@@ -56,27 +56,36 @@ const Transactions = () => {
                     <FaArrowLeft/>
                 </button>
                 
-                <div className="fp-production-container"> {/* Reusing container class */}
+                <div className="fp-production-container"> 
                     <h3>🔄 General Financial Transactions</h3>
                     
                     <div className="production-cards-grid">
                         
-                        {/* 1. INVESTMENT TRANSACTIONS CARD */}
+                        {/* 1. CASH VOUCHERS CARD */}
                         <TransactionTypeCard 
-                            title="📈 Investment Transactions"
-                            description="Record transactions related to investments, capital inflows, or major fixed asset purchases (e.g., machinery)."
-                            icon={<FaChartLine size={40} />}
-                            path="/investment-list" 
-                            color="#28a745" // Green for Growth/Inflow
+                            title="💵 Cash Vouchers"
+                            description="Manage Cash Payment Vouchers (CPV) and Cash Receipt Vouchers (CRV) for standard daily cash transactions."
+                            icon={<FaWallet size={40} />}
+                            path="/cash-vouchers-list" // 🌟 Apne react router path ke mutabiq name adjust kar lein
+                            color="#198754" // Green for Cash Management
                         />
 
-                        {/* 2. PAYMENT TRANSACTIONS CARD */}
+                        {/* 2. BANK VOUCHERS CARD */}
                         <TransactionTypeCard 
-                            title="💸 Payment Transactions"
-                            description="Record general operational payments, bank transfers, and expenses not covered by specific purchase/sales modules."
+                            title="🏦 Bank Vouchers"
+                            description="Manage Bank Payment Vouchers (BPV) and Bank Receipt Vouchers (BRV) for cheque, online transfer, and bank ledger records."
+                            icon={<FaUniversity size={40} />}
+                            path="/bank-vouchers-list" // 🌟 Apne react router path ke mutabiq name adjust kar lein
+                            color="#0d6efd" // Blue for Corporate Bank Operations
+                        />
+
+                        {/* 3. GENERAL VOUCHER (JOURNAL VOUCHER) CARD */}
+                        <TransactionTypeCard 
+                            title="💸 General Voucher (JV)"
+                            description="Record general operational journal entries, non-cash adjustments, and multi-ledger reconciliation entries."
                             icon={<FaMoneyBillWave size={40} />}
-                            path="/payments-list" 
-                            color="#DC3545" // Red for General Outflow/Expense
+                            path="/payments-list" // Wahi path jo aap pehle use kar rahe thay (General Voucher List)
+                            color="#DC3545" // Red Color
                         />
 
                     </div>
