@@ -69,7 +69,7 @@ const Reports = () => {
                         title="📜 Entity Ledger Report"
                         description="View detailed transactional history and running balances for a specific Customer (A/R) or Supplier (A/P)."
                         icon={<FaFileInvoiceDollar size={40} />}
-                        path="/entity-ledger" // Assuming this is your target route
+                        path="/entities-menu" // Assuming this is your target route
                         color="#00A86B" // Green for Money Tracking
                     />
 

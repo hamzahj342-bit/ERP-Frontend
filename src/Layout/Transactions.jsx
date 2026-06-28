@@ -81,7 +81,7 @@ const Transactions = () => {
 
                         {/* 3. GENERAL VOUCHER (JOURNAL VOUCHER) CARD */}
                         <TransactionTypeCard 
-                            title="💸 General Voucher (JV)"
+                            title="💸 Journal Voucher (JV)"
                             description="Record general operational journal entries, non-cash adjustments, and multi-ledger reconciliation entries."
                             icon={<FaMoneyBillWave size={40} />}
                             path="/payments-list" // Wahi path jo aap pehle use kar rahe thay (General Voucher List)

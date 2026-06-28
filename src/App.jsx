@@ -54,7 +54,11 @@ import FP_Production from './Layout/FP_Production';
 import FP_Transactions from './Layout/FP_Transactions';
 import Accounts from './Layout/Accounts';
 import Transactions from './Layout/Transactions';
-import EntityLedgerReport from './Components/EntityLedgerReport';
+import EntityLedgerReport from './Reports/EntitiesLedgerReport/EntityLedgerReport';
+import SupplierLedgerReport from './Reports/EntitiesLedgerReport/SupplierLedgerReport';
+import CustomerLedgerReport from './Reports/EntitiesLedgerReport/CustomerLedgerReport';
+import EmployeeLedgerReport from './Reports/EntitiesLedgerReport/EmployeeLedgerReport';
+import LinkedEntityLedgerReport from './Reports/EntitiesLedgerReport/LinkedEntityLedgerReport';
 import Reports from './Layout/Reports';
 import ProfitLoss from './Components/ProfitLoss';
 import AccountLedger from './Components/AccountsLedger';
@@ -77,6 +81,9 @@ import CashVoucherList from './PaymentVouchers/CashVoucherList';
 import CashVoucherForm from './PaymentVouchers/CashVoucherForm';
 import BankVoucherList from './PaymentVouchers/BankVoucherList';
 import BankVoucherForm from './PaymentVouchers/BankVoucherForm';
+import EntityLedgerMenu from './Layout/EntitiesLedgerMenu';
+import RM_OpeningStockList from './Pages/RM_OpeningStockList';
+import RM_OpeningStockForm from './Pages/RM_OpeningStockForm';
 
 const App = () => {
   return (
@@ -105,6 +112,8 @@ const App = () => {
 
         <Route path="/add-materials" element={<ProtectedRoute> <AddMaterial/> </ProtectedRoute>} />
         <Route path='/materials-list' element={<ProtectedRoute> <MaterialsList /> </ProtectedRoute>} />
+        <Route path='/rm-opening-stock-entry' element={<ProtectedRoute> <RM_OpeningStockList /> </ProtectedRoute>} />
+        <Route path='/rm-opening-stock-form' element={<ProtectedRoute> <RM_OpeningStockForm /> </ProtectedRoute>} />
         <Route path="/rm-purchase" element={<ProtectedRoute> <RM_Purchase/> </ProtectedRoute>} />
         <Route path="/rm-purchase-form" element={<ProtectedRoute> <RM_PurchaseForm/> </ProtectedRoute>} />
         <Route path="/rm-sale" element={<ProtectedRoute> <RM_Sale/> </ProtectedRoute>} />
@@ -159,6 +168,11 @@ const App = () => {
 
         <Route path='/reports' element={<ProtectedRoute> <Reports /> </ProtectedRoute>} />
         <Route path='/entity-ledger' element={<ProtectedRoute> <EntityLedgerReport /> </ProtectedRoute>} />
+        <Route path='/entities-menu' element={<ProtectedRoute> <EntityLedgerMenu /> </ProtectedRoute>} />
+        <Route path='/ledgers/suppliers' element={<ProtectedRoute> <SupplierLedgerReport /> </ProtectedRoute>} />
+        <Route path='/ledgers/customers' element={<ProtectedRoute> <CustomerLedgerReport /> </ProtectedRoute>} />
+        <Route path='/ledgers/employees' element={<ProtectedRoute> <EmployeeLedgerReport /> </ProtectedRoute>} />
+        <Route path='/ledgers/linked-entities' element={<ProtectedRoute> <LinkedEntityLedgerReport /> </ProtectedRoute>} />
         <Route path='/profit-loss' element={<ProtectedRoute> <ProfitLoss /> </ProtectedRoute>} />
         <Route path='/accounts-report' element={<ProtectedRoute> <AccountLedger /> </ProtectedRoute>} />
         <Route path='sales-report' element={<ProtectedRoute> <SalesReport /> </ProtectedRoute>} />

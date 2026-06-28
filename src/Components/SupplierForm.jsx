@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from 'react-icons/fa';
+import Select from 'react-select';
 import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "./NavigationBar";
@@ -11,6 +12,9 @@ const SupplierForm = () => {
   const navigate = useNavigate();
 
   const [shops, setShops] = useState([]);
+  const [entities, setEntities] = useState([]);
+  const [isCustomerLinked, setIsCustomerLinked] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -41,6 +45,11 @@ const handleSubmit = async (e) => {
           return;
         }
 
+    if (isCustomerLinked && !selectedCustomer) {
+      toast.error("Please select an active customer to link this supplier.");
+      return;
+    }
+
     // Payload bilkul same rakha hai
     const payload = {
       name: formData.name, 
@@ -49,7 +58,9 @@ const handleSubmit = async (e) => {
       shop_id: finalShopId, 
       company_id: user.company_id,
       created_by: user ? user.username : "guest", 
-      type: "supplier" 
+      type: "supplier",
+      is_customer_linked: isCustomerLinked,
+      entity_relation_id: isCustomerLinked ? selectedCustomer.value : null
     };
 
     try {
@@ -59,6 +70,8 @@ const handleSubmit = async (e) => {
       // Axios success (200-299 status codes)
       toast.success("Supplier added successfully!");
       setFormData({ name: "", address: "", contact: "", shop_id: "" }); 
+      setIsCustomerLinked(false);
+      setSelectedCustomer(null);
       
     } catch (err) {
       console.error("Submit Error:", err);
@@ -78,9 +91,24 @@ const handleSubmit = async (e) => {
         console.error("Error fetching shops:", err);
       }
     };
+
+    const fetchCustomers = async () => {
+      try {
+        const res = await api.get('/entities/transactions');
+        setEntities(res.data || []);
+      } catch (err) {
+        console.error("Error fetching entities:", err);
+      }
+    };
     
     fetchShops();
+    fetchCustomers();
   }, []);
+
+  const customerOptions = entities
+    .filter((entity) => entity?.type === 'customer')
+    .map((customer) => ({ value: customer.id, label: customer.name }));
+
   return (
     <>
     <NavigationBar />
@@ -140,7 +168,33 @@ const handleSubmit = async (e) => {
             </button>
           </div>
 
-          <button type="submit" className="primary-btn">Add Supplier</button>
+          <div className="linkage-card">
+            <label className="linkage-label">
+              <input
+                type="checkbox"
+                checked={isCustomerLinked}
+                onChange={(e) => {
+                  setIsCustomerLinked(e.target.checked);
+                  if (!e.target.checked) setSelectedCustomer(null);
+                }}
+              />
+              <span>Is this supplier also an active Customer?</span>
+            </label>
+
+            {isCustomerLinked && (
+              <Select
+                options={customerOptions}
+                value={selectedCustomer}
+                onChange={setSelectedCustomer}
+                placeholder="Search & select Customer..."
+                isClearable
+                isSearchable
+                className="linkage-select"
+              />
+            )}
+          </div>
+
+          <button type="submit" className="save-btn">Save Supplier</button>
         </form>
       </div>
     </div>

@@ -16,13 +16,19 @@
 /* Header & Title */
 .report-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 25px;
   flex-wrap: wrap;
   gap: 15px;
 }
 
+.report-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 280px;
+}
 
 .report-title {
   display: flex;
@@ -32,6 +38,14 @@
   font-weight: 700;
   color: #2c3e50;
   margin: 0;
+}
+
+.report-description {
+  margin: 0;
+  max-width: 720px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 /* ⚡ Filters Section - Sleek & Responsive */

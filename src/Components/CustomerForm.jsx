@@ -1,7 +1,8 @@
 // src/pages/CustomerForm.js
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeft } from 'react-icons/fa';
+import Select from 'react-select';
 import "../EntityForm.css";
 import { toast } from "react-toastify";
 import NavigationBar from "./NavigationBar";
@@ -11,6 +12,9 @@ import api from "../../api";
 const CustomerForm = () => {
   const navigate = useNavigate();
 
+  const [entities, setEntities] = useState([]);
+  const [isSupplierLinked, setIsSupplierLinked] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -27,6 +31,23 @@ const CustomerForm = () => {
   const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user"));
 
+  useEffect(() => {
+    const fetchEntities = async () => {
+      try {
+        const res = await api.get('/entities/transactions');
+        setEntities(res.data || []);
+      } catch (err) {
+        console.error('Error fetching entities:', err);
+      }
+    };
+
+    fetchEntities();
+  }, []);
+
+  const supplierOptions = entities
+    .filter((entity) => entity?.type === 'supplier')
+    .map((supplier) => ({ value: supplier.id, label: supplier.name }));
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -35,11 +56,18 @@ const CustomerForm = () => {
       return;
     }
 
+    if (isSupplierLinked && !selectedSupplier) {
+      toast.error("Please select an active supplier to link this customer.");
+      return;
+    }
+
     const payload = {
       ...formData,
       company_id: user.company_id,
       created_by: user ? user.id : null,
-      type: "customer" // 👈 hardcoded for customer
+      type: "customer",
+      is_supplier_linked: isSupplierLinked,
+      entity_relation_id: isSupplierLinked ? selectedSupplier.value : null
     };
 
     try {
@@ -51,6 +79,8 @@ const CustomerForm = () => {
 
       toast.success("Customer added successfully!");
       setFormData({ name: "", address: "", contact: "" });
+      setIsSupplierLinked(false);
+      setSelectedSupplier(null);
       
     } catch (err) {
       console.error("Submit Error:", err);
@@ -96,7 +126,33 @@ const CustomerForm = () => {
             onChange={handleChange}
           />
 
-          <button type="submit" className="primary-btn">Add Customer</button>
+          <div className="linkage-card">
+            <label className="linkage-label">
+              <input
+                type="checkbox"
+                checked={isSupplierLinked}
+                onChange={(e) => {
+                  setIsSupplierLinked(e.target.checked);
+                  if (!e.target.checked) setSelectedSupplier(null);
+                }}
+              />
+              <span>Is this customer also an active Supplier?</span>
+            </label>
+
+            {isSupplierLinked && (
+              <Select
+                options={supplierOptions}
+                value={selectedSupplier}
+                onChange={setSelectedSupplier}
+                placeholder="Search & select Supplier..."
+                isClearable
+                isSearchable
+                className="linkage-select"
+              />
+            )}
+          </div>
+
+          <button type="submit" className="save-btn">Save Customer</button>
         </form>
       </div>
     </div>

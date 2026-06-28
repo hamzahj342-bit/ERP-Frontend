@@ -38,6 +38,9 @@ const RM_PurchaseForm = () => {
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     const [showMaterialModal, setShowMaterialModal] = useState(false);
     const [uoms, setUoms] = useState([]);
+    // --- State Controlled Modal Variables for flawless UI Sync ---
+const [newMaterialName, setNewMaterialName] = useState("");
+const [newMaterialUom, setNewMaterialUom] = useState("");
 
     const fetchInvoiceNo = useCallback(async () => {
         if (isEditMode) return; 
@@ -269,16 +272,39 @@ const RM_PurchaseForm = () => {
     };
 
     const handleQuickMaterialAdd = async () => {
-        const name = document.getElementById('new_rm_name').value;
-        const uom_id = document.getElementById('new_rm_uom').value;
-        if (!name || !uom_id) return toast.error("Please fill all fields");
-        try {
-            const res = await api.post("/add-materials", { name, uom_id: parseInt(uom_id) });
-            setMaterials(prev => [...prev, res.data]);
-            setShowMaterialModal(false);
+    if (!newMaterialName || !newMaterialUom) return toast.error("Please fill all fields");
+    
+    try {
+        const payload = { 
+            name: newMaterialName, 
+            material_name: newMaterialName, // Fallback if backend looks for material_name
+            uom_id: parseInt(newMaterialUom) 
+        };
+
+        const res = await api.post("/add-materials", payload);
+        
+        // Handling both raw object and nested data responses safely
+        const savedItem = res.data?.data || res.data;
+        
+        if (savedItem) {
+            setMaterials(prev => [...prev, savedItem]);
             toast.success("Material Added!");
-        } catch (err) { toast.error("Failed to add material"); }
-    };
+        } else {
+            // Safe fallback: re-sync list from backend if response format is messy
+            const refreshRes = await api.get("/add-materials");
+            setMaterials(refreshRes.data);
+            toast.info("Materials list synchronized.");
+        }
+        
+        // Reset and close
+        setNewMaterialName("");
+        setNewMaterialUom("");
+        setShowMaterialModal(false);
+    } catch (err) { 
+        console.error("Quick Material Add Error:", err);
+        toast.error(err.response?.data?.message || "Failed to add material"); 
+    }
+};
 
     return (
         <div className="rm-page-wrapper">
@@ -417,24 +443,45 @@ const RM_PurchaseForm = () => {
             )}
 
             {showMaterialModal && (
-                <div className="modal-overlay" onClick={() => setShowMaterialModal(false)}>
-                    <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-                        <h3>Add New Material</h3>
-                        <div className="form-group"><label>Material Name</label><input type="text" id="new_rm_name" className="rm-input-field" /></div>
-                        <div className="form-group">
-                            <label>UOM</label>
-                            <select id="new_rm_uom" className="rm-input-field">
-                                <option value="">Select UOM</option>
-                                {uoms.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                            </select>
-                        </div>
-                        <div className="modal-actions">
-                            <button className="save-btn-main" onClick={handleQuickMaterialAdd}>Save Material</button>
-                            <button className="quick-add-btn" onClick={() => setShowMaterialModal(false)}>Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+    <div className="modal-overlay" onClick={() => {
+        setShowMaterialModal(false);
+        setNewMaterialName("");
+        setNewMaterialUom("");
+    }}>
+        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h3>Add New Material</h3>
+            <div className="form-group">
+                <label>Material Name</label>
+                <input 
+                    type="text" 
+                    className="rm-input-field" 
+                    value={newMaterialName}
+                    onChange={(e) => setNewMaterialName(e.target.value)}
+                    placeholder="Enter material name"
+                />
+            </div>
+            <div className="form-group">
+                <label>UOM</label>
+                <select 
+                    className="rm-input-field"
+                    value={newMaterialUom}
+                    onChange={(e) => setNewMaterialUom(e.target.value)}
+                >
+                    <option value="">Select UOM</option>
+                    {uoms.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+            </div>
+            <div className="modal-actions">
+                <button type="button" className="save-btn-main" onClick={handleQuickMaterialAdd}>Save Material</button>
+                <button type="button" className="quick-add-btn" onClick={() => {
+                    setShowMaterialModal(false);
+                    setNewMaterialName("");
+                    setNewMaterialUom("");
+                }}>Cancel</button>
+            </div>
+        </div>
+    </div>
+)}
         </div>
     );
 };
