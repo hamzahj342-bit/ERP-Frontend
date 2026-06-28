@@ -1,45 +1,66 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;&display=swap');
+
+:root {
+  --bg-main: #f5f7fa;
+  --bg-card: #ffffff;
+  --bg-input: #f9f9f9;
+  --text-main: #333333;
+  --text-muted: #666666;
+  --primary: #1a73e8;
+  --primary-hover: #155ab6;
+  --primary-light: #eff6ff;
+  --border-color: #cccccc;
+  --border-light: #dbeafe;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 .page-container {
   font-family: 'Montserrat', sans-serif;
-  background-color: #f5f5f5;
+  background-color: var(--bg-main);
+  color: var(--text-main);
   min-height: 100vh;
   padding: 40px 20px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 24px;
 }
 
 /* 🔙 Back Button */
 .back-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  background-color: #ffffff;
-  color: #1a73e8;
-  border: 2px solid #1a73e8;
-  font-weight: bold;
+  background-color: var(--bg-card);
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  font-weight: 700;
+  font-size: 14px;
   padding: 10px 18px;
   border-radius: 8px;
   width: fit-content;
   cursor: pointer;
-  transition: background 0.3s ease, color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .back-btn:hover {
-  background-color: #1a73e8;
+  background-color: var(--primary);
   color: #fff;
 }
 
 /* 🧾 Card Container */
 .entity-card {
-  background-color: #ffffff;
-  color: #333;
+  background-color: var(--bg-card);
+  color: var(--text-main);
   border-radius: 15px;
   padding: 30px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  width: 800px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 800px; /* Fully responsive wrap instead of fixed 800px */
   margin: 0 auto;
 }
 
@@ -48,45 +69,137 @@
   text-align: center;
   font-size: 2rem;
   font-weight: 700;
-  color: #1a73e8;
-  margin-bottom: 20px;
+  color: var(--primary);
+  margin-bottom: 24px;
 }
 
-/* 📝 Inputs */
-.entity-card input,
+/* 📝 Inputs & Selects */
+.entity-card input:not([type="checkbox"]),
 .entity-card select {
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
   font-size: 15px;
-  background-color: #f9f9f9;
-  color: #333;
+  font-family: inherit;
+  background-color: var(--bg-input);
+  color: var(--text-main);
   margin-bottom: 16px;
   width: 100%;
-  box-sizing: border-box;
-  transition: border-color 0.3s ease, background-color 0.3s ease;
+  transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .entity-card input:focus,
 .entity-card select:focus {
-  border-color: #1a73e8;
+  border-color: var(--primary);
   background-color: #fff;
   outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
+/* 🔄 Shop Row Adjustment (Select + Add Shop Button inline) */
+.shop-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.shop-row select {
+  margin-bottom: 0;
+}
+.shop-row .inline-btn {
+  padding: 12px 20px;
+  background-color: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+.shop-row .inline-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+/* 🔗 Cleaned Linkage Card Section */
+.linkage-card {
+  border: 1px solid var(--border-light);
+  background-color: var(--primary-light);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* Aligning the checkbox and text neatly together */
+.linkage-label {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centers the whole row like your layout, but keeps them grouped together */
+  gap: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.linkage-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  margin: 0;
+}
+
+.linkage-select {
+  width: 100%;
+  margin-bottom: 0 !important;
 }
 
 /* ➕ Submit Button */
 .primary-btn {
-  padding: 12px;
+  padding: 14px;
   border-radius: 8px;
   border: none;
-  background-color: #1a73e8;
+  background-color: var(--primary);
   color: #fff;
   font-weight: bold;
+  font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s ease;
   width: 100%;
 }
 
 .primary-btn:hover {
-  background-color: #155ab6;
+  background-color: var(--primary-hover);
+}
+
+/* 📱 Responsive Adjustments */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 20px 14px;
+  }
+
+  .entity-card {
+    padding: 20px 16px;
+  }
+
+  .entity-card h2 {
+    font-size: 1.6rem;
+  }
+
+  .shop-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .shop-row .inline-btn {
+    width: 100%;
+  }
+  
+  .linkage-label {
+    justify-content: flex-start; /* Better alignment on small screens */
+  }
 }

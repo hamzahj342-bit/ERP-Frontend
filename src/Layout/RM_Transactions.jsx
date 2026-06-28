@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaShoppingCart, FaUndo, FaCashRegister, FaExchangeAlt, FaArrowRight, FaArrowLeft } from 'react-icons/fa';
+import { FaShoppingCart, FaUndo, FaCashRegister, FaPlayCircle, FaExchangeAlt, FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import "../RM_CardLayout.css"
 import NavigationBar from '../Components/NavigationBar';
@@ -33,6 +33,14 @@ const RM_Transactions = () => {
     { id: 2, title: "Purchase Return", description: "Track materials sent back to suppliers.", icon: <FaUndo />, path: "/rm-return", color: "#f59e0b" },
     { id: 3, title: "RM Sale", description: "Manage outward sales and billing.", icon: <FaCashRegister />, path: "/rm-sale", color: "#3b82f6" },
     { id: 4, title: "Sale Return", description: "Manage materials returned by customers.", icon: <FaExchangeAlt />, path: "/rm-sale-return", color: "#ef4444" },
+    { 
+  id: 5, 
+  title: "Opening Stock Entry", 
+  description: "Initialize startup inventory and setup opening stock balances for new clients.", 
+  icon: <FaPlayCircle />, // Startup entries ke liye active initiation icon
+  path: "/rm-opening-stock-entry", 
+  color: "#6b7280" // Professional Slate Gray color setup/initialization tasks ke liye
+}
   ];
 
   return (
