@@ -4,7 +4,7 @@ import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';           
 import Pagination from '../Components/Pagination';
 import { toast } from 'react-toastify';
-import { FaArrowLeft, FaBoxes, FaUserTag, FaSearch, FaWarehouse } from 'react-icons/fa';
+import { FaArrowLeft, FaBoxes, FaUserTag, FaSearch, FaWarehouse, FaTags } from 'react-icons/fa';
 import api from "../../api"; 
 import "../css/RM/RMStockList.css"; // CSS Import
 
@@ -16,6 +16,9 @@ const RMStockList = () => {
     const [viewMode, setViewMode] = useState('entity');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [categories, setCategories] = useState([]);
+    const [activeCategoryId, setActiveCategoryId] = useState(null);
+    const [activeCategoryName, setActiveCategoryName] = useState('');
     const navigate = useNavigate();
 
     // Debounce Logic
@@ -30,10 +33,24 @@ const RMStockList = () => {
     const fetchStock = async () => {
         setLoading(true);
         try {
-            const endpoint = viewMode === 'entity' ? "/rm-stock/list" : "/rm-stock/material-list";
-            const res = await api.get(endpoint, { 
-                params: { page: page, limit: 50, search: debouncedSearch } 
-            });
+            if (viewMode === 'category' && !activeCategoryId) {
+                setStock([]);
+                setTotalPages(1);
+                return;
+            }
+
+            let endpoint = "/rm-stock/list";
+            const params = { page, limit: 50, search: debouncedSearch };
+
+            if (viewMode === 'material' || viewMode === 'category') {
+                endpoint = "/rm-stock/material-list";
+            }
+
+            if (viewMode === 'category' && activeCategoryId) {
+                params.category_id = activeCategoryId;
+            }
+
+            const res = await api.get(endpoint, { params });
             if (res.data && res.data.data) {
                 setStock(res.data.data);
                 setTotalPages(res.data.totalPages || 1);
@@ -48,12 +65,30 @@ const RMStockList = () => {
         }
     };
 
-    useEffect(() => { fetchStock(); }, [page, debouncedSearch, viewMode]);
+    useEffect(() => { fetchStock(); }, [page, debouncedSearch, viewMode, activeCategoryId]);
 
     useEffect(() => {
         setSearchTerm("");
         setPage(1);
+        if (viewMode !== 'category') {
+            setActiveCategoryId(null);
+            setActiveCategoryName('');
+        }
     }, [viewMode]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await api.get('/material-categories');
+                setCategories(res.data);
+            } catch (err) {
+                toast.error('Failed to load categories');
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    const categoryFilteredStock = activeCategoryId ? stock : [];
 
     return (
         <div className="page-wrapper">
@@ -77,6 +112,9 @@ const RMStockList = () => {
                             <button className={`view-toggle-btn ${viewMode === 'material' ? 'active' : ''}`} onClick={() => setViewMode('material')}>
                                 <FaBoxes /> Summary View
                             </button>
+                            <button className={`view-toggle-btn ${viewMode === 'category' ? 'active' : ''}`} onClick={() => setViewMode('category')}>
+                                <FaTags /> Category View
+                            </button>
                         </div>
                     </div>
 
@@ -84,7 +122,15 @@ const RMStockList = () => {
                         {/* Search Bar Section */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
                             <h3 style={{ margin: 0, fontSize: '1rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <FaWarehouse /> {viewMode === 'entity' ? 'Batch-wise Inventory' : 'Total Material Stock'}
+                                <FaWarehouse /> {
+                                    viewMode === 'entity'
+                                        ? 'Batch-wise Inventory'
+                                        : viewMode === 'material'
+                                            ? 'Total Material Stock'
+                                            : activeCategoryId
+                                                ? `Category Stock - ${activeCategoryName}`
+                                                : 'Category-Wise Inventory'
+                                }
                             </h3>
                             <div className="search-box-wrapper" style={{ maxWidth: '350px', marginBottom: 0 }}>
                                 <FaSearch className="search-icon-inside" />
@@ -97,9 +143,32 @@ const RMStockList = () => {
                                 />
                             </div>
                         </div>
+                        {viewMode === 'category' && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
+                                {categories.length > 0 ? categories.map((category) => (
+                                    <button
+                                        key={category.id}
+                                        className={`view-toggle-btn ${activeCategoryId === category.id ? 'active' : ''}`}
+                                        onClick={() => {
+                                            setActiveCategoryId(category.id);
+                                            setActiveCategoryName(category.name);
+                                        }}
+                                        style={{ borderRadius: 8, padding: '10px 16px' }}
+                                    >
+                                        {category.name}
+                                    </button>
+                                )) : (
+                                    <span style={{ color: '#64748b' }}>No categories available.</span>
+                                )}
+                            </div>
+                        )}
 
                         {loading ? (
                             <div style={{ textAlign: 'center', padding: '40px' }}><div className="loader"></div><p>Fetching Stock...</p></div>
+                        ) : viewMode === 'category' && !activeCategoryId ? (
+                            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                                Select a category above to view stock details.
+                            </div>
                         ) : (
                             <div className="prod-table-container">
                                 <table className="stock-table-responsive">
@@ -117,7 +186,7 @@ const RMStockList = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {stock.length > 0 ? stock.map((item, index) => (
+                                        {((viewMode === 'category' && activeCategoryId) ? categoryFilteredStock : stock).length > 0 ? ((viewMode === 'category' && activeCategoryId) ? categoryFilteredStock : stock).map((item, index) => (
                                             <tr key={viewMode === 'entity' ? item.stock_id : index}>
                                                 {viewMode === 'entity' && <td><span style={{color:'#94a3b8', fontSize: '0.8rem'}}>#{item.stock_id}</span></td>}
                                                 <td style={{ fontWeight: '600', color: '#1e293b' }}>{item.material_name}</td> 
