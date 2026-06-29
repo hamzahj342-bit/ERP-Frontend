@@ -148,6 +148,7 @@ const App = () => {
         <Route path="/accounts" element={<ProtectedRoute> <AccountList /> </ProtectedRoute>} />
         <Route path="/create-account" element={<ProtectedRoute> <CreateAccount /> </ProtectedRoute>} />
         <Route path="/payments" element={<ProtectedRoute> <GeneralVoucherForm /> </ProtectedRoute>} />
+        <Route path="/payments/:voucherId" element={<ProtectedRoute> <GeneralVoucherForm /> </ProtectedRoute>} />
         <Route path="/payments-list" element={<ProtectedRoute> <GeneralVoucherList /> </ProtectedRoute>} />
         <Route path="/cash-vouchers-list" element={<ProtectedRoute> <CashVoucherList /> </ProtectedRoute>} />
         <Route path="/cash-voucher-form" element={<ProtectedRoute> <CashVoucherForm /> </ProtectedRoute>} />

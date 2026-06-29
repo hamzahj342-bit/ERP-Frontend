@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import { FaArrowLeft, FaPlus, FaTrash } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import api from "../../api";
@@ -10,13 +10,16 @@ import "../Transactions.css";
 
 const GeneralVoucherForm = () => {
     const navigate = useNavigate();
+    const { voucherId } = useParams();
+    const isEditMode = Boolean(voucherId);
 
     const [accounts, setAccounts] = useState([]);
     const [invoiceNo, setInvoiceNo] = useState("");
     const [suppliers, setSuppliers] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [employees, setEmployees] = useState([]);
-    const [isSubmitting, setIsSubmitting] = useState(false); 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingVoucher, setIsLoadingVoucher] = useState(false);
 
     const [transactionDate, setTransactionDate] = useState("");
 
@@ -57,10 +60,14 @@ const GeneralVoucherForm = () => {
     };
 
     useEffect(() => {
-        fetchEntities();
-        fetchAccounts();
-        fetchInvoiceNo();
-    }, [fetchInvoiceNo]);
+        if (isEditMode) {
+            fetchVoucherDetails(voucherId);
+        } else {
+            fetchEntities();
+            fetchAccounts();
+            fetchInvoiceNo();
+        }
+    }, [fetchInvoiceNo, isEditMode, voucherId]);
 
     const getControlAccType = (accountId) => {
         const acc = accounts.find(a => a.id == accountId);
@@ -70,6 +77,80 @@ const GeneralVoucherForm = () => {
         if (name.includes('receivable')) return 'Receivable'; 
         if (name.includes('salary')) return 'Salary'; 
         return null;
+    };
+
+    const fetchVoucherDetails = async (id) => {
+        setIsLoadingVoucher(true);
+        try {
+            const res = await api.get(`/payment-transactions/voucher/${id}`);
+            const voucher = res.data;
+            setInvoiceNo(voucher.invoice_no);
+            setTransactionDate(voucher.transaction_date || "");
+
+            const groups = [];
+            voucher.entries.forEach((entry) => {
+                if (entry.debit > 0) {
+                    groups.push({
+                        debit: {
+                            account_id: entry.account_id,
+                            type: "debit",
+                            amount: entry.debit,
+                            entity_id: entry.entity_id || ""
+                        },
+                        credit: {
+                            account_id: "",
+                            type: "credit",
+                            amount: "",
+                            entity_id: ""
+                        },
+                        description: entry.remarks || ""
+                    });
+                } else if (entry.credit > 0) {
+                    const latestGroup = groups[groups.length - 1];
+                    if (latestGroup && !latestGroup.credit.account_id) {
+                        latestGroup.credit = {
+                            account_id: entry.account_id,
+                            type: "credit",
+                            amount: entry.credit,
+                            entity_id: entry.entity_id || ""
+                        };
+                        latestGroup.description = latestGroup.description || entry.remarks || "";
+                    } else {
+                        groups.push({
+                            debit: {
+                                account_id: "",
+                                type: "debit",
+                                amount: "",
+                                entity_id: ""
+                            },
+                            credit: {
+                                account_id: entry.account_id,
+                                type: "credit",
+                                amount: entry.credit,
+                                entity_id: entry.entity_id || ""
+                            },
+                            description: entry.remarks || ""
+                        });
+                    }
+                }
+            });
+
+            setVoucherGroups(groups.length ? groups : [
+                {
+                    debit: { account_id: "", type: "debit", amount: "", entity_id: "" },
+                    credit: { account_id: "", type: "credit", amount: "", entity_id: "" },
+                    description: ""
+                }
+            ]);
+
+            fetchEntities();
+            fetchAccounts();
+        } catch (err) {
+            console.error("Error loading voucher details:", err);
+            toast.error(err.response?.data?.error || "Unable to load voucher to edit.");
+        } finally {
+            setIsLoadingVoucher(false);
+        }
     };
 
     const getEntityListAndLabel = (accountId) => {
@@ -173,22 +254,32 @@ const GeneralVoucherForm = () => {
         };
 
         try {
-            const res = await api.post("/payment-transactions", payload);
+            let res;
+            if (isEditMode) {
+                res = await api.put(`/payment-transactions/invoice/${invoiceNo}`, payload);
+            } else {
+                res = await api.post("/payment-transactions", payload);
+            }
+
             setIsSubmitting(false);
             Swal.fire({
-                title: "Journal Voucher Successful!",
-                text: `Voucher No: ${res.data.invoice_no}`, 
+                title: isEditMode ? "Voucher updated successfully!" : "Journal Voucher Successful!",
+                text: isEditMode ? `Voucher updated: ${invoiceNo}` : `Voucher No: ${res.data.invoice_no}`,
                 icon: "success",
             }).then(() => {
-                setTransactionDate("");
-                setVoucherGroups([
-                    {
-                        debit: { account_id: "", type: "debit", amount: "", entity_id: "" },
-                        credit: { account_id: "", type: "credit", amount: "", entity_id: "" },
-                        description: ""
-                    }
-                ]);
-                fetchInvoiceNo(); 
+                if (!isEditMode) {
+                    setTransactionDate("");
+                    setVoucherGroups([
+                        {
+                            debit: { account_id: "", type: "debit", amount: "", entity_id: "" },
+                            credit: { account_id: "", type: "credit", amount: "", entity_id: "" },
+                            description: ""
+                        }
+                    ]);
+                    fetchInvoiceNo();
+                } else {
+                    navigate('/payments-list');
+                }
             });
         } catch (err) {
             setIsSubmitting(false);
@@ -205,7 +296,9 @@ const GeneralVoucherForm = () => {
                     <button className="back-btn" onClick={() => navigate(-1)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">Journal Voucher Entry (3-Row Matrix Set)</h2>
+                    <h2 className="form-title">
+                        {isEditMode ? `Edit Journal Voucher (ID: ${voucherId})` : "Journal Voucher Entry"}
+                    </h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -247,16 +340,16 @@ const GeneralVoucherForm = () => {
 
                                         return (
                                             <React.Fragment key={groupIndex}>
-                                                {/* ROW 1: DEBIT ENTRY */}
+                                                                                   {/* ROW 2: CREDIT ENTRY */}
                                                 <tr style={{ borderBottom: "1px dashed #e9ecef", background: "#ffffff" }}>
                                                     <td style={{ padding: "8px" }}>
                                                         <select 
                                                             className="rm-input-field"
-                                                            value={group.debit.account_id}
-                                                            onChange={(e) => handleFieldChange(groupIndex, "debit", "account_id", e.target.value)}
+                                                            value={group.credit.account_id}
+                                                            onChange={(e) => handleFieldChange(groupIndex, "credit", "account_id", e.target.value)}
                                                             required
                                                         >
-                                                            <option value="">Select Debit Account</option>
+                                                            <option value="">Select From Account</option>
                                                             {accounts.map(acc => (
                                                                 <option key={acc.id} value={acc.id}>{acc.account_name} ({acc.account_code})</option>
                                                             ))}
@@ -265,22 +358,22 @@ const GeneralVoucherForm = () => {
                                                     <td style={{ padding: "8px" }}>
                                                         <input 
                                                             type="text" 
-                                                            value="Debit (Dr)" 
+                                                            value="Credit (Cr)" 
                                                             readOnly 
                                                             className="rm-input-field readonly-input" 
-                                                            style={{ background: "#e8f4fd", color: "#0d6efd", fontWeight: "bold", border: "1px solid #bbeeeb" }} 
+                                                            style={{ background: "#fdf2f2", color: "#dc3545", fontWeight: "bold", border: "1px solid #fbcccc" }} 
                                                         />
                                                     </td>
                                                     <td style={{ padding: "8px" }}>
-                                                        {debEntityList.length > 0 ? (
+                                                        {credEntityList.length > 0 ? (
                                                             <select 
                                                                 className="rm-input-field"
-                                                                value={group.debit.entity_id}
-                                                                onChange={(e) => handleFieldChange(groupIndex, "debit", "entity_id", e.target.value)}
+                                                                value={group.credit.entity_id}
+                                                                onChange={(e) => handleFieldChange(groupIndex, "credit", "entity_id", e.target.value)}
                                                                 required
                                                             >
-                                                                <option value="">Select {debEntityLabel}</option>
-                                                                {debEntityList.map(entity => (
+                                                                <option value="">Select {credEntityLabel}</option>
+                                                                {credEntityList.map(entity => (
                                                                     <option key={entity.id} value={entity.id}>{entity.name}</option>
                                                                 ))}
                                                             </select>
@@ -291,12 +384,12 @@ const GeneralVoucherForm = () => {
                                                     <td style={{ padding: "8px" }}>
                                                         <input 
                                                             type="number" step="any" placeholder="0.00" className="rm-input-field"
-                                                            value={group.debit.amount}
-                                                            onChange={(e) => handleFieldChange(groupIndex, "debit", "amount", e.target.value)}
+                                                            value={group.credit.amount}
+                                                            onChange={(e) => handleFieldChange(groupIndex, "credit", "amount", e.target.value)}
                                                             required
                                                         />
                                                     </td>
-                                                    {/* CUSTOM IMAGE INSPIRED ACTION BUTTONS ZONE */}
+                                                     {/* CUSTOM IMAGE INSPIRED ACTION BUTTONS ZONE */}
                                                     <td rowSpan={3} style={{ padding: "8px", textAlign: "center", borderLeft: "1px solid #dee2e6", background: "#f8f9fa" }}>
                                                         <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "center", justifyContent: "center" }}>
                                                             {/* Custom UI Plus Button */}
@@ -346,17 +439,16 @@ const GeneralVoucherForm = () => {
                                                         </div>
                                                     </td>
                                                 </tr>
-
-                                                {/* ROW 2: CREDIT ENTRY */}
+                                                {/* ROW 1: DEBIT ENTRY */}
                                                 <tr style={{ borderBottom: "1px dashed #e9ecef", background: "#ffffff" }}>
                                                     <td style={{ padding: "8px" }}>
                                                         <select 
                                                             className="rm-input-field"
-                                                            value={group.credit.account_id}
-                                                            onChange={(e) => handleFieldChange(groupIndex, "credit", "account_id", e.target.value)}
+                                                            value={group.debit.account_id}
+                                                            onChange={(e) => handleFieldChange(groupIndex, "debit", "account_id", e.target.value)}
                                                             required
                                                         >
-                                                            <option value="">Select Credit Account</option>
+                                                            <option value="">Select To Account</option>
                                                             {accounts.map(acc => (
                                                                 <option key={acc.id} value={acc.id}>{acc.account_name} ({acc.account_code})</option>
                                                             ))}
@@ -365,22 +457,22 @@ const GeneralVoucherForm = () => {
                                                     <td style={{ padding: "8px" }}>
                                                         <input 
                                                             type="text" 
-                                                            value="Credit (Cr)" 
+                                                            value="Debit (Dr)" 
                                                             readOnly 
                                                             className="rm-input-field readonly-input" 
-                                                            style={{ background: "#fdf2f2", color: "#dc3545", fontWeight: "bold", border: "1px solid #fbcccc" }} 
+                                                            style={{ background: "#e8f4fd", color: "#0d6efd", fontWeight: "bold", border: "1px solid #bbeeeb" }} 
                                                         />
                                                     </td>
                                                     <td style={{ padding: "8px" }}>
-                                                        {credEntityList.length > 0 ? (
+                                                        {debEntityList.length > 0 ? (
                                                             <select 
                                                                 className="rm-input-field"
-                                                                value={group.credit.entity_id}
-                                                                onChange={(e) => handleFieldChange(groupIndex, "credit", "entity_id", e.target.value)}
+                                                                value={group.debit.entity_id}
+                                                                onChange={(e) => handleFieldChange(groupIndex, "debit", "entity_id", e.target.value)}
                                                                 required
                                                             >
-                                                                <option value="">Select {credEntityLabel}</option>
-                                                                {credEntityList.map(entity => (
+                                                                <option value="">Select {debEntityLabel}</option>
+                                                                {debEntityList.map(entity => (
                                                                     <option key={entity.id} value={entity.id}>{entity.name}</option>
                                                                 ))}
                                                             </select>
@@ -391,12 +483,15 @@ const GeneralVoucherForm = () => {
                                                     <td style={{ padding: "8px" }}>
                                                         <input 
                                                             type="number" step="any" placeholder="0.00" className="rm-input-field"
-                                                            value={group.credit.amount}
-                                                            onChange={(e) => handleFieldChange(groupIndex, "credit", "amount", e.target.value)}
+                                                            value={group.debit.amount}
+                                                            onChange={(e) => handleFieldChange(groupIndex, "debit", "amount", e.target.value)}
                                                             required
                                                         />
                                                     </td>
+                                                   
                                                 </tr>
+
+             
 
                                                 {/* ROW 3: DESCRIPTION / REMARKS */}
                                                 <tr style={{ borderBottom: "3px solid #dee2e6", background: "#fdfdfd" }}>
@@ -440,10 +535,10 @@ const GeneralVoucherForm = () => {
                         <button 
                             type="submit" 
                             className="save-btn-main" 
-                            disabled={isSubmitting || difference !== 0}
-                            style={{ marginTop: "20px", opacity: (difference !== 0) ? 0.6 : 1 }}
+                            disabled={isSubmitting || difference !== 0 || isLoadingVoucher}
+                            style={{ marginTop: "20px", opacity: (difference !== 0 || isLoadingVoucher) ? 0.6 : 1 }}
                         >
-                            {isSubmitting ? "Processing..." : "Submit General Voucher Entry"}
+                            {isLoadingVoucher ? "Loading voucher..." : isSubmitting ? "Processing..." : isEditMode ? "Update General Voucher" : "Submit General Voucher Entry"}
                         </button>
                     </form>
                 </div>

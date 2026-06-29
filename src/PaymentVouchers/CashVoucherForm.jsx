@@ -10,9 +10,11 @@ import api from "../../api";
 const CashVoucherForm = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    
-    // Default to CPV if type is not provided or invalid
-    const voucherType = searchParams.get("prefix")?.toUpperCase() === "CRV" ? "CRV" : "CPV";
+    const editId = searchParams.get("editId");
+    const [voucherType, setVoucherType] = useState(
+        searchParams.get("prefix")?.toUpperCase() === "CRV" ? "CRV" : "CPV"
+    );
+    const isEditMode = Boolean(editId);
 
     const [accounts, setAccounts] = useState([]);
     const [cashAccounts, setCashAccounts] = useState([]); 
@@ -21,6 +23,7 @@ const CashVoucherForm = () => {
     const [customers, setCustomers] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false); 
+    const [isLoadingVoucher, setIsLoadingVoucher] = useState(false);
 
     const [transactionDate, setTransactionDate] = useState("");
     const [selectedCashAccount, setSelectedCashAccount] = useState("");
@@ -68,14 +71,18 @@ const CashVoucherForm = () => {
                 setCashAccounts(cashAccRes.data || []);
             } catch (err) {
                 console.error("Dynamic asset-controls API failed, applying local fallback:", err);
-                // Agar endpoint fail ho jaye, to main list se filter karke fallback chala do taake form breakdown na ho
                 setCashAccounts([]);
             }
         };
 
         fetchInitialData();
-        fetchInvoiceNo();
-    }, [fetchInvoiceNo, voucherType]);
+
+        if (isEditMode) {
+            fetchVoucherDetails(editId);
+        } else {
+            fetchInvoiceNo();
+        }
+    }, [fetchInvoiceNo, isEditMode, editId]);
 
     // Helper function to return dynamic accounts or safely fallback to localized search
     const renderCashAccounts = () => {
@@ -98,6 +105,47 @@ const CashVoucherForm = () => {
         if (name.includes('receivable')) return 'Receivable'; 
         if (name.includes('salary')) return 'Salary'; 
         return null;
+    };
+
+    const fetchVoucherDetails = async (id) => {
+        setIsLoadingVoucher(true);
+        try {
+            const res = await api.get(`/payment-transactions/voucher/${id}`);
+            const voucher = res.data;
+            const type = voucher.type === "CRV" ? "CRV" : "CPV";
+            setVoucherType(type);
+            setInvoiceNo(voucher.invoice_no);
+            setTransactionDate(voucher.transaction_date || "");
+
+            const isCashPayment = type === "CPV";
+            let cashRow = voucher.entries.find(entry => {
+                const matchesCashName = entry.account_name?.toLowerCase().includes('cash');
+                const isAutoBalance = isCashPayment ? entry.credit > 0 : entry.debit > 0;
+                return isAutoBalance && matchesCashName;
+            });
+            if (!cashRow) {
+                cashRow = voucher.entries.find(entry => isCashPayment ? entry.credit > 0 : entry.debit > 0);
+            }
+
+            if (cashRow) {
+                setSelectedCashAccount(cashRow.account_id);
+            }
+
+            const nonCashEntries = voucher.entries.filter(entry => entry.id !== cashRow?.id);
+            const mappedRows = nonCashEntries.map(entry => ({
+                account_id: entry.account_id,
+                entity_id: entry.entity_id || "",
+                amount: Number(entry.debit || entry.credit || 0),
+                description: entry.remarks || ""
+            }));
+
+            setVoucherRows(mappedRows.length ? mappedRows : [{ account_id: "", entity_id: "", amount: "", description: "" }]);
+        } catch (err) {
+            console.error("Error loading voucher details:", err);
+            toast.error(err.response?.data?.error || "Unable to load cash voucher to edit.");
+        } finally {
+            setIsLoadingVoucher(false);
+        }
     };
 
     const getEntityListAndLabel = (accountId) => {
@@ -160,18 +208,32 @@ const CashVoucherForm = () => {
 
         setIsSubmitting(true);
         try {
-            const res = await api.post("/payment-transactions", {
-                transaction_date: transactionDate,
-                description: `${voucherType} Entry - Cash Transaction`,
-                voucher_prefix: voucherType,
-                items: finalItems
-            });
+            let res;
+            if (isEditMode) {
+                res = await api.put(`/payment-transactions/invoice/${invoiceNo}`, {
+                    transaction_date: transactionDate,
+                    description: `${voucherType} Entry - Cash Transaction`,
+                    voucher_prefix: voucherType,
+                    items: finalItems
+                });
+            } else {
+                res = await api.post("/payment-transactions", {
+                    transaction_date: transactionDate,
+                    description: `${voucherType} Entry - Cash Transaction`,
+                    voucher_prefix: voucherType,
+                    items: finalItems
+                });
+            }
             setIsSubmitting(false);
-            Swal.fire({ title: "Success", text: `Voucher No: ${res.data.invoice_no}`, icon: "success" })
+            Swal.fire({ title: isEditMode ? "Voucher updated successfully!" : "Success", text: `Voucher No: ${res.data.invoice_no}`, icon: "success" })
                 .then(() => {
-                    setTransactionDate(""); setSelectedCashAccount("");
-                    setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
-                    fetchInvoiceNo();
+                    if (!isEditMode) {
+                        setTransactionDate(""); setSelectedCashAccount("");
+                        setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
+                        fetchInvoiceNo();
+                    } else {
+                        navigate('/cash-vouchers-list');
+                    }
                 });
         } catch (err) {
             setIsSubmitting(false);
@@ -179,13 +241,25 @@ const CashVoucherForm = () => {
         }
     };
 
+    if (isEditMode && isLoadingVoucher) {
+        return (
+            <div className="rm-page-wrapper">
+                <NavigationBar />
+                <div className="rm-content-container" style={{ padding: '60px', textAlign: 'center' }}>
+                    <h2>Loading voucher details...</h2>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
     return (
         <div className="rm-page-wrapper">
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
                     <button className="back-btn" onClick={() => navigate(-1)}><FaArrowLeft /></button>
-                    <h2 className="form-title">{voucherType === "CPV" ? "Cash Payment Voucher (CPV)" : "Cash Receipt Voucher (CRV)"}</h2>
+                    <h2 className="form-title">{voucherType === "CPV" ? (isEditMode ? "Edit Cash Payment Voucher (CPV)" : "Cash Payment Voucher (CPV)") : (isEditMode ? "Edit Cash Receipt Voucher (CRV)" : "Cash Receipt Voucher (CRV)")}</h2>
                 </div>
                 <div className="rm-main-card">
                     <form onSubmit={handleSubmit}>
