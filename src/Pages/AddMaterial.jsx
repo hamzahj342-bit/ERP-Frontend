@@ -16,11 +16,16 @@ const AddMaterial = () => {
     name: '',
     uom_id: '',
     unit_quantity: '',
+    material_category_id: '',
   });
   const [uoms, setUoms] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [showUomModal, setShowUomModal] = useState(false);
   const [newUomName, setNewUomName] = useState("");
   const [isAddingUom, setIsAddingUom] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
 
   const fetchMaterials = async () => {
       try {
@@ -44,9 +49,21 @@ const AddMaterial = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/material-categories');
+      setCategories(res.data);
+    } catch (err) { toast.error('Failed to fetch categories'); }
+  };
+
   const openUomModal = () => {
     setNewUomName("");
     setShowUomModal(true);
+  };
+
+  const openCategoryModal = () => {
+    setNewCategoryName("");
+    setShowCategoryModal(true);
   };
 
   const closeUomModal = () => {
@@ -74,9 +91,34 @@ const AddMaterial = () => {
     }
   };
 
+  const closeCategoryModal = () => {
+    setShowCategoryModal(false);
+    setNewCategoryName("");
+    setIsAddingCategory(false);
+  };
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!newCategoryName || !newCategoryName.trim()) return toast.error('Category name required');
+    setIsAddingCategory(true);
+    try {
+      const payload = { name: newCategoryName.trim() };
+      const res = await api.post('/material-categories', payload);
+      toast.success('Category added');
+      await fetchCategories();
+      setFormData((f) => ({ ...f, material_category_id: res.data.id }));
+      closeCategoryModal();
+    } catch (err) {
+      console.error('Add Category error', err);
+      toast.error(err.response?.data?.error || 'Failed to add Category');
+      setIsAddingCategory(false);
+    }
+  };
+
   useEffect(() => {
     fetchMaterials();
     fetchUoms();
+    fetchCategories();
   }, []);
 
   const handleInputChange = (e) => {
@@ -117,7 +159,7 @@ const AddMaterial = () => {
       await api.post("/add-materials", payload);
       
       fetchMaterials(); 
-      setFormData({ name: "", uom_id: "", unit_quantity: "" });
+      setFormData({ name: "", uom_id: "", unit_quantity: "", material_category_id: "" });
       toast.success("Raw Material Added Successfully!");
     } catch (error) {
       const msg = error.response?.data?.error || "Failed to add material!";
@@ -151,7 +193,7 @@ const AddMaterial = () => {
               required
             />
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: '-30px' }}>
               <select
                 className="form"
                 name="uom_id"
@@ -172,6 +214,41 @@ const AddMaterial = () => {
                 className="add-btn"
                 onClick={openUomModal}
                 title="Add UOM"
+                style={{
+                  width: 46,
+                  height: 46,
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: 10,
+                  marginTop: '8px'
+                }}
+              >
+                <FaPlus />
+              </button>
+            </div>
+
+            <div style={{ height: 8 }} />
+
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: '-50px'  }}>
+              <select
+                className="form"
+                name="material_category_id"
+                value={formData.material_category_id}
+                onChange={handleInputChange}
+                style={{ flex: 1 }}
+              >
+                <option value="">Select Material Category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="add-btn"
+                onClick={openCategoryModal}
+                title="Add Category"
                 style={{
                   width: 46,
                   height: 46,
@@ -222,6 +299,27 @@ const AddMaterial = () => {
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                     <button type="button" className="btn btn-secondary" onClick={closeUomModal}>Cancel</button>
                     <button type="submit" className="save-btn" disabled={isAddingUom}>{isAddingUom ? 'Adding...' : 'Add'}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          {showCategoryModal && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+              <div style={{ background: 'white', padding: 20, borderRadius: 8, width: 360 }}>
+                <h4>Add Material Category</h4>
+                <form onSubmit={handleAddCategory}>
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="e.g. Solvents, Fillers"
+                    style={{ width: '100%', marginBottom: 10 }}
+                    required
+                  />
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <button type="button" className="btn btn-secondary" onClick={closeCategoryModal}>Cancel</button>
+                    <button type="submit" className="save-btn" disabled={isAddingCategory}>{isAddingCategory ? 'Adding...' : 'Add'}</button>
                   </div>
                 </form>
               </div>

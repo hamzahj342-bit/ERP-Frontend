@@ -15,6 +15,7 @@ const MaterialsList = () => {
     const [rawMaterial, setRawMaterial] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uoms, setUoms] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [searchTerm, setSearchTerm] = useState(""); 
     const [debouncedSearch, setDebouncedSearch] = useState(""); 
     const [page, setPage] = useState(1);
@@ -62,7 +63,11 @@ const MaterialsList = () => {
                 setUoms(res.data);
             } catch (error) { toast.error('Failed to fetch UOMs'); }
         };
+        const fetchCategories = async () => {
+            try { const res = await api.get('/material-categories'); setCategories(res.data); } catch (err) { toast.error('Failed to fetch categories'); }
+        };
         fetchUoms();
+        fetchCategories();
     }, []);
 
     const handleDelete = async (rm_id, name) => {
@@ -90,6 +95,7 @@ const MaterialsList = () => {
             name: material.name,
             uom_id: material.uom_id,
             unit_quantity: material.unit_quantity || '',
+            material_category_id: material.material_category_id || (material.material_category?.id || ''),
         });
         setEditModalOpen(true);
     };
@@ -142,6 +148,7 @@ const MaterialsList = () => {
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
+                                    <th>Category</th>
                                     <th>UOM</th>
                                     <th>Unit Weight</th>
                                     <th>Actions</th>
@@ -149,11 +156,12 @@ const MaterialsList = () => {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="5" style={{textAlign:'center'}}>Loading...</td></tr>
+                                    <tr><td colSpan="6" style={{textAlign:'center'}}>Loading...</td></tr>
                                 ) : rawMaterial.map((m) => (
                                     <tr key={m.rm_id}>
                                         <td data-label="ID">#{m.rm_id}</td>
                                         <td data-label="Name" style={{fontWeight:'600'}}>{m.name}</td>
+                                        <td data-label="Category">{m.material_category?.name || '-'}</td>
                                         <td data-label="UOM">{m.uom?.name}</td>
                                         <td data-label="Weight">{m.unit_quantity || '-'}</td>
                                         <td data-label="Actions">
@@ -190,6 +198,12 @@ const MaterialsList = () => {
                                 <select className='search-input' value={editData.uom_id} onChange={(e)=>setEditData({...editData, uom_id:e.target.value})} required>
                                     <option value="">Select UOM</option>
                                     {uoms.map((uom) => <option key={uom.id} value={uom.id}>{uom.name}</option>)}
+                                </select>
+
+                                <label style={{fontSize:'0.85rem', color:'#64748b'}}>Select Category</label>
+                                <select className='search-input' value={editData.material_category_id} onChange={(e)=>setEditData({...editData, material_category_id:e.target.value})} >
+                                    <option value="">Select Category</option>
+                                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
 
                                 <button type="submit" className="btn-add">Update Material</button>
