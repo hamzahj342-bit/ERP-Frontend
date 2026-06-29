@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import NavigationBar from "../Components/NavigationBar";
-import { FaArrowLeft, FaPlus } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import "../RMForm.css";
 import Footer from "../Components/Footer";
 import Pagination from "../Components/Pagination"; 
@@ -87,7 +88,26 @@ const GeneralVoucherList = () => {
                     <td style={{ fontWeight: "600", color: "#0d6efd" }}>
                       {parseFloat(tx.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ textAlign: "center", flexDirection: "row", display: "flex", justifyContent: "center" }}>
+                    <td style={{ textAlign: "center", flexDirection: "row", display: "flex", justifyContent: "center", gap: "8px" }}>
+                      <button
+                        className="edit-btn-action"
+                        
+                        onClick={async () => {
+                          const result = await Swal.fire({
+                            title: `Are you sure you want to edit Voucher ${tx.invoice_no}?`,
+                            icon: "question",
+                            showCancelButton: true,
+                            confirmButtonText: "Yes, Confirm",
+                            cancelButtonText: "Cancel"
+                          });
+                          if (result.isConfirmed) {
+                            navigate(`/payments/${tx.id}`);
+                          }
+                        }}
+                      >
+                        <FaEdit />
+                        Edit
+                      </button>
                       <button
                         className="primary-btn"
                         style={{ width: "140px" }}

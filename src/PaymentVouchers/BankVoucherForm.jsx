@@ -10,10 +10,11 @@ import api from "../../api";
 const BankVoucherForm = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    
-    // 🌟 Safely parse exact parameter type without strict case breaking strings
-    const rawType = searchParams.get("type")?.trim().toUpperCase();
-    const voucherType = rawType === "BRV" ? "BRV" : "BPV";
+    const editId = searchParams.get("editId");
+    const [voucherType, setVoucherType] = useState(
+        searchParams.get("type")?.trim().toUpperCase() === "BRV" ? "BRV" : "BPV"
+    );
+    const isEditMode = Boolean(editId);
 
     // --- State Management ---
     const [accounts, setAccounts] = useState([]);
@@ -23,6 +24,7 @@ const BankVoucherForm = () => {
     const [customers, setCustomers] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false); 
+    const [isLoadingVoucher, setIsLoadingVoucher] = useState(false);
 
     // --- Voucher Master Header Fields ---
     const [transactionDate, setTransactionDate] = useState("");
@@ -68,8 +70,13 @@ const BankVoucherForm = () => {
             }
         };
         fetchInitialData();
-        fetchInvoiceNo();
-    }, [fetchInvoiceNo, voucherType]);
+
+        if (isEditMode) {
+            fetchVoucherDetails(editId);
+        } else {
+            fetchInvoiceNo();
+        }
+    }, [fetchInvoiceNo, voucherType, isEditMode, editId]);
 
     // Parse Control Account Dynamic Relationships
     const getControlAccType = (accountId) => {
@@ -80,6 +87,49 @@ const BankVoucherForm = () => {
         if (name.includes('receivable')) return 'Receivable'; 
         if (name.includes('salary')) return 'Salary'; 
         return null;
+    };
+
+    const fetchVoucherDetails = async (id) => {
+        setIsLoadingVoucher(true);
+        try {
+            const res = await api.get(`/payment-transactions/voucher/${id}`);
+            const voucher = res.data;
+            const type = voucher.type === "BRV" ? "BRV" : "BPV";
+            setVoucherType(type);
+            setInvoiceNo(voucher.invoice_no);
+            setTransactionDate(voucher.transaction_date || "");
+            setChequeNo(voucher.cheque_no || "");
+            setChequeDate(voucher.cheque_date || "");
+            setDepositSlipNo(voucher.deposit_slip_no || "");
+
+            const isBankPayment = type === "BPV";
+            let bankRow = voucher.entries.find(entry => {
+                const matchesBankName = entry.account_name?.toLowerCase().includes('bank');
+                const isAutoBalance = isBankPayment ? entry.credit > 0 : entry.debit > 0;
+                return isAutoBalance && matchesBankName;
+            });
+            if (!bankRow) {
+                bankRow = voucher.entries.find(entry => isBankPayment ? entry.credit > 0 : entry.debit > 0);
+            }
+            if (bankRow) {
+                setSelectedBankAccount(bankRow.account_id);
+            }
+
+            const nonBankEntries = voucher.entries.filter(entry => entry.id !== bankRow?.id);
+            const mappedRows = nonBankEntries.map(entry => ({
+                account_id: entry.account_id,
+                entity_id: entry.entity_id || "",
+                amount: Number(entry.debit || entry.credit || 0),
+                description: entry.remarks || ""
+            }));
+
+            setVoucherRows(mappedRows.length ? mappedRows : [{ account_id: "", entity_id: "", amount: "", description: "" }]);
+        } catch (err) {
+            console.error("Error loading voucher details:", err);
+            toast.error(err.response?.data?.error || "Unable to load bank voucher to edit.");
+        } finally {
+            setIsLoadingVoucher(false);
+        }
     };
 
     const getEntityListAndLabel = (accountId) => {
@@ -151,22 +201,39 @@ const BankVoucherForm = () => {
 
         setIsSubmitting(true);
         try {
-            const res = await api.post("/payment-transactions", {
-                transaction_date: transactionDate,
-                description: `${voucherType} Entry [Mode: ${paymentMode}] ${chequeNo ? `- Ref/Chq:${chequeNo}` : ''}`,
-                voucher_prefix: voucherType,
-                cheque_no: chequeNo || null,
-                cheque_date: chequeDate || null,
-                deposit_slip_no: depositSlipNo || null,
-                items: finalItems
-            });
+            let res;
+            if (isEditMode) {
+                res = await api.put(`/payment-transactions/invoice/${invoiceNo}`, {
+                    transaction_date: transactionDate,
+                    description: `${voucherType} Entry [Mode: ${paymentMode}] ${chequeNo ? `- Ref/Chq:${chequeNo}` : ''}`,
+                    voucher_prefix: voucherType,
+                    cheque_no: chequeNo || null,
+                    cheque_date: chequeDate || null,
+                    deposit_slip_no: depositSlipNo || null,
+                    items: finalItems
+                });
+            } else {
+                res = await api.post("/payment-transactions", {
+                    transaction_date: transactionDate,
+                    description: `${voucherType} Entry [Mode: ${paymentMode}] ${chequeNo ? `- Ref/Chq:${chequeNo}` : ''}`,
+                    voucher_prefix: voucherType,
+                    cheque_no: chequeNo || null,
+                    cheque_date: chequeDate || null,
+                    deposit_slip_no: depositSlipNo || null,
+                    items: finalItems
+                });
+            }
             
             setIsSubmitting(false);
-            Swal.fire({ title: "Voucher Posted Successfully!", text: `Voucher Generated Ref: ${res.data.invoice_no}`, icon: "success" })
+            Swal.fire({ title: isEditMode ? "Voucher updated successfully!" : "Voucher Posted Successfully!", text: `Voucher Ref: ${res.data.invoice_no}`, icon: "success" })
                 .then(() => {
-                    setTransactionDate(""); setChequeNo(""); setChequeDate(""); setDepositSlipNo(""); setSelectedBankAccount(""); setPaymentMode("Cheque");
-                    setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
-                    fetchInvoiceNo();
+                    if (!isEditMode) {
+                        setTransactionDate(""); setChequeNo(""); setChequeDate(""); setDepositSlipNo(""); setSelectedBankAccount(""); setPaymentMode("Cheque");
+                        setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
+                        fetchInvoiceNo();
+                    } else {
+                        navigate('/bank-vouchers-list');
+                    }
                 });
         } catch (err) {
             setIsSubmitting(false);
@@ -174,13 +241,25 @@ const BankVoucherForm = () => {
         }
     };
 
+    if (isEditMode && isLoadingVoucher) {
+        return (
+            <div className="rm-page-wrapper">
+                <NavigationBar />
+                <div className="rm-content-container" style={{ padding: '60px', textAlign: 'center' }}>
+                    <h2>Loading voucher details...</h2>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
     return (
         <div className="rm-page-wrapper">
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
                     <button className="back-btn" onClick={() => navigate(-1)} type="button"><FaArrowLeft /></button>
-                    <h2 className="form-title">{voucherType === "BPV" ? "Bank Payment Voucher (BPV)" : "Bank Receipt Voucher (BRV)"}</h2>
+                    <h2 className="form-title">{voucherType === "BPV" ? (isEditMode ? "Edit Bank Payment Voucher (BPV)" : "Bank Payment Voucher (BPV)") : (isEditMode ? "Edit Bank Receipt Voucher (BRV)" : "Bank Receipt Voucher (BRV)")}</h2>
                 </div>
                 
                 <div className="rm-main-card">
