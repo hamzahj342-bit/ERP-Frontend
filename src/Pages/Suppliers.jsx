@@ -140,14 +140,13 @@ const Suppliers = () => {
                   <td style={{textAlign: 'center'}}>
                     <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
                       <button 
-                        className="edit-btn" 
-                        style={{backgroundColor: '#1a73e8', color: 'white', borderColor: '#1a73e8'}}
+                        className="primary-btn" 
                         onClick={() => navigate(`/supplier-invoices/${sup.id}`)}
                       >
                         <FaFileInvoice /> Invoices
                       </button>
 
-                      <button className="edit-btn" onClick={() => {
+                      <button className="edit-btn-action" onClick={() => {
                          setOnEdit(sup);
                          setFormData({ 
                            name: sup.name, 

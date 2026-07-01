@@ -119,7 +119,7 @@ const Dashboard = () => {
   return (
     <div>
       <MainLayout />
-      <div className="dashboard ">
+      <div className="dashboard">
        {/* 🗓️ Header with Date Filters */}
         <div className="dashboard-header-flex">
           <div className="dashboard-title">Dashboard</div>

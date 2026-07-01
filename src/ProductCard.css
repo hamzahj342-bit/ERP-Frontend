@@ -74,7 +74,7 @@ h3 {
   outline: none;
 }
 
-.primary-btn {
+/* .primary-btn {
   padding: 12px;
   border-radius: 8px;
   border: none;
@@ -87,7 +87,7 @@ h3 {
 
 .primary-btn:hover {
   background-color: #155ab6;
-}
+} */
 
 
 .edit-btn,

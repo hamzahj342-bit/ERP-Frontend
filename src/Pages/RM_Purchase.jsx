@@ -119,6 +119,15 @@ const RM_Purchase = () => {
     }
   };
 
+  const renderItemNames = (details = []) => {
+    if (!Array.isArray(details) || details.length === 0) return "-";
+    const itemNames = details
+      .slice(0, 3)
+      .map((detail) => detail.rm_name || detail.product_name || detail.name || "Unknown")
+      .filter(Boolean);
+    return itemNames.join(", ");
+  };
+
   return (
     <>
       <NavigationBar />
@@ -143,12 +152,12 @@ const RM_Purchase = () => {
                 <tr>
                   <th>ID</th>
                   <th><FaFileInvoice /> INVOICE NO</th>
-                  <th>CREATED AT</th>
+                  {/* <th>CREATED AT</th> */}
                   <th><FaCalendarAlt /> DATE</th>
-                  <th><FaUserAlt /> CREATED BY</th>
+                  <th>ITEM NAME</th>
                   <th>SUPPLIER</th>
                   <th>GRAND TOTAL</th>
-                  <th>INVOICE STATUS</th>
+                  {/* <th>INVOICE STATUS</th> */}
                   <th style={{ textAlign: 'center' }}>ACTION</th>
                 </tr>
               </thead>
@@ -158,15 +167,15 @@ const RM_Purchase = () => {
                     <tr key={p.master_id}>
                       <td style={{ color: '#94a3b8' }}>#{p.master_id}</td>
                       <td style={{ fontWeight: '700' }}>{p.invoice_no}</td>
-                      <td>{p.createdat ? new Date(p.createdat).toLocaleDateString() : "-"}</td>
+                      {/* <td>{p.createdat ? new Date(p.createdat).toLocaleDateString() : "-"}</td> */}
                       <td>{p.date ? new Date(p.date).toLocaleDateString() : "-"}</td>
-                      <td><span className="user-tag">{p.createdby}</span></td>
+                      <td><span className="user-tag">{renderItemNames(p.details)}</span></td>
                       <td><span className="supplier-tag">{p.entity_name}</span></td>
                       <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
                         {parseFloat(p.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
                       </td>
-                      <td>
-                        {/* Dynamic Status Text Badge */}
+                      {/* <td>
+                        
                        <span className={`status-badge ${
   p.status === 'Approved' 
     ? 'status-approved' 
@@ -176,7 +185,7 @@ const RM_Purchase = () => {
 }`}>
   {p.status === 'Draft' || !p.status ? 'Unapproved' : p.status}
 </span>
-                      </td>
+                      </td> */}
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                           <button onClick={() => navigate(`/rm-invoice/${p.invoice_no}`)} className="primary-btn">

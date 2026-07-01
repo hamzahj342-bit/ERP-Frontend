@@ -116,14 +116,14 @@ const Customers = () => {
                       
                       {/* ✅ Naya Invoices Button */}
                       <button 
-                        className="edit-btn" 
-                        style={{backgroundColor: '#1a73e8', color: 'white', borderColor: '#1a73e8'}}
+                        className="primary-btn" 
+                        // style={{backgroundColor: '#1a73e8', color: 'white', borderColor: '#1a73e8'}}
                         onClick={() => navigate(`/customer-invoices/${cust.id}`)}
                       >
                         <FaFileInvoice /> Invoices
                       </button>
 
-                      <button className="edit-btn" onClick={() => { 
+                      <button className="edit-btn-action" onClick={() => { 
                         setOnEdit(cust); 
                         setFormData({ name: cust.name, address: cust.address, contact: cust.contact || "" });
                       }}>
