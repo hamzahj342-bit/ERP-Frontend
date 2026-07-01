@@ -191,7 +191,7 @@ const Employees = () => {
                     <td data-label="Salary">{emp.salary ? `${emp.salary}` : "N/A"}</td>
                     <td data-label="Actions" style={{textAlign: 'center'}}>
                       <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-                        <button className="edit-btn" onClick={() => handleEditClick(emp)}><FaEdit /> Edit</button>
+                        <button className="edit-btn-action" onClick={() => handleEditClick(emp)}><FaEdit /> Edit</button>
                         <button className="delete-btn" onClick={() => handleDelete(emp.id, emp.name)}><FaTrash /> Delete</button>
                       </div>
                     </td>

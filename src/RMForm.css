@@ -65,8 +65,8 @@
 }
 
 .product-table td {
-  padding: 16px 15px;
-  border-bottom: 1px solid #f1f5f9;
+  padding-left: 15px;
+  border-bottom: 2px solid #e3e2e2;
   font-size: 14px;
   color: #334155;
 }
@@ -118,8 +118,8 @@
   box-shadow: 0 10px 15px -3px rgba(26, 115, 232, 0.4);
 }
 
-.primary-btn {
-  padding: 8px 18px;
+/* .primary-btn {
+  padding: 5px;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   background: white;
@@ -127,6 +127,7 @@
   font-weight: 600;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s;
@@ -136,7 +137,7 @@
   border-color: #1a73e8;
   color: #1a73e8;
   background: #f0f7ff;
-}
+} */
 
 /* Back Button */
 .back-btn {

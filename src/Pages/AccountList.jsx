@@ -225,7 +225,7 @@ const AccountList = () => {
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                            <button className="edit-btn" onClick={() => handleEdit(acc)} title="Edit">
+                            <button className="edit-btn-action" onClick={() => handleEdit(acc)} title="Edit">
                               <FaEdit />
                             </button>
                             <button className="delete-btn" onClick={() => handleDelete(acc.id)} title="Delete">

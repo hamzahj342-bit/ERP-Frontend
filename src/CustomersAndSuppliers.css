@@ -196,3 +196,23 @@
     text-align: center;
   }
 }
+
+/* .primary-btn {
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.primary-btn:hover {
+  border-color: #1a73e8;
+  color: #1a73e8;
+  background: #f0f7ff;
+} */

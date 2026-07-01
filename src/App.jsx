@@ -84,7 +84,7 @@ import BankVoucherForm from './PaymentVouchers/BankVoucherForm';
 import EntityLedgerMenu from './Layout/EntitiesLedgerMenu';
 import RM_OpeningStockList from './Pages/RM_OpeningStockList';
 import RM_OpeningStockForm from './Pages/RM_OpeningStockForm';
-
+import './primary-btn.css'
 const App = () => {
   return (
     <Router>

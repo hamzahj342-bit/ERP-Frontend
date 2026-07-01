@@ -170,7 +170,7 @@ const AccountCategoryList = () => {
                         <td style={{ fontWeight: '500' }}>{cat.category_name}</td>
                         <td>
                           <div className="action-btns-gap" style={{ justifyContent: 'center' }}>
-                            <button className="edit-btn" onClick={() => handleEdit(cat)} title="Edit">
+                            <button className="edit-btn-action" onClick={() => handleEdit(cat)} title="Edit">
                               <FaEdit />
                             </button>
                             <button className="delete-btn" onClick={() => handleDelete(cat.id)} title="Delete">

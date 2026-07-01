@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { FaArrowLeft, FaPlus, FaSearch } from 'react-icons/fa';
+import { FaArrowLeft, FaEdit, FaPlus, FaSearch, FaTrashAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import NavigationBar from '../Components/NavigationBar';
@@ -166,8 +166,8 @@ const MaterialsList = () => {
                                         <td data-label="Weight">{m.unit_quantity || '-'}</td>
                                         <td data-label="Actions">
                                             <div className="action-btns">
-                                                <button onClick={() => openEditModal(m)} className="btn-edit">Edit</button>
-                                                <button onClick={() => handleDelete(m.rm_id, m.name)} className="btn-delete">Delete</button>
+                                                <button onClick={() => openEditModal(m)} className="edit-btn-action"><FaEdit /></button>
+                                                <button onClick={() => handleDelete(m.rm_id, m.name)} className="delete-btn"><FaTrashAlt /></button>
                                             </div>
                                         </td>
                                     </tr>
