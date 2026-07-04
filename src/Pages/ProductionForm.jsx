@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaCheckCircle, FaExclamationTriangle } from "react-icons/fa";
-import { toast } from "react-toastify";
-import NavigationBar from "../Components/NavigationBar";
-import Footer from "../Components/Footer";
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom'; 
+import { FaArrowLeft, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { toast } from 'react-toastify';
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import { calculateDynamicFIFOCost } from "../utilities/FIFO_Production";
 import api from "../../api"; 
-import "../css/FP/Production/ProductionForm.css"; // CSS Link
+import "../css/FP/Production/ProductionForm.css"; 
 
 const ProductionForm = () => {
   const navigate = useNavigate();
+  const { batch_id } = useParams(); 
+  const isEditMode = !!batch_id; 
+
   const user = JSON.parse(localStorage.getItem("user"));
 
   const [formData, setFormData] = useState({
@@ -23,7 +26,9 @@ const ProductionForm = () => {
   const [materials, setMaterials] = useState([]);
   const [grandTotal, setGrandTotal] = useState(0);
   const [uoms, setUoms] = useState([]);
+  const [minAllowedQty, setMinAllowedQty] = useState(0);
 
+  // 1) Recipes aur UOMs load karna
   const fetchRecipes = async () => {
     try {
       const res = await api.get("/recipe/for-production");
@@ -38,6 +43,7 @@ const ProductionForm = () => {
     } catch (err) { console.error(err); }
   };
 
+  // 2) Normal Recipe Selection (Create Mode)
   const fetchRecipeDetails = async (recipeId) => {
     try {
       const res = await api.get(`/production/${recipeId}/materials`);
@@ -49,7 +55,8 @@ const ProductionForm = () => {
         recipe_qty: parseFloat(item.qty) || 0,
         required_qty: 0,
         total_price: 0,
-        type: item.type
+        type: item.type,
+        total_available_stock: parseFloat(item.total_available_stock || 0)
       }));
       setMaterials(filled);
       if (formData.production_quantity) {
@@ -58,14 +65,47 @@ const ProductionForm = () => {
     } catch (err) { toast.error("Failed to fetch recipe details"); }
   };
 
+  // 3) Edit Mode: Load dynamic aggregated details from backend
+  const fetchProductionDataForEdit = async () => {
+    try {
+      const res = await api.get(`/production/${batch_id}`);
+      if (res.data && res.data.success) {
+        const prodData = res.data.data;
+
+        setFormData({
+          product_name: prodData.product_name,
+          recipe_master_id: prodData.recipe_master_id, 
+          production_quantity: prodData.original_production_quantity,
+          uom_id: prodData.uom_id,
+        });
+
+        setMinAllowedQty(prodData.min_allowed_quantity);
+
+        const formattedDetails = prodData.details.map(item => ({
+          ...item,
+          total_available_stock: parseFloat(item.total_available_stock || 0), 
+        }));
+
+        setMaterials(formattedDetails);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load production data for editing.");
+      navigate("/finished-products");
+    }
+  };
+
+  // 4) Dynamic Calculation Logic
   const calculateRequirements = (itemsList, prodQty) => {
     const pQty = parseFloat(prodQty) || 0;
     const updated = itemsList.map(mat => {
       const neededQty = mat.recipe_qty * pQty;
       let dynamicFIFOCost = mat.unit_price;
+      
       if (typeof calculateDynamicFIFOCost === 'function' && mat.fifo_batches?.length > 0) {
         dynamicFIFOCost = calculateDynamicFIFOCost(mat.fifo_batches, neededQty);
       }
+      
       return {
         ...mat,
         required_qty: neededQty,
@@ -89,6 +129,12 @@ const ProductionForm = () => {
 
   const handleProductionQuantityChange = (e) => {
     const newQty = e.target.value;
+    
+    if (isEditMode && parseFloat(newQty) < minAllowedQty) {
+      toast.warning(`Aap quantity ${minAllowedQty} se kam nahi kar sakte, kyunke itna maal pehle hi sale/consume ho chuka hai.`);
+      return;
+    }
+
     setFormData({ ...formData, production_quantity: newQty });
     calculateRequirements(materials, newQty);
   };
@@ -98,14 +144,30 @@ const ProductionForm = () => {
     setGrandTotal(total);
   }, [materials]);
 
+  // Initial loading logic hook
+  useEffect(() => { 
+    const initForm = async () => {
+      await fetchRecipes(); 
+      await fetchUOMs(); 
+      if (isEditMode) {
+        await fetchProductionDataForEdit();
+      }
+    };
+    initForm();
+  }, [batch_id]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.product_name.trim() || !formData.recipe_master_id || !formData.uom_id) {
       return toast.error("Please fill all product header fields");
     }
 
+    if (isEditMode && parseFloat(formData.production_quantity) < minAllowedQty) {
+      return toast.error(`Production Quantity cannot be less than ${minAllowedQty}`);
+    }
+
     const outOfStock = materials.filter(mat => mat.required_qty > mat.total_available_stock);
-    if (outOfStock.length > 0) {
+    if (!isEditMode && outOfStock.length > 0) { 
       return toast.error(`Insufficient stock! Check highlighted items.`);
     }
 
@@ -120,29 +182,37 @@ const ProductionForm = () => {
     };
 
     try {
-      await api.post("/production", payload);
-      toast.success("Production completed successfully!");
+      if (isEditMode) {
+        await api.put(`/production/${batch_id}`, payload);
+        toast.success("✅ Production updated successfully!");
+      } else {
+        await api.post("/production", payload);
+        toast.success("Production completed successfully!");
+      }
       navigate("/finished-products");
-    } catch (err) { toast.error(err.response?.data?.message || "Production failed"); }
+    } catch (err) { 
+      toast.error(err.response?.data?.message || "Action failed"); 
+    }
   };
-
-  useEffect(() => { fetchRecipes(); fetchUOMs(); }, []);
 
   return (
     <div className="page-wrapper">
       <NavigationBar />
       <div className="prod-form-wrapper">
         <div className="prod-form-container" style={{marginTop: '30px'}}>
-          <button className="back-btn" onClick={() => navigate("/production")} style={{ marginBottom: "20px" }}>
+          <button className="back-btn" onClick={() => navigate("/finished-products")} style={{ marginBottom: "20px" }}>
             <FaArrowLeft />
           </button>
 
           <div className="prod-form-card">
             <div className="form-header" style={{ marginBottom: "25px" }}>
               <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FaCheckCircle style={{ color: '#3b82f6' }} /> Production Order
+                <FaCheckCircle style={{ color: isEditMode ? '#eab308' : '#3b82f6' }} /> 
+                {isEditMode ? `Edit Production Order (Batch #${batch_id})` : "Production Order"}
               </h2>
-              <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Fill finished product details and verify BOM consumption.</p>
+              <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                {isEditMode ? "Modify parameters. System will safely reverse and adjust balances automatically." : "Fill finished product details and verify BOM consumption."}
+              </p>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -154,7 +224,7 @@ const ProductionForm = () => {
 
                 <div className="input-group">
                   <label>Select Recipe / BOM</label>
-                  <select className="recipe-input" name="recipe_master_id" value={formData.recipe_master_id} onChange={handleRecipeSelect} required>
+                  <select className="recipe-input" name="recipe_master_id" value={formData.recipe_master_id} onChange={handleRecipeSelect} disabled={isEditMode} required>
                     <option value="">-- Choose Recipe --</option>
                     {recipes.map((r) => <option key={r.recipe_id} value={r.recipe_id}>{r.name}</option>)}
                   </select>
@@ -162,7 +232,7 @@ const ProductionForm = () => {
 
                 <div className="input-group">
                   <label>UOM (Unit of Measure)</label>
-                  <select className="recipe-input" name="uom_id" value={formData.uom_id} onChange={handleInputChange} required>
+                  <select className="recipe-input" name="uom_id" value={formData.uom_id} onChange={handleInputChange} disabled={isEditMode} required>
                     <option value="">-- Select UOM --</option>
                     {uoms.map((u) => (
                       <option key={u.uom_id || u.id} value={u.uom_id || u.id}>{u.uom_name || u.name}</option>
@@ -171,8 +241,17 @@ const ProductionForm = () => {
                 </div>
 
                 <div className="input-group">
-                  <label>Batch Size / Production Qty</label>
-                  <input className="recipe-input" type="number" name="production_quantity" placeholder="Quantity to Produce" value={formData.production_quantity} onChange={handleProductionQuantityChange} required />
+                  <label>Batch Size / Production Qty {isEditMode && <span style={{color: '#ef4444', fontSize:'0.8rem'}}>(Min: {minAllowedQty})</span>}</label>
+                  <input 
+                    className="recipe-input" 
+                    type="number" 
+                    name="production_quantity" 
+                    placeholder="Quantity to Produce" 
+                    value={formData.production_quantity} 
+                    onChange={handleProductionQuantityChange} 
+                    min={isEditMode ? minAllowedQty : "1"}
+                    required 
+                  />
                 </div>
               </div>
 
@@ -192,19 +271,26 @@ const ProductionForm = () => {
                 {materials.map((mat, index) => {
                   const isShort = mat.required_qty > mat.total_available_stock;
                   return (
-                    <div key={index} className={`consumption-row ${isShort ? 'row-short-stock' : ''}`}>
+                    <div key={index} className={`consumption-row ${!isEditMode && isShort ? 'row-short-stock' : ''}`}>
                       <span style={{ fontWeight: '600' }}>
-                        {isShort && <FaExclamationTriangle style={{ color: 'red', marginRight: '5px' }} />}
+                        {!isEditMode && isShort && <FaExclamationTriangle style={{ color: 'red', marginRight: '5px' }} />}
                         {mat.display_name}
                       </span>
-                      <span className={isShort ? "text-danger" : ""}>{parseFloat(mat.total_available_stock).toFixed(2)}</span>
-                      <span>{mat.uom_name}</span>
-                      <span style={{ color: '#64748b' }}>{mat.recipe_qty}</span>
-                      <span>{mat.unit_price.toFixed(2)}</span>
-                      <span className={isShort ? "text-danger" : "text-success"}>
-                        {mat.required_qty.toFixed(3)}
+                      
+                      {/* 🚀 FIX: Ab edit mode me live stock backend wala show hoga, N/A hardcoded nahi dikhega */}
+                      <span>
+                        {mat.total_available_stock !== undefined && mat.total_available_stock !== null
+                          ? parseFloat(mat.total_available_stock).toFixed(2)
+                          : "0.00"}
                       </span>
-                      <span style={{ fontWeight: '700' }}>{mat.total_price.toFixed(2)}</span>
+
+                      <span>{mat.uom_name || "Units"}</span>
+                      <span style={{ color: '#64748b' }}>{mat.recipe_qty ? mat.recipe_qty.toFixed(3) : "0.000"}</span>
+                      <span>{mat.unit_price ? mat.unit_price.toFixed(2) : "0.00"}</span>
+                      <span className={!isEditMode && isShort ? "text-danger" : "text-success"}>
+                        {mat.required_qty ? mat.required_qty.toFixed(3) : "0.000"}
+                      </span>
+                      <span style={{ fontWeight: '700' }}>{mat.total_price ? mat.total_price.toFixed(2) : "0.00"}</span>
                     </div>
                   );
                 })}
@@ -212,13 +298,13 @@ const ProductionForm = () => {
 
               <div className="prod-summary-bar">
                 <div className="total-cost-label">
-                  Total Production Cost: <span style={{ color: '#3b82f6' }}>{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  Total Production Cost: <span style={{ color: isEditMode ? '#eab308' : '#3b82f6' }}>{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-                <button type="submit" className="save-btn" style={{ padding: '12px 40px', fontSize: '1rem' }}>
-                  Complete Production
+                <button type="submit" className="save-btn" style={{ padding: '12px 40px', fontSize: '1rem', background: isEditMode ? '#eab308' : '#3b82f6' }}>
+                  {isEditMode ? "Update Production" : "Complete Production"}
                 </button>
               </div>
             </form>

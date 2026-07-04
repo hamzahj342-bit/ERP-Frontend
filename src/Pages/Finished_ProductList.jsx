@@ -4,9 +4,9 @@ import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';           
 import Pagination from '../Components/Pagination';
 import { toast } from 'react-toastify';
-import { FaArrowLeft, FaSearch,  } from 'react-icons/fa';
+import { FaArrowLeft, FaSearch, FaEdit } from 'react-icons/fa'; // Added FaEdit icon
 import api from "../../api"; 
-import "../css/FP/FinishedProductList.css"; // CSS Import
+import "../css/FP/FinishedProductList.css"; 
 
 const FinishedProductList = () => {
     const [products, setProducts] = useState([]);
@@ -107,11 +107,14 @@ const FinishedProductList = () => {
                                             <th style={{ textAlign: 'center' }}>Available Stock</th>
                                             <th>Unit Cost</th>
                                             <th>Production Date</th>
+                                            <th style={{ textAlign: 'center' }}>Actions</th> {/* Added Header */}
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {products.length > 0 ? products.map((item) => {
                                             const currentStock = Number(item.quantity) - Number(item.sold) - Number(item.consumed_qty || 0);
+                                            const isEditable = currentStock > 0; // Check if stock is available for edit
+
                                             return (
                                                 <tr key={item.id}>
                                                     <td style={{ color: '#64748b', fontFamily: 'monospace' }}>#{item.id}</td>
@@ -132,11 +135,35 @@ const FinishedProductList = () => {
                                                     </td>
                                                     <td>{parseFloat(item.unit_cost).toFixed(2)}</td>
                                                     <td style={{ whiteSpace: 'nowrap' }}>{formatDate(item.createdat)}</td>
+                                                    
+                                                    {/* 🚀 Action Button Cell */}
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        <button 
+                                                            className={`edit-btn-action ${!isEditable ? 'disabled-btn' : ''}`}
+                                                            onClick={() => isEditable && navigate(`/production-form/${item.product_batch_id}`)}
+                                                            disabled={!isEditable}
+                                                            title={isEditable ? "Edit Production" : "Cannot edit: Stock is fully consumed/sold"}
+                                                            style={{
+                                                                background: isEditable ? '#d97706' : '#cbd5e1',
+                                                                color: '#ffffff',
+                                                                border: 'none',
+                                                                padding: '6px 10px',
+                                                                borderRadius: '4px',
+                                                                cursor: isEditable ? 'pointer' : 'not-allowed',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                transition: 'all 0.2s ease'
+                                                            }}
+                                                        >
+                                                            <FaEdit size={14} />
+                                                        </button>
+                                                    </td> 
                                                 </tr>
                                             );
                                         }) : (
                                             <tr>
-                                                <td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>
+                                                <td colSpan="9" style={{ textAlign: 'center', padding: '30px' }}>
                                                     No stock records found.
                                                 </td>
                                             </tr>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
+import Select from "react-select";
 import { FaArrowLeft, FaPlus, FaTrash } from "react-icons/fa";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -101,9 +102,10 @@ const CashVoucherForm = () => {
         const acc = accounts.find(a => a.id == accountId);
         if (!acc) return null;
         const name = acc.account_name.toLowerCase();
+        if (name.includes('salary')) return 'Salary';
         if (name.includes('payable')) return 'Payable'; 
         if (name.includes('receivable')) return 'Receivable'; 
-        if (name.includes('salary')) return 'Salary'; 
+         
         return null;
     };
 
@@ -150,17 +152,24 @@ const CashVoucherForm = () => {
 
     const getEntityListAndLabel = (accountId) => {
         const type = getControlAccType(accountId);
+        if (type === 'Salary') return { list: employees, label: "Employee" };
         if (type === 'Payable') return { list: suppliers, label: "Supplier" };
         if (type === 'Receivable') return { list: customers, label: "Customer" };
-        if (type === 'Salary') return { list: employees, label: "Employee" };
+        
         return { list: [], label: "" };
     };
+
+    const getEntityOptions = (list = []) => list.map(entity => ({ value: entity.id, label: entity.name }));
 
     const handleRowChange = (index, field, value) => {
         const updatedRows = [...voucherRows];
         updatedRows[index][field] = value;
         if (field === "account_id") updatedRows[index]["entity_id"] = ""; 
         setVoucherRows(updatedRows);
+    };
+
+    const handleEntitySelect = (index, selectedOption) => {
+        handleRowChange(index, "entity_id", selectedOption?.value || "");
     };
 
     const addVoucherRow = () => {
@@ -310,10 +319,14 @@ const CashVoucherForm = () => {
                                                 </td>
                                                 <td style={{ padding: "8px" }}>
                                                     {entityList.length > 0 ? (
-                                                        <select className="rm-input-field" value={row.entity_id} onChange={(e) => handleRowChange(index, "entity_id", e.target.value)} required>
-                                                            <option value="">Select {entityLabel}</option>
-                                                            {entityList.map(entity => <option key={entity.id} value={entity.id}>{entity.name}</option>)}
-                                                        </select>
+                                                        <Select
+                                                            classNamePrefix="react-select"
+                                                            options={getEntityOptions(entityList)}
+                                                            value={getEntityOptions(entityList).find(opt => opt.value === row.entity_id) || null}
+                                                            onChange={(selected) => handleEntitySelect(index, selected)}
+                                                            placeholder={`Select ${entityLabel}`}
+                                                            isClearable
+                                                        />
                                                     ) : <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />}
                                                 </td>
                                                 <td style={{ padding: "8px" }}><input type="number" step="any" className="rm-input-field" value={row.amount} onChange={(e) => handleRowChange(index, "amount", e.target.value)} required  placeholder="Enter amount"/></td>

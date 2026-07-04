@@ -15,3 +15,18 @@
 .edit-btn-action:hover {
   background-color: #b45309;
 }
+
+.disabled-btn {
+  background-color: #9ca3af;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: not-allowed;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+                                                            
+}

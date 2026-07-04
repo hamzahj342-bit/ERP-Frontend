@@ -134,6 +134,7 @@ const App = () => {
        
         <Route path="/production" element={<ProtectedRoute> <ProductionList /> </ProtectedRoute>} />
         <Route path="/production-form" element={<ProtectedRoute> <ProductionForm /> </ProtectedRoute>} />
+        <Route path="/production-form/:batch_id" element={<ProtectedRoute> <ProductionForm /> </ProtectedRoute>} />
         <Route path="/fp-sale-list" element={<ProtectedRoute> <FP_SaleList /> </ProtectedRoute>} />
         <Route path="/fp-sale-form" element={<ProtectedRoute> <FP_SaleForm /> </ProtectedRoute>} />
         <Route path="/fp-salereturn-list" element={<ProtectedRoute> <FP_SaleReturnList /> </ProtectedRoute>} />

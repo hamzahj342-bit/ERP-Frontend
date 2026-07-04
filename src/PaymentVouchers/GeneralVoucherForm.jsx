@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
+import Select from "react-select";
 import { FaArrowLeft, FaPlus, FaTrash } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -73,9 +74,10 @@ const GeneralVoucherForm = () => {
         const acc = accounts.find(a => a.id == accountId);
         if (!acc) return null;
         const name = acc.account_name.toLowerCase();
+        if (name.includes('salary')) return 'Salary';
         if (name.includes('payable')) return 'Payable'; 
         if (name.includes('receivable')) return 'Receivable'; 
-        if (name.includes('salary')) return 'Salary'; 
+         
         return null;
     };
 
@@ -155,11 +157,14 @@ const GeneralVoucherForm = () => {
 
     const getEntityListAndLabel = (accountId) => {
         const type = getControlAccType(accountId);
+        if (type === 'Salary') return { list: employees, label: "Employee" };
         if (type === 'Payable') return { list: suppliers, label: "Supplier" };
         if (type === 'Receivable') return { list: customers, label: "Customer" };
-        if (type === 'Salary') return { list: employees, label: "Employee" };
+        
         return { list: [], label: "" };
     };
+
+    const getEntityOptions = (list = []) => list.map(entity => ({ value: entity.id, label: entity.name }));
 
     const handleFieldChange = (groupIndex, rowType, field, value) => {
         const updatedGroups = [...voucherGroups];
@@ -169,6 +174,10 @@ const GeneralVoucherForm = () => {
             updatedGroups[groupIndex][rowType]["entity_id"] = "";
         }
         setVoucherGroups(updatedGroups);
+    };
+
+    const handleEntitySelect = (groupIndex, rowType, selectedOption) => {
+        handleFieldChange(groupIndex, rowType, "entity_id", selectedOption?.value || "");
     };
 
     const handleDescriptionChange = (groupIndex, value) => {
@@ -366,17 +375,14 @@ const GeneralVoucherForm = () => {
                                                     </td>
                                                     <td style={{ padding: "8px" }}>
                                                         {credEntityList.length > 0 ? (
-                                                            <select 
-                                                                className="rm-input-field"
-                                                                value={group.credit.entity_id}
-                                                                onChange={(e) => handleFieldChange(groupIndex, "credit", "entity_id", e.target.value)}
-                                                                required
-                                                            >
-                                                                <option value="">Select {credEntityLabel}</option>
-                                                                {credEntityList.map(entity => (
-                                                                    <option key={entity.id} value={entity.id}>{entity.name}</option>
-                                                                ))}
-                                                            </select>
+                                                            <Select
+                                                                classNamePrefix="react-select"
+                                                                options={getEntityOptions(credEntityList)}
+                                                                value={getEntityOptions(credEntityList).find(opt => opt.value === group.credit.entity_id) || null}
+                                                                onChange={(selected) => handleEntitySelect(groupIndex, "credit", selected)}
+                                                                placeholder={`Select ${credEntityLabel}`}
+                                                                isClearable
+                                                            />
                                                         ) : (
                                                             <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />
                                                         )}
@@ -465,17 +471,14 @@ const GeneralVoucherForm = () => {
                                                     </td>
                                                     <td style={{ padding: "8px" }}>
                                                         {debEntityList.length > 0 ? (
-                                                            <select 
-                                                                className="rm-input-field"
-                                                                value={group.debit.entity_id}
-                                                                onChange={(e) => handleFieldChange(groupIndex, "debit", "entity_id", e.target.value)}
-                                                                required
-                                                            >
-                                                                <option value="">Select {debEntityLabel}</option>
-                                                                {debEntityList.map(entity => (
-                                                                    <option key={entity.id} value={entity.id}>{entity.name}</option>
-                                                                ))}
-                                                            </select>
+                                                            <Select
+                                                                classNamePrefix="react-select"
+                                                                options={getEntityOptions(debEntityList)}
+                                                                value={getEntityOptions(debEntityList).find(opt => opt.value === group.debit.entity_id) || null}
+                                                                onChange={(selected) => handleEntitySelect(groupIndex, "debit", selected)}
+                                                                placeholder={`Select ${debEntityLabel}`}
+                                                                isClearable
+                                                            />
                                                         ) : (
                                                             <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />
                                                         )}
