@@ -183,7 +183,7 @@ const ProfitLoss = () => {
                   </tr>
                 ))}
                 <tr className="row-total-expense">
-                  <td>TOTAL COST OF SALES</td>
+                  <td>TOTAL EXPENSES</td>
                   <td className="text-right">({Number(report.totals.totalExpenses).toLocaleString()})</td>
                 </tr>
 

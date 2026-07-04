@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import Select from "react-select";
 import * as XLSX from "xlsx-js-style";
 import { FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaBook } from "react-icons/fa";
 import jsPDF from "jspdf";
@@ -20,6 +21,8 @@ const AccountLedger = () => {
   const [toDate, setToDate] = useState("");
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const accountOptions = accounts.map(acc => ({ value: acc.id, label: `${acc.account_name} (${acc.category_name})` }));
 
   // --- 1. Fetch Accounts ---
   useEffect(() => {
@@ -146,10 +149,20 @@ const AccountLedger = () => {
           <div className="report-header">
             <h3 className="report-title"><FaBook className="mr-2"/> Account Ledger Report</h3>
             <div className="filter-group">
-              <select className="date-input" style={{minWidth: '220px'}} value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)}>
+              {/* <select className="date-input" style={{minWidth: '220px'}} value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)}>
                 <option value="">Select Account</option>
                 {accounts.map((acc) => <option key={acc.id} value={acc.id}>{acc.account_name} ({acc.category_name})</option>)}
-              </select>
+              </select> */}
+               <div style={{ minWidth: '280px' }}>
+                  <Select
+                    classNamePrefix="react-select"
+                    options={accountOptions}
+                    value={accountOptions.find(opt => opt.value === selectedAccount) || null}
+                    onChange={(option) => setSelectedAccount(option?.value || "")}
+                    placeholder="Select Account"
+                    isClearable
+                  />
+                </div>
               <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
               <button className="get-report-btn" onClick={fetchLedger}>{loading ? "..." : "Get Report"}</button>
