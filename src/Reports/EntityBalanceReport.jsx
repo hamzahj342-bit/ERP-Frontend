@@ -212,9 +212,25 @@ const EntityBalanceReport = () => {
               </thead>
               <tbody>
                 {data.length > 0 ? data.map((row, index) => (
-                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr 
+                    key={index} 
+                    onClick={() => {
+                      if (row.id) {
+                        navigate(`/entity-ledger?entity_id=${row.id}&type=${reportType}`);
+                      } else {
+                        toast.error("Entity ID missing. Cannot open ledger.");
+                      }
+                    }}
+                    style={{ 
+                      borderBottom: '1px solid #eee',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
                     <td style={{ padding: '15px', color: '#7f8c8d' }}>{(page - 1) * 50 + (index + 1)}</td>
-                    <td style={{ padding: '15px', fontWeight: '500' }}>{row.name}</td>
+                    <td style={{ padding: '15px', fontWeight: '500'}}>{row.name}</td>
                     <td style={{ 
                         padding: '15px', 
                         textAlign: 'right', 

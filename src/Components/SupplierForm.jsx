@@ -67,11 +67,12 @@ const handleSubmit = async (e) => {
       // POST request using api.js
       const res = await api.post("/entities", payload);
 
-      // Axios success (200-299 status codes)
       toast.success("Supplier added successfully!");
       setFormData({ name: "", address: "", contact: "", shop_id: "" }); 
       setIsCustomerLinked(false);
       setSelectedCustomer(null);
+      navigate("/suppliers");
+
       
     } catch (err) {
       console.error("Submit Error:", err);
