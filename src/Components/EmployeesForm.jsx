@@ -51,6 +51,7 @@ const EmployeesForm = () => {
       });
 
       toast.success("Employee added successfully!");
+      navigate("/employees");
       setFormData({ name: "", address: "", contact: "", salary: "" });
 
     } catch (err) {
@@ -113,7 +114,7 @@ const EmployeesForm = () => {
 
             <button
               type="submit"
-              className="primary-btn"
+              className="save-btn"
             >
               Add Employee
             </button>

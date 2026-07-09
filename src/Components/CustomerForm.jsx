@@ -81,6 +81,7 @@ const CustomerForm = () => {
       setFormData({ name: "", address: "", contact: "" });
       setIsSupplierLinked(false);
       setSelectedSupplier(null);
+      navigate("/customers");
       
     } catch (err) {
       console.error("Submit Error:", err);
