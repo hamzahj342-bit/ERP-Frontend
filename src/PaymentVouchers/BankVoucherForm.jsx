@@ -377,7 +377,7 @@ const BankVoucherForm = () => {
                             <strong style={{ fontSize: "16px" }}>Total Net Balanced Amount: <span style={{ color: "#0d6efd" }}>{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></strong>
                         </div>
 
-                        <button type="submit" className="save-btn-main" disabled={isSubmitting} style={{ marginTop: "20px", }}>
+                        <button type="submit" className="save-btn" disabled={isSubmitting} style={{ marginTop: "20px", }}>
                             {isSubmitting ? "Processing Ledger Save..." : `Save ${voucherType} Voucher`}
                         </button>
                     </form>

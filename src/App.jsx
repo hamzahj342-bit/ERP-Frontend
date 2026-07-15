@@ -77,6 +77,7 @@ import EntityBalanceReport from './Reports/EntityBalanceReport';
 import CapitalReport from './Reports/CapitalReport';
 import TrialBalanceReport from './Reports/TrialBalanceReport';
 import SegmentedProfitLossReport from './Reports/Product_ProfitLoss';
+import Product_HistoryReport from './Reports/Product_HistoryReport';
 import CashVoucherList from './PaymentVouchers/CashVoucherList';
 import CashVoucherForm from './PaymentVouchers/CashVoucherForm';
 import BankVoucherList from './PaymentVouchers/BankVoucherList';
@@ -85,6 +86,16 @@ import EntityLedgerMenu from './Layout/EntitiesLedgerMenu';
 import RM_OpeningStockList from './Pages/RM_OpeningStockList';
 import RM_OpeningStockForm from './Pages/RM_OpeningStockForm';
 import './primary-btn.css'
+import './downloads-btn.css' 
+import GRN_Form from './Transactions/GRN_Form';
+import DC_Form from './Transactions/DC_Form';
+import DC_FP_Form from './Transactions/DC_FP_Form';
+import GRN_List from './Transactions/GRN_List';
+import DC_List from './Transactions/DC_List';
+import DC_FP_List from './Transactions/DC_FP_List';
+import LoaderDocumentView from './Transactions/LoaderDocumentView';
+import NavigationBar from './Components/NavigationBar';
+import { FaArrowLeft } from 'react-icons/fa';
 const App = () => {
   return (
     <Router>
@@ -108,14 +119,22 @@ const App = () => {
 
         <Route path="/purchase" element={<ProtectedRoute> <PurchaseForm/> </ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute> <SalesForm/> </ProtectedRoute>} />
-        <Route path="/transactions" element={<ProtectedRoute> <TransactionHistory/> </ProtectedRoute>} />
-
+        <Route path="/transactions" element={<ProtectedRoute> <TransactionHistory/> </ProtectedRoute>} />     
         <Route path="/add-materials" element={<ProtectedRoute> <AddMaterial/> </ProtectedRoute>} />
         <Route path='/materials-list' element={<ProtectedRoute> <MaterialsList /> </ProtectedRoute>} />
         <Route path='/rm-opening-stock-entry' element={<ProtectedRoute> <RM_OpeningStockList /> </ProtectedRoute>} />
         <Route path='/rm-opening-stock-form' element={<ProtectedRoute> <RM_OpeningStockForm /> </ProtectedRoute>} />
+        <Route path='/grn-list' element={<ProtectedRoute> <GRN_List /> </ProtectedRoute>} />
+        <Route path='/grn-form' element={<ProtectedRoute> <GRN_Form /> </ProtectedRoute>} />
+        <Route path='/grn-view/:docNo' element={<ProtectedRoute> <LoaderDocumentView docType="GRN" /> </ProtectedRoute>} />
         <Route path="/rm-purchase" element={<ProtectedRoute> <RM_Purchase/> </ProtectedRoute>} />
         <Route path="/rm-purchase-form" element={<ProtectedRoute> <RM_PurchaseForm/> </ProtectedRoute>} />
+        <Route path='/dc-list' element={<ProtectedRoute> <DC_List /> </ProtectedRoute>} />
+        <Route path='/dc-form' element={<ProtectedRoute> <DC_Form /> </ProtectedRoute>} />
+        <Route path='/dc-view/:docNo' element={<ProtectedRoute> <LoaderDocumentView docType="DC" /> </ProtectedRoute>} />
+        <Route path='/dc-fp-list' element={<ProtectedRoute> <DC_FP_List /> </ProtectedRoute>} />
+        <Route path='/dc-fp-form' element={<ProtectedRoute> <DC_FP_Form /> </ProtectedRoute>} />
+        <Route path='/dc-fp-view/:docNo' element={<ProtectedRoute> <LoaderDocumentView docType="DC-FP" /> </ProtectedRoute>} />
         <Route path="/rm-sale" element={<ProtectedRoute> <RM_Sale/> </ProtectedRoute>} />
         <Route path="/rm-sale-form" element={<ProtectedRoute> <RM_SaleForm/> </ProtectedRoute>} />
         <Route path="/rm-return" element={<ProtectedRoute> <RM_Return/> </ProtectedRoute>} />
@@ -181,6 +200,7 @@ const App = () => {
         <Route path='production-report' element={<ProtectedRoute> <ProductionReport /> </ProtectedRoute>} />
         <Route path='/inventory-adjustment' element={<ProtectedRoute > <InventoryAdjustment /> </ProtectedRoute>} /> 
         <Route path='/stock-report' element={<ProtectedRoute > <StockReport /> </ProtectedRoute>} /> 
+        <Route path='/product-history-report' element={<ProtectedRoute > <Product_HistoryReport /> </ProtectedRoute>} />
         <Route path='/entity-balance-report' element={<ProtectedRoute > <EntityBalanceReport /> </ProtectedRoute>} />
         <Route path='/capital-report' element={<ProtectedRoute > <CapitalReport /> </ProtectedRoute>} />
         <Route path='/trial-balance' element={<ProtectedRoute > <TrialBalanceReport /> </ProtectedRoute>} />

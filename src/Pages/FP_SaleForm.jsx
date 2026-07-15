@@ -23,6 +23,9 @@ const FP_SaleForm = () => {
 
     const [products, setProducts] = useState([]);
     const [customers, setCustomers] = useState([]);
+    const [sourceDocuments, setSourceDocuments] = useState([]);
+    const [selectedSourceDoc, setSelectedSourceDoc] = useState("");
+    const [originalSourceItems, setOriginalSourceItems] = useState([]);
     const [selectedCustomer, setSelectedCustomer] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
@@ -96,6 +99,14 @@ const FP_SaleForm = () => {
                     api.get("/entities/transactions")
                 ]);
 
+                // Fetch unposted DC-FP documents for optional source selection
+                try {
+                    const srcRes = await api.get('/loader-documents/unposted', { params: { type: 'DC-FP' } });
+                    setSourceDocuments(srcRes.data?.data || []);
+                } catch (srcErr) {
+                    console.warn('Could not fetch DC-FP source documents:', srcErr);
+                }
+
                 setProducts(productsRes.data);
                 const onlyCustomers = customersRes.data.filter(ent => ent.type === "customer");
                 setCustomers(onlyCustomers);
@@ -121,6 +132,8 @@ const FP_SaleForm = () => {
                     // Extracting safely with structural fallbacks
                     const master = responseData?.master || responseData;
                     const details = responseData?.details || responseData?.Sale_Details || [];
+                    const sourceDocId = master.source_doc_id || master.inventory_doc_id || null;
+                    const sourceDocNo = master.source_doc_no || master.inventory_doc_no || null;
 
                     if (!master || !master.invoice_no) {
                         console.error("Malformed payload received:", editRes.data);
@@ -129,6 +142,10 @@ const FP_SaleForm = () => {
 
                     setInvoiceNo(master.invoice_no);
                     setSelectedCustomer(master.entity_customer_id || master.entityid);
+                    if (sourceDocId) {
+                        setSelectedSourceDoc(String(sourceDocId));
+                        setSourceDocuments(prev => prev.some(doc => String(doc.id) === String(sourceDocId)) ? prev : [{ id: Number(sourceDocId), no: sourceDocNo || `Source ${sourceDocId}` }, ...prev]);
+                    }
                     
                     // Reading date directly from master structure as per database design
                     const incomingDate = master.date || master.invoiceDate;
@@ -150,7 +167,6 @@ const FP_SaleForm = () => {
                         const mappedRows = details.map(d => {
                             const qty = Math.abs(parseFloat(d.quantity) || 0);
                             const price = parseFloat(d.unit_price) || 0;
-                            
                             const matchingProduct = productsRes.data.find(p => String(p.recipe_id) === String(d.recipe_id));
 
                             return {
@@ -162,10 +178,15 @@ const FP_SaleForm = () => {
                                 total: (qty * price).toFixed(2),
                                 uom_id: d.uom_id || matchingProduct?.uom_id || "",
                                 uom_name: d.uom_name || matchingProduct?.uom_name || "",
-                                stock: Number(matchingProduct?.current_stock) || 0
+                                stock: Number(matchingProduct?.current_stock) || 0,
+                                source_doc_id: sourceDocId,
+                                source_doc_no: sourceDocNo,
+                                source_doc_type: sourceDocId ? 'DC-FP' : null,
+                                original_source_quantity: Number(d.original_source_quantity || qty)
                             };
                         });
                         setRows(mappedRows);
+                        setOriginalSourceItems(mappedRows.map(item => ({ product_master_id: item.product_master_id, original_source_quantity: Number(item.original_source_quantity || item.quantity || 0) })));
                     }
                 }
             } catch (err) {
@@ -178,22 +199,102 @@ const FP_SaleForm = () => {
         loadInitialData();
     }, [editId, isEditMode, navigate, fetchInvoiceNo]);
 
+    const handleSourceDocumentSelection = async (docId, existingRowsOverride = rows, productsList = products) => {
+        setSelectedSourceDoc(docId || "");
+        if (!docId) {
+            setRows(Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0 ? existingRowsOverride : [{ product_master_id: "", product_name: "", recipe_id: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }]);
+            setOriginalSourceItems([]);
+            return;
+        }
+
+        try {
+            const res = await api.get(`/loader-documents/${docId}`);
+            const sourceDoc = res.data?.data || res.data;
+            const details = sourceDoc.LoaderDocumentDetails || sourceDoc.details || [];
+            setSourceDocuments(prev => prev.some(doc => String(doc.id) === String(docId)) ? prev : [{ id: Number(docId), no: sourceDoc.no || `Source ${docId}` }, ...prev]);
+
+            if (sourceDoc.entity_id) setSelectedCustomer(sourceDoc.entity_id && String(sourceDoc.entity_id));
+            if (sourceDoc.date) setDate(sourceDoc.date.split('T')[0]);
+
+            const fallbackRows = Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0 ? existingRowsOverride : [{ product_master_id: "", product_name: "", recipe_id: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }];
+
+            const mappedRows = details.map((detail) => {
+                const productId = Number(detail.material_id || detail.product_master_id || 0);
+                const supplierId = detail.supplier_id ? Number(detail.supplier_id) : null;
+                const existingRow = fallbackRows.find(r => Number(r.product_master_id) === productId) || {};
+                const matchingProduct = productsList.find(p => Number(p.product_master_id || p.id) === productId || Number(p.recipe_id) === Number(detail.supplier_id));
+
+                // Compute original_source_quantity as: DC remaining (detail.quantity) + existing invoice qty (if present)
+                const existingQty = Number(existingRow.quantity || 0);
+                const dcRemaining = Number(detail.quantity || 0);
+                const originalSourceQty = dcRemaining + existingQty;
+
+                return {
+                    ...existingRow,
+                    product_master_id: productId,
+                    product_name: matchingProduct?.product_name || detail.material_name || detail.product_name || "Product",
+                    recipe_id: detail.supplier_id || detail.recipe_id || matchingProduct?.recipe_id || "",
+                    quantity: existingRow.quantity ?? Number(detail.quantity || 0),
+                    unitPrice: existingRow.unitPrice ?? "",
+                    total: existingRow.total ?? "0.00",
+                    uom_id: matchingProduct?.uom_id || detail.uom_id || "",
+                    uom_name: matchingProduct?.uom_name || detail.uom_name || "",
+                    stock: Number(matchingProduct?.current_stock) || Number(detail.quantity || 0),
+                    source_doc_id: sourceDoc.id,
+                    source_doc_no: sourceDoc.no,
+                    source_doc_type: sourceDoc.type,
+                    original_source_quantity: originalSourceQty
+                };
+            });
+
+            const nextRows = mappedRows.length > 0 ? mappedRows : fallbackRows;
+            setRows(nextRows);
+            setOriginalSourceItems(mappedRows.map(item => ({
+                product_master_id: item.product_master_id,
+                original_source_quantity: Number(item.quantity || 0)
+            })));
+        } catch (err) {
+            console.error('Error loading DC-FP source document:', err);
+            toast.error('Failed to load selected DC-FP document.');
+        }
+    };
+
     const handleChange = (index, field, value) => {
         const updated = [...rows];
+
+        if (field === "quantity") {
+            const inputQty = parseFloat(value) || 0;
+            const productId = Number(updated[index].product_master_id || 0);
+            const originalItem = originalSourceItems.find(item => Number(item.product_master_id) === productId);
+            const maxAllowed = parseFloat(originalItem?.original_source_quantity || updated[index]?.original_source_quantity || 0);
+
+            if (selectedSourceDoc && originalItem && inputQty > maxAllowed) {
+                toast.error(`Error: Maximum quantity allowed is ${maxAllowed}. You cannot exceed the original quantity.`);
+                updated[index].quantity = String(maxAllowed);
+                const price = parseFloat(updated[index].unitPrice) || 0;
+                updated[index].total = (maxAllowed * price).toFixed(2);
+                setRows(updated);
+                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                return;
+            }
+
+            const stock = parseFloat(updated[index].stock) || 0;
+            if (inputQty > stock) {
+                toast.error(`Only ${stock} units available!`);
+                updated[index].quantity = "";
+                updated[index].total = "0.00";
+                setRows(updated);
+                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                return;
+            }
+        }
+
         updated[index][field] = value;
 
         if (field === "quantity" || field === "unitPrice") {
             const qty = parseFloat(updated[index].quantity) || 0;
             const price = parseFloat(updated[index].unitPrice) || 0;
-            const stock = parseFloat(updated[index].stock) || 0;
-
-            if (field === "quantity" && qty > stock) {
-                toast.error(`Only ${stock} units available!`);
-                updated[index].quantity = "";
-                updated[index].total = "0.00";
-            } else {
-                updated[index].total = (qty * price).toFixed(2);
-            }
+            updated[index].total = (qty * price).toFixed(2);
         }
 
         setRows(updated);
@@ -246,6 +347,8 @@ const FP_SaleForm = () => {
             date: date, // Purely on Master root level
             createdby: user?.username || "guest",
             invoice_no: invoiceNo,
+            source_doc_id: selectedSourceDoc ? Number(selectedSourceDoc) : null,
+            source_doc_type: selectedSourceDoc ? "DC-FP" : null,
             details: validRows.map(r => ({
                 product_master_id: r.product_master_id,
                 product_name: r.product_name,
@@ -306,16 +409,28 @@ const FP_SaleForm = () => {
                         <div className="info-item">
                             <label>Customer</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <select className="rm-input-field" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
+                                <select className="rm-input-field" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)} disabled={!!selectedSourceDoc}>
                                     <option value="">Select Customer</option>
                                     {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
-                                <button type="button" className="quick-add-btn" onClick={() => setShowCustomerModal(true)}><FaPlus /></button>
+                                <button type="button" className="quick-add-btn" onClick={() => setShowCustomerModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
                             </div>
                         </div>
                         <div className="info-item">
                             <label>Sale Date</label>
-                            <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} />
+                            <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} readOnly={!!selectedSourceDoc} />
+                        </div>
+                        <div className="info-item">
+                            <label>Source DC-FP</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <select className="rm-input-field" value={selectedSourceDoc} onChange={(e) => handleSourceDocumentSelection(e.target.value)}>
+                                    <option value="">Select DC-FP (optional)</option>
+                                    {sourceDocuments.map(doc => (
+                                        <option key={doc.id} value={doc.id}>{doc.no}</option>
+                                    ))}
+                                </select>
+                                <button type="button" className="quick-add-btn" onClick={() => navigate('/dc-fp-form')}><FaPlus /></button>
+                            </div>
                         </div>
                     </div>
 
@@ -335,6 +450,7 @@ const FP_SaleForm = () => {
                                     <select
                                         className="rm-input-field"
                                         value={row.recipe_id}
+                                        disabled={!!selectedSourceDoc}
                                         onChange={(e) => {
                                             const selected = products.find(p => String(p.recipe_id) === String(e.target.value));
                                             if (selected) {
@@ -367,9 +483,9 @@ const FP_SaleForm = () => {
                                 <input type="text" className="rm-input-field readonly-input" placeholder="Total" value={row.total} readOnly />
 
                                 <div style={{ display: 'flex', gap: '5px' }}>
-                                    <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
+                                    <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow} disabled={!!selectedSourceDoc}><FaPlus /></button>
                                     {rows.length > 1 && (
-                                        <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)}><FaTrash /></button>
+                                        <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)} disabled={!!selectedSourceDoc}><FaTrash /></button>
                                     )}
                                 </div>
                             </div>
@@ -412,7 +528,7 @@ const FP_SaleForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">{isEditMode ? "Update Sale Draft" : "Save Sale Transaction"}</button>
+                        <button type="submit" className="save-btn">{isEditMode ? "Update Sale Draft" : "Save Sale Transaction"}</button>
                     </form>
                 </div>
             </div>
@@ -432,7 +548,7 @@ const FP_SaleForm = () => {
                             <div className="form-group"><label>Contact</label><input type="text" id="new_cust_contact" className="rm-input-field" /></div>
                         </div>
                         <div className="modal-footer">
-                            <button className="save-btn-main" onClick={handleQuickCustomerAdd}>Save Customer</button>
+                            <button className="save-btn" onClick={handleQuickCustomerAdd}>Save Customer</button>
                             <button className="quick-add-btn" onClick={() => setShowCustomerModal(false)}>Cancel</button>
                         </div>
                     </div>

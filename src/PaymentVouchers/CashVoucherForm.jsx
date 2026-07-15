@@ -346,7 +346,7 @@ const CashVoucherForm = () => {
                         <div style={{ marginTop: "20px", background: "#f8f9fa", padding: "15px", borderRadius: "6px", textAlign: "right" }}>
                             <strong>Total Net Amount: <span style={{ color: "#0d6efd" }}>{totalAmount.toFixed(2)}</span></strong>
                         </div>
-                        <button type="submit" className="save-btn-main" disabled={isSubmitting} style={{ marginTop: "20px" }}>
+                        <button type="submit" className="save-btn" disabled={isSubmitting} style={{ marginTop: "20px" }}>
                             {isSubmitting ? "Posting..." : `Save ${voucherType} Voucher`}
                         </button>
                     </form>

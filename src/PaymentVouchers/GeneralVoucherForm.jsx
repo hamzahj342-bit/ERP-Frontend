@@ -537,7 +537,7 @@ const GeneralVoucherForm = () => {
 
                         <button 
                             type="submit" 
-                            className="save-btn-main" 
+                            className="save-btn" 
                             disabled={isSubmitting || difference !== 0 || isLoadingVoucher}
                             style={{ marginTop: "20px", opacity: (difference !== 0 || isLoadingVoucher) ? 0.6 : 1 }}
                         >

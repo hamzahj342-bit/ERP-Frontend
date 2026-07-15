@@ -37,6 +37,22 @@ const RM_SaleForm = () => {
     const [grandTotal, setGrandTotal] = useState(0);
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [uoms, setUoms] = useState([]);
+    const [sourceDocuments, setSourceDocuments] = useState([]);
+    const [selectedSourceDoc, setSelectedSourceDoc] = useState("");
+    const [originalSourceItems, setOriginalSourceItems] = useState([]);
+
+    const getMaterialMeta = (material, fallbackDetail = {}) => {
+        const uom = material?.uom || fallbackDetail?.uom || null;
+        return {
+            rm_id: Number(material?.rm_id ?? fallbackDetail?.material_id ?? fallbackDetail?.rm_id ?? 0),
+            rm_name: material?.rm_name || material?.name || fallbackDetail?.material_name || fallbackDetail?.rm_name || "Material",
+            uom_id: material?.uom_id ?? fallbackDetail?.uom_id ?? uom?.id ?? "",
+            uom_name: material?.uom_name || material?.uom?.name || fallbackDetail?.uom_name || uom?.name || "",
+            supplier_id: material?.supplier_id ?? fallbackDetail?.supplier_id ?? "",
+            shop_name: material?.shop_name || fallbackDetail?.shop_name || "",
+            current_stock: Number(material?.current_stock ?? fallbackDetail?.current_stock ?? 0),
+        };
+    };
 
     const fetchInvoiceNo = useCallback(async () => {
         if (isEditMode) return; 
@@ -87,14 +103,16 @@ const RM_SaleForm = () => {
         const loadInitialData = async () => {
             try {
                 // 1. Fetch Master Lists Pehle load karein
-                const [materialsRes, customersRes, uomsRes] = await Promise.all([
+                const [materialsRes, customersRes, uomsRes, sourceDocsRes] = await Promise.all([
                     api.get("/rm-transactions/materials-with-suppliers"),
                     api.get("/entities/transactions"),
-                    api.get('/uoms')
+                    api.get('/uoms'),
+                    api.get('/loader-documents/unposted', { params: { type: 'DC' } })
                 ]);
 
                 setMaterials(materialsRes.data);
                 setUoms(uomsRes.data);
+                setSourceDocuments(sourceDocsRes.data?.data || []);
 
                 const onlyCustomers = customersRes.data.filter(ent => ent.type === "customer");
                 setCustomers(onlyCustomers);
@@ -134,12 +152,11 @@ const RM_SaleForm = () => {
                     setTaxAmount(parseFloat(master.tax_amount || 0).toFixed(2));
                     setGrandTotal(parseFloat(master.grand_total || 0).toFixed(2));
 
+                    let mappedRows = [];
                     if (Array.isArray(details) && details.length > 0) {
-                        const mappedRows = details.map((d) => {
+                        mappedRows = details.map((d) => {
                             const cleanRmId = Number(d.rm_id);
                             const cleanSupplierId = Number(d.original_supplier_id || d.entity_supplier_id || d.supplier_id);
-
-                            // Strict Matching Master List se row nikaalein sirf ID matching par string comparison khatam!
                             const matchingMaterial = materialsRes.data.find(m => 
                                 Number(m.rm_id) === cleanRmId && Number(m.supplier_id) === cleanSupplierId
                             );
@@ -147,7 +164,6 @@ const RM_SaleForm = () => {
                             const qty = Math.abs(parseFloat(d.quantity || d.qty) || 0);
                             const price = parseFloat(d.unit_price || d.price || d.unitPrice) || 0;
 
-                            // Agar exact match mil jaye toh master se fresh details uthayein varna database fallbacks
                             const finalUomName = matchingMaterial?.uom_name || d.uom_name || "Kg";
                             const finalRmName = matchingMaterial?.rm_name || d.rm_name || "Material";
                             const finalShopName = matchingMaterial?.shop_name || d.supplier_name || "Supplier";
@@ -160,14 +176,22 @@ const RM_SaleForm = () => {
                                 unitPrice: price,
                                 total: (qty * price).toFixed(2),
                                 uom_id: finalUomId,
-                                uom_name: finalUomName, // Yeh automatic state me chala jayega ab!
-                                supplier_id: String(cleanSupplierId), // Dropdown mapping ke liye string ki
+                                uom_name: finalUomName,
+                                supplier_id: String(cleanSupplierId),
                                 shop_name: finalShopName,
                                 current_stock: matchingMaterial ? Number(matchingMaterial.current_stock) : qty
                             };
                         });
-                        
                         setRows(mappedRows);
+                    }
+
+                    const sourceDocId = master.source_doc_id || master.inventory_doc_id || master.grn_id || master.dc_id || null;
+                    const sourceDocNo = master.source_doc_no || master.inventory_doc_no || null;
+                    if (sourceDocId) {
+                        if (sourceDocNo) {
+                            setSourceDocuments(prev => prev.some(doc => String(doc.id) === String(sourceDocId)) ? prev : [{ id: Number(sourceDocId), no: sourceDocNo }, ...prev]);
+                        }
+                        await handleSourceDocumentSelection(sourceDocId, mappedRows, materialsRes.data);
                     }
                 }
             } catch (err) {
@@ -208,14 +232,85 @@ const RM_SaleForm = () => {
         calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
     };
 
+    const handleSourceDocumentSelection = async (docId, existingRowsOverride = rows, materialsList = materials) => {
+        setSelectedSourceDoc(docId || "");
+        if (!docId) {
+            setRows(Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0 ? existingRowsOverride : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }]);
+            setOriginalSourceItems([]);
+            return;
+        }
+
+        try {
+            const res = await api.get(`/loader-documents/${docId}`);
+            const sourceDoc = res.data?.data || res.data;
+            const details = sourceDoc.LoaderDocumentDetails || sourceDoc.details || [];
+            setSourceDocuments(prev => prev.some(doc => String(doc.id) === String(docId)) ? prev : [{ id: Number(docId), no: sourceDoc.no || `Source Document ${docId}` }, ...prev]);
+
+            if (sourceDoc.entity_id) {
+                setSelectedCustomer(String(sourceDoc.entity_id));
+            }
+            if (sourceDoc.date) {
+                setDate(sourceDoc.date.split('T')[0]);
+            }
+
+            const fallbackRows = Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0
+                ? existingRowsOverride
+                : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }];
+
+            const mappedRows = details.map((detail) => {
+                const cleanRmId = Number(detail.material_id || detail.rm_id);
+                const cleanSupplierId = detail.supplier_id ? Number(detail.supplier_id) : null;
+                const existingRow = fallbackRows.find((row) => Number(row.rm_id) === cleanRmId) || {};
+                const matchingMaterial = materialsList.find((m) => Number(m.rm_id) === cleanRmId && Number(m.supplier_id) === cleanSupplierId);
+                const meta = getMaterialMeta(matchingMaterial, detail);
+
+                return {
+                    ...existingRow,
+                    rm_id: cleanRmId,
+                    rm_name: meta.rm_name,
+                    quantity: existingRow.quantity ?? Number(detail.quantity || 0),
+                    unitPrice: existingRow.unitPrice ?? "",
+                    total: existingRow.total ?? "0.00",
+                    uom_id: meta.uom_id,
+                    uom_name: meta.uom_name,
+                    supplier_id: cleanSupplierId ? String(cleanSupplierId) : "",
+                    shop_name: meta.shop_name,
+                    current_stock: meta.current_stock,
+                    source_doc_id: sourceDoc.id,
+                    source_doc_no: sourceDoc.no,
+                    source_doc_type: sourceDoc.type,
+                };
+            });
+
+            const nextRows = mappedRows.length > 0 ? mappedRows : fallbackRows;
+            setRows(nextRows);
+            setOriginalSourceItems(mappedRows.map((item) => ({ ...item, quantity: Number(item.quantity || 0) })));
+            toast.success(`Loaded ${sourceDoc.no} for autofill.`);
+        } catch (err) {
+            console.error("Error loading source document:", err);
+            toast.error("Failed to load selected DC document.");
+        }
+    };
+
     const handleChange = (index, field, value) => {
         const updated = [...rows];
         
         if (field === "quantity") {
-            const typedQty = parseFloat(value) || 0;
+            const inputQty = parseFloat(value) || 0;
+            const originalItem = originalSourceItems[index];
+            const maxAllowed = parseFloat(originalItem?.quantity || 0);
+
+            if (selectedSourceDoc && originalItem && inputQty > maxAllowed) {
+                toast.error(`Error: Maximum quantity allowed is ${maxAllowed}. You cannot exceed the original quantity.`);
+                updated[index].quantity = String(maxAllowed);
+                updated[index].total = "0.00";
+                setRows(updated);
+                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                return;
+            }
+
             const available = parseFloat(updated[index].current_stock) || 0;
-            
-            if (typedQty > available) {
+            if (inputQty > available) {
                 toast.error(`Out of stock! Only ${available} units available.`);
                 updated[index][field] = "";
                 updated[index].total = "0.00";
@@ -287,7 +382,9 @@ const RM_SaleForm = () => {
                 supplier_id: Number(r.supplier_id),
                 date,
                 entity_customer_id: selectedCustomer,
-            }))
+            })),
+            source_doc_id: selectedSourceDoc ? Number(selectedSourceDoc) : null,
+            source_doc_type: selectedSourceDoc ? "DC" : null,
         };
 
         try {
@@ -338,16 +435,28 @@ const RM_SaleForm = () => {
                         <div className="info-item">
                             <label>Customer</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <select className="rm-input-field" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)}>
+                                <select className="rm-input-field" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)} disabled={!!selectedSourceDoc}>
                                     <option value="">Select Customer</option>
                                     {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
-                                <button type="button" className="quick-add-btn" onClick={() => setShowCustomerModal(true)}><FaPlus /></button>
+                                <button type="button" className="quick-add-btn" onClick={() => setShowCustomerModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
                             </div>
                         </div>
                         <div className="info-item">
                             <label>Sale Date</label>
-                            <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} />
+                            <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} readOnly={!!selectedSourceDoc} />
+                        </div>
+                        <div className="info-item">
+                            <label>Source DC</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <select className="rm-input-field" value={selectedSourceDoc} onChange={(e) => handleSourceDocumentSelection(e.target.value)}>
+                                    <option value="">Select DC (optional)</option>
+                                    {sourceDocuments.map(doc => (
+                                        <option key={doc.id} value={doc.id}>{doc.no}</option>
+                                    ))}
+                                </select>
+                                <button type="button" className="quick-add-btn" onClick={() => navigate('/dc-form')}><FaPlus /></button>
+                            </div>
                         </div>
                     </div>
 
@@ -372,6 +481,7 @@ const RM_SaleForm = () => {
                                         <select
                                             className="rm-input-field"
                                             value={currentSelectionValue}
+                                            disabled={!!selectedSourceDoc}
                                             onChange={(e) => handleMaterialSelection(index, e.target.value)}
                                         >
                                             <option value="">Select Material</option>
@@ -395,9 +505,9 @@ const RM_SaleForm = () => {
                                     <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
 
                                     <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
-                                        <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
+                                        <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow} disabled={!!selectedSourceDoc}><FaPlus /></button>
                                         {rows.length > 1 && (
-                                            <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)}><FaTrash /></button>
+                                            <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)} disabled={!!selectedSourceDoc}><FaTrash /></button>
                                         )}
                                     </div>
                                 </div>
@@ -441,7 +551,7 @@ const RM_SaleForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">{isEditMode ? "Update Sale Draft" : "Save Sale Draft"}</button>
+                        <button type="submit" className="save-btn">{isEditMode ? "Update Sale Draft" : "Save Sale Draft"}</button>
                     </form>
                 </div>
             </div>
@@ -459,7 +569,7 @@ const RM_SaleForm = () => {
                             <div className="form-group"><label>Contact</label><input type="text" id="new_cust_contact" className="rm-input-field" /></div>
                         </div>
                         <div className="modal-footer">
-                            <button className="save-btn-main" onClick={handleQuickCustomerAdd}>Save Customer</button>
+                            <button className="save-btn" onClick={handleQuickCustomerAdd}>Save Customer</button>
                             <button className="quick-add-btn" onClick={() => setShowCustomerModal(false)}>Cancel</button>
                         </div>
                     </div>

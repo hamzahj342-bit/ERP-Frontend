@@ -367,11 +367,17 @@ const FP_SaleReturnForm = () => {
                                         style={{ marginTop: '20px'}}
                                     >
                                         <option value="">Select Product</option>
-                                        {products.map((p) => (
-                                            <option key={p.recipe_id} value={p.recipe_id}>
-                                                {p.display_name || p.product_name || p.name}
-                                            </option>
-                                        ))}
+                                        {products.map((p) => {
+                                            const productName = p.display_name || p.product_name || p.name || `${p.recipe_id}`;
+                                            const recipeLabel = p.display_name
+                                                ? ''
+                                                : (p.recipe_name ? ` (${p.recipe_name})` : (p.name && p.product_name ? ` (${p.name})` : ''));
+                                            return (
+                                                <option key={p.recipe_id} value={p.recipe_id}>
+                                                    {productName}{recipeLabel}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                     <small style={{ color: "gray", fontSize: '11px', paddingLeft: '2px' }}>Max Allowable: {row.stock}</small>
                                 </div>
@@ -423,7 +429,7 @@ const FP_SaleReturnForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">
+                        <button type="submit" className="save-btn">
                             {isEditMode ? "Update Return Draft" : "Save Return Transaction"}
                         </button>
                     </form>
