@@ -436,7 +436,7 @@ const RM_ReturnForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">
+                        <button type="submit" className="save-btn">
                             {isEditMode ? "Update Return Draft" : "Save"}
                         </button>
                     </form>

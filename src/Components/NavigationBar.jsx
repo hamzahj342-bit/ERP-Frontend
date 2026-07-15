@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaBars, FaUserCircle, FaSignOutAlt, FaHome, FaTruck, FaUserTie,
   FaFileAlt, FaSeedling, FaCubes, FaMoneyBillAlt, FaTools, FaHistory,
-  FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus
+  FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus, FaFileInvoice
 } from "react-icons/fa";
 import { MdScience } from "react-icons/md";
 import "../Bar.css";
@@ -18,17 +18,14 @@ const getProfileImage = () => {
   if (!user?.profile_image) return null;
   console.log("Current Profile Image State:", user.profile_image);
 
-  // Agar database mein pura URL (Cloudinary) save hai to wahi return karein
+
   if (user.profile_image.startsWith("http")) {
     return user.profile_image;
   }
 
-  // Agar local path hai (jis mein humne backend pe '/uploads/' add kiya tha)
-  // To bas IMAGE_BASE_URL ke sath join karein
- // Taake agar database mein "uploads\file.png" hai toh sirf "file.png" bache
+
     const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
 
-    // 3. Final URL build karein (Windows backslash ko forward slash se badlein)
     const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
 
     console.log("Fixed URL:", finalUrl); 
@@ -93,14 +90,17 @@ const getProfileImage = () => {
       children: [
         { icon: <MdScience />, label: "Materials List", path: "/materials-list" },
         { icon: <FaBoxes />, label: "RM Stocks", path: "/rm-stock" },
+        { icon: <FaFileInvoice />, label: "Goods Received Note", path: "/grn-list" },
+        { icon: <FaFileInvoice />, label: "Delivery Challan", path: "/dc-list" },
         { icon: <FaExchangeAlt />, label: "RM Transactions", path: "/rm-transactions" },
-      ],
+      ], 
     },
     {
       type: "heading", label: "FINISHED PRODUCT", icon: <FaCubes />,
       children: [
         { icon: <FaTools />, label: "FP Production", path: "/fp-production" },
         { icon: <FaExchangeAlt />, label: "FP Transactions", path: "/fp-transactions" },
+            { icon: <FaFileInvoice />, label: "FP Delivery Challan", path: "/dc-fp-list" },
         { icon: <FaLayerGroup />, label: "Product Batches", path: "/product-batches" },
         { icon: <FaHistory />, label: "FP History", path: "/finished-products" },
       ],

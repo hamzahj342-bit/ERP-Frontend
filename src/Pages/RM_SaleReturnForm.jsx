@@ -464,7 +464,7 @@ const RM_SaleReturnForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">Save</button>
+                        <button type="submit" className="save-btn">Save</button>
                     </form>
                 </div>
             </div>

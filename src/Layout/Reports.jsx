@@ -7,11 +7,11 @@ import {
     FaArrowLeft,
     FaBalanceScale,    // Icon for Capital & Net Worth Report
     FaBookOpen,       // Icon for Trial Balance Report
-    FaChartBar         // Icon for Segmented Profit & Loss Report
-
+    FaChartBar ,       // Icon for Segmented Profit & Loss Report
+    FaHistory          // Icon for Material and Product History Report
 } from 'react-icons/fa';
 import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
-import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
+import '../FP_Production.css'; 
 import Footer from '../Components/Footer';
 import NavigationBar from '../Components/NavigationBar';
 
@@ -145,7 +145,14 @@ const Reports = () => {
    description="Analyze profitability by different segments, products, or regions. Identify top-performing areas and optimize resource allocation."
    icon={<FaChartBar size={40} />}
    path="/segmented-profit-loss" 
-   color="#ff9800" // Professional Amber/Orange color for Performance & Analytics
+   color="#ff9800" 
+/>
+<ReportCard 
+   title="📦 Material And Product History Report"
+   description="Track material and finished goods ledger history. Monitor sales, returns, and inventory valuations to optimize stock flow and check historical logs."
+   icon={<FaHistory size={40} />}
+   path="/product-history-report" 
+   color="#4caf50" 
 />
 
                 </div>

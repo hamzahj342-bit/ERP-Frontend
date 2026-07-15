@@ -38,9 +38,25 @@ const RM_PurchaseForm = () => {
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     const [showMaterialModal, setShowMaterialModal] = useState(false);
     const [uoms, setUoms] = useState([]);
+    const [sourceDocuments, setSourceDocuments] = useState([]);
+    const [selectedSourceDoc, setSelectedSourceDoc] = useState("");
+    const [originalSourceItems, setOriginalSourceItems] = useState([]);
     // --- State Controlled Modal Variables for flawless UI Sync ---
 const [newMaterialName, setNewMaterialName] = useState("");
 const [newMaterialUom, setNewMaterialUom] = useState("");
+
+    const getMaterialMeta = (material, fallbackDetail = {}) => {
+        const uom = material?.uom || fallbackDetail?.uom || null;
+        return {
+            rm_id: Number(material?.rm_id ?? fallbackDetail?.material_id ?? fallbackDetail?.rm_id ?? 0),
+            rm_name: material?.name || material?.rm_name || fallbackDetail?.material_name || fallbackDetail?.rm_name || "Material",
+            uom_id: material?.uom_id ?? fallbackDetail?.uom_id ?? uom?.id ?? "",
+            uom_name: material?.uom_name || material?.uom?.name || fallbackDetail?.uom_name || uom?.name || "",
+            supplier_id: material?.supplier_id ?? fallbackDetail?.supplier_id ?? "",
+            shop_name: material?.shop_name || fallbackDetail?.shop_name || "",
+            current_stock: Number(material?.current_stock ?? fallbackDetail?.current_stock ?? 0),
+        };
+    };
 
     const fetchInvoiceNo = useCallback(async () => {
         if (isEditMode) return; 
@@ -97,14 +113,16 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
         const loadInitialData = async () => {
             try {
                 // Parallel API Requests
-                const [materialsRes, suppliersRes, uomsRes] = await Promise.all([
+                const [materialsRes, suppliersRes, uomsRes, sourceDocsRes] = await Promise.all([
                     api.get("/add-materials"),
                     api.get("/entities/transactions"),
-                    api.get('/uoms')
+                    api.get('/uoms'),
+                    api.get('/loader-documents/unposted', { params: { type: 'GRN' } })
                 ]);
 
                 setMaterials(materialsRes.data);
                 setUoms(uomsRes.data);
+                setSourceDocuments(sourceDocsRes.data?.data || []);
 
                 const onlySuppliers = suppliersRes.data.filter(ent => ent.type === "supplier");
                 setSuppliers(onlySuppliers);
@@ -143,13 +161,12 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                     setTaxAmount(parseFloat(master.tax_amount || 0).toFixed(2));
                     setGrandTotal(parseFloat(master.grand_total || 0).toFixed(2));
 
+                    let mappedRows = [];
                     if (Array.isArray(details) && details.length > 0) {
-                        const mappedRows = details.map(d => {
+                        mappedRows = details.map(d => {
                             const qty = Math.abs(parseFloat(d.quantity) || 0);
                             const price = parseFloat(d.unit_price) || 0;
-                            
-                            // Materials response se fallback UOM check karna
-                            const matchingMaterial = materialsRes.data.find(m => m.rm_id === parseInt(d.rm_id));
+                            const matchingMaterial = materialsRes.data.find(m => Number(m.rm_id) === Number(d.rm_id));
 
                             return {
                                 rm_id: d.rm_id,
@@ -157,11 +174,20 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                 quantity: qty,
                                 unitPrice: price,
                                 total: (qty * price).toFixed(2),
-                                uom_id: d.uom_id || matchingMaterial?.uom?.id || "",
-                                uom_name: d.uom_name || matchingMaterial?.uom?.name || ""
+                                uom_id: d.uom_id || matchingMaterial?.uom?.id || matchingMaterial?.uom_id || "",
+                                uom_name: d.uom_name || matchingMaterial?.uom?.name || matchingMaterial?.uom_name || ""
                             };
                         });
                         setRows(mappedRows);
+                    }
+
+                    const sourceDocId = master.source_doc_id || master.inventory_doc_id || master.grn_id || master.dc_id || null;
+                    const sourceDocNo = master.source_doc_no || master.inventory_doc_no || null;
+                    if (sourceDocId) {
+                        if (sourceDocNo) {
+                            setSourceDocuments(prev => prev.some(doc => String(doc.id) === String(sourceDocId)) ? prev : [{ id: Number(sourceDocId), no: sourceDocNo }, ...prev]);
+                        }
+                        await handleSourceDocumentSelection(sourceDocId, mappedRows, materialsRes.data);
                     }
                 }
             } catch (err) {
@@ -174,8 +200,79 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
         loadInitialData();
     }, [editId, isEditMode, navigate, fetchInvoiceNo]);
 
+    const handleSourceDocumentSelection = async (docId, existingRowsOverride = rows, materialsList = materials) => {
+        setSelectedSourceDoc(docId || "");
+        if (!docId) {
+            setRows(Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0 ? existingRowsOverride : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }]);
+            setOriginalSourceItems([]);
+            return;
+        }
+
+        try {
+            const res = await api.get(`/loader-documents/${docId}`);
+            const sourceDoc = res.data?.data || res.data;
+            const details = sourceDoc.LoaderDocumentDetails || sourceDoc.details || [];
+            setSourceDocuments(prev => prev.some(doc => String(doc.id) === String(docId)) ? prev : [{ id: Number(docId), no: sourceDoc.no || `Source Document ${docId}` }, ...prev]);
+
+            if (sourceDoc.entity_id) {
+                setSelectedSupplier(String(sourceDoc.entity_id));
+            }
+            if (sourceDoc.date) {
+                setDate(sourceDoc.date.split('T')[0]);
+            }
+
+            const fallbackRows = Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0
+                ? existingRowsOverride
+                : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }];
+
+            const mappedRows = details.map((detail) => {
+                const cleanRmId = Number(detail.material_id || detail.rm_id);
+                const existingRow = fallbackRows.find((row) => Number(row.rm_id) === cleanRmId) || {};
+                const matchingMaterial = materialsList.find((m) => Number(m.rm_id) === cleanRmId);
+                const meta = getMaterialMeta(matchingMaterial, detail);
+
+                return {
+                    ...existingRow,
+                    rm_id: cleanRmId,
+                    rm_name: meta.rm_name,
+                    quantity: existingRow.quantity ?? Number(detail.quantity || 0),
+                    unitPrice: existingRow.unitPrice ?? "",
+                    total: existingRow.total ?? "0.00",
+                    uom_id: meta.uom_id,
+                    uom_name: meta.uom_name,
+                    source_doc_id: sourceDoc.id,
+                    source_doc_no: sourceDoc.no,
+                    source_doc_type: sourceDoc.type,
+                };
+            });
+
+            const nextRows = mappedRows.length > 0 ? mappedRows : fallbackRows;
+            setRows(nextRows);
+            setOriginalSourceItems(mappedRows.map((item) => ({ ...item, quantity: Number(item.quantity || 0) })));
+            toast.success(`Loaded ${sourceDoc.no} for autofill.`);
+        } catch (err) {
+            console.error("Error loading source document:", err);
+            toast.error("Failed to load selected GRN document.");
+        }
+    };
+
     const handleChange = (index, field, value) => {
         const updated = [...rows];
+
+        if (field === "quantity") {
+            const inputQty = parseFloat(value) || 0;
+            const originalItem = originalSourceItems[index];
+            const maxAllowed = parseFloat(originalItem?.quantity || 0);
+
+            if (selectedSourceDoc && originalItem && inputQty > maxAllowed) {
+                toast.error(`Error: Maximum quantity allowed is ${maxAllowed}. You cannot exceed the original quantity.`);
+                updated[index].quantity = String(maxAllowed);
+                setRows(updated);
+                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                return;
+            }
+        }
+
         updated[index][field] = value;
 
         if (field === "quantity" || field === "unitPrice") {
@@ -240,7 +337,9 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                 uom_id: r.uom_id,
                 date,
                 entity_supplier_id: selectedSupplier,
-            }))
+            })),
+            source_doc_id: selectedSourceDoc ? Number(selectedSourceDoc) : null,
+            source_doc_type: selectedSourceDoc ? "GRN" : null,
         };
 
         try {
@@ -327,16 +426,28 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                         <div className="info-item">
                             <label>Supplier</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <select className="rm-input-field" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)}>
+                                <select className="rm-input-field" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} disabled={!!selectedSourceDoc}>
                                     <option value="">Select Supplier</option>
                                     {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
-                                <button type="button" className="quick-add-btn" onClick={() => setShowSupplierModal(true)}><FaPlus /></button>
+                                <button type="button" className="quick-add-btn" onClick={() => setShowSupplierModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
                             </div>
                         </div>
                         <div className="info-item">
                             <label>Purchase Date</label>
-                            <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} />
+                            <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} readOnly={!!selectedSourceDoc} />
+                        </div>
+                        <div className="info-item">
+                            <label>Source GRN</label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <select className="rm-input-field" value={selectedSourceDoc} onChange={(e) => handleSourceDocumentSelection(e.target.value)}>
+                                    <option value="">Select GRN (optional)</option>
+                                    {sourceDocuments.map(doc => (
+                                        <option key={doc.id} value={doc.id}>{doc.no}</option>
+                                    ))}
+                                </select>
+                                <button type="button" className="quick-add-btn" onClick={() => navigate('/grn-form')}><FaPlus /></button>
+                            </div>
                         </div>
                     </div>
 
@@ -356,18 +467,20 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                     <select
                                         className="rm-input-field"
                                         value={row.rm_id}
+                                        disabled={!!selectedSourceDoc}
                                         onChange={(e) => {
                                             const selected = materials.find(m => m.rm_id === parseInt(e.target.value));
+                                            const meta = getMaterialMeta(selected);
                                             handleChange(index, "rm_id", e.target.value);
-                                            handleChange(index, "rm_name", selected?.name || "");
-                                            handleChange(index, "uom_id", selected?.uom?.id || "");
-                                            handleChange(index, "uom_name", selected?.uom?.name || "");
+                                            handleChange(index, "rm_name", meta.rm_name);
+                                            handleChange(index, "uom_id", meta.uom_id);
+                                            handleChange(index, "uom_name", meta.uom_name);
                                         }}
                                     >
                                         <option value="">Select Material</option>
                                         {materials.map(m => <option key={m.rm_id} value={m.rm_id}>{m.name}</option>)}
                                     </select>
-                                    <button type="button" className="quick-add-btn" onClick={() => setShowMaterialModal(true)}><FaPlus /></button>
+                                    <button type="button" className="quick-add-btn" onClick={() => setShowMaterialModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
                                 </div>
 
                                 <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
@@ -376,9 +489,9 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                 <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
 
                                 <div style={{ display: 'flex', gap: '5px' }}>
-                                    <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
+                                    <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow} disabled={!!selectedSourceDoc}><FaPlus /></button>
                                     {rows.length > 1 && (
-                                        <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)}><FaTrash /></button>
+                                        <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)} disabled={!!selectedSourceDoc}><FaTrash /></button>
                                     )}
                                 </div>
                             </div>
@@ -421,7 +534,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">{isEditMode ? "Update Draft" : "Save Draft"}</button>
+                        <button type="submit" className="save-btn">{isEditMode ? "Update Draft" : "Save Draft"}</button>
                     </form>
                 </div>
             </div>
@@ -435,7 +548,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                         <div className="form-group"><label>Address</label><textarea id="new_sup_address" className="rm-input-field"></textarea></div>
                         <div className="form-group"><label>Contact</label><input type="text" id="new_sup_contact" className="rm-input-field" /></div>
                         <div className="modal-actions">
-                            <button className="save-btn-main" onClick={handleQuickSupplierAdd}>Save Supplier</button>
+                            <button className="save-btn" onClick={handleQuickSupplierAdd}>Save Supplier</button>
                             <button className="quick-add-btn" onClick={() => setShowSupplierModal(false)}>Cancel</button>
                         </div>
                     </div>
@@ -472,7 +585,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                 </select>
             </div>
             <div className="modal-actions">
-                <button type="button" className="save-btn-main" onClick={handleQuickMaterialAdd}>Save Material</button>
+                <button type="button" className="save-btn" onClick={handleQuickMaterialAdd}>Save Material</button>
                 <button type="button" className="quick-add-btn" onClick={() => {
                     setShowMaterialModal(false);
                     setNewMaterialName("");

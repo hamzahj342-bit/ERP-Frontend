@@ -332,7 +332,7 @@ const RM_OpeningStockForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn-main">{isEditMode ? "Update Initialization Draft" : "Post Opening Stock Setup"}</button>
+                        <button type="submit" className="save-btn">{isEditMode ? "Update Initialization Draft" : "Post Opening Stock Setup"}</button>
                     </form>
                 </div>
             </div>
@@ -365,7 +365,7 @@ const RM_OpeningStockForm = () => {
                             </select>
                         </div>
                         <div className="modal-actions">
-                            <button type="button" className="save-btn-main" onClick={handleQuickMaterialAdd}>Save Material</button>
+                            <button type="button" className="save-btn" onClick={handleQuickMaterialAdd}>Save Material</button>
                             <button type="button" className="quick-add-btn" onClick={() => setShowMaterialModal(false)}>Cancel</button>
                         </div>
                     </div>

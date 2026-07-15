@@ -13,27 +13,25 @@ const FP_InvoiceDetail = () => {
     const [loading, setLoading] = useState(true);
     const [companies, setCompanies] = useState([]);
 
-    // ✅ Backend Image Base URL
     const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
     
-    // ✅ LocalStorage se User nikalna
+   
     const user = JSON.parse(localStorage.getItem("user"));
 
-    // ✅ Smart Logo Logic: Cloudinary vs Local
+   
 const getCompanyLogo = () => {
     if (!user?.profile_image) return null;
     console.log("Current Profile Image State:", user.profile_image);
 
-    // Agar Cloudinary ka full URL hai to wahi return karein
+  
     if (user.profile_image.startsWith("http")) {
         return user.profile_image;
     }
 
-    // Local path ke liye Base URL join karein
-   // Taake agar database mein "uploads\file.png" hai toh sirf "file.png" bache
+  
     const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
 
-    // 3. Final URL build karein (Windows backslash ko forward slash se badlein)
+   
     const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
 
     console.log("Fixed URL:", finalUrl); 
@@ -43,11 +41,11 @@ const getCompanyLogo = () => {
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                // 1. Fetch Companies (Naam match karne ke liye)
+             
                 const compRes = await api.get('/companies');
                 setCompanies(compRes.data);
 
-                // 2. Fetch Finished Product Invoice Details
+   
                 if (invoiceNo) {
                     const res = await api.get(`/fp-invoice/${invoiceNo}`);
                     setInvoice(res.data);
@@ -62,7 +60,6 @@ const getCompanyLogo = () => {
         fetchInitialData();
     }, [invoiceNo]);
 
-    // ✅ Current Company ka naam ID ke zariye dhoondna
     const currentCompanyName = companies.find(c => c.id === Number(user?.company_id))?.name || "CHEMICAL & DETERGENTS TRADER";
 
     const formatDate = (dateString) => {
@@ -115,7 +112,7 @@ const getCompanyLogo = () => {
                 src={getCompanyLogo()} 
                 alt="Company Logo" 
                 style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
-                crossOrigin="anonymous" // PDF generation mein CORS issue se bachne ke liye
+                crossOrigin="anonymous" 
             />
         ) : (
             <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>

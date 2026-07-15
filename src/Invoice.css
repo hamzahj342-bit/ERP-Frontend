@@ -45,7 +45,7 @@
 }
 .invoice-header .id-number {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: var(--primary-color); /* Emphasized invoice ID with primary accent */
 }
