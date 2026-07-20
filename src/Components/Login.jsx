@@ -328,13 +328,14 @@ const Login = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showNewPass, setShowNewPass] = useState(false);
 
-    // Registration States
-    const [regData, setRegData] = useState({
-        username: '',
-        email: '',
-        password: '',
-        company_id: ''
-    });
+    // Change Password States (login page)
+    const [cpUsername, setCpUsername] = useState('');
+    const [cpCompany, setCpCompany] = useState('');
+    const [cpOldPassword, setCpOldPassword] = useState('');
+    const [cpNewPassword, setCpNewPassword] = useState('');
+    const [cpConfirmPassword, setCpConfirmPassword] = useState('');
+    const [showCpOld, setShowCpOld] = useState(false);
+    const [showCpNew, setShowCpNew] = useState(false);
 
     // --- Fetch Companies ---
     useEffect(() => {
@@ -358,6 +359,13 @@ const Login = () => {
             return;
         }
         try {
+            // Clear any previous session so a leftover company_id/token cannot
+            // interfere with the login request (see api.js skip list).
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('token_expiry');
+
             const response = await api.post('/login', { 
                 username, 
                 password, 
@@ -443,6 +451,63 @@ const Login = () => {
         } finally { setLoading(false); }
     };
 
+    const isStrongPassword = (pwd) =>
+        pwd.length >= 8 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd);
+
+    const openChangePassword = () => {
+        setCpUsername(username || '');
+        setCpCompany(selectedCompany || '');
+        setCpOldPassword('');
+        setCpNewPassword('');
+        setCpConfirmPassword('');
+        setView('changePassword');
+    };
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        if (!cpCompany) {
+            toast.warning("Please select a company!");
+            return;
+        }
+        if (cpNewPassword !== cpConfirmPassword) {
+            toast.error("New password and confirm password do not match!");
+            return;
+        }
+        if (!isStrongPassword(cpNewPassword)) {
+            toast.error("Password must be at least 8 characters with 1 capital letter and 1 number");
+            return;
+        }
+        if (cpOldPassword === cpNewPassword) {
+            toast.error("New password must be different from the old password");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
+            const res = await api.post('/change-password', {
+                username: cpUsername,
+                company_id: cpCompany,
+                oldPassword: cpOldPassword,
+                newPassword: cpNewPassword,
+            });
+            toast.success(res.data?.message || "Password changed successfully!");
+            setUsername(cpUsername);
+            setSelectedCompany(cpCompany);
+            setPassword('');
+            setView('login');
+            setCpOldPassword('');
+            setCpNewPassword('');
+            setCpConfirmPassword('');
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to change password");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="login-wrapper premium-layout">
             
@@ -513,6 +578,9 @@ const Login = () => {
                                 </div>
                                 <div className="options premium-options my-3">
                                     <span className="forgot-link-premium" onClick={() => setView('forgot')}>Forgot Password?</span>
+                                    <span className="forgot-link-premium font-medium text-primary" onClick={openChangePassword}>Change Password</span>
+                                </div>
+                                <div className="options premium-options mb-3" style={{ justifyContent: 'center' }}>
                                     <span className="forgot-link-premium font-medium text-primary" onClick={() => setView('register')}>Create Corporate Account</span>
                                 </div>
                                 <button type="submit" className="login-btn premium-btn w-100 py-3 text-uppercase tracking-wider fw-bold">Sign In</button>
@@ -610,6 +678,88 @@ const Login = () => {
                                     </button>
                                 </form>
                             )}
+                        </div>
+                    )}
+
+                    {/* --- CHANGE PASSWORD VIEW --- */}
+                    {view === 'changePassword' && (
+                        <div className="form-content animate-slide-left">
+                            <div className="back-arrow-premium mb-3" onClick={() => setView('login')}>
+                                <FaArrowLeft /> <span>Return to Access Portal</span>
+                            </div>
+                            <div className="view-header-badge mb-4">Change Password</div>
+                            <p className="step-info-premium text-center text-muted mb-3" style={{ fontSize: '0.85rem' }}>
+                                New password: min 8 characters, 1 capital letter, 1 number
+                            </p>
+                            <form onSubmit={handleChangePassword}>
+                                <div className="input-box premium-input">
+                                    <input
+                                        type="text"
+                                        placeholder="Username"
+                                        value={cpUsername}
+                                        onChange={(e) => setCpUsername(e.target.value)}
+                                        required
+                                    />
+                                    <FaUser className="icon-premium" />
+                                </div>
+                                <div className="input-box premium-input">
+                                    <select
+                                        value={cpCompany}
+                                        onChange={(e) => setCpCompany(e.target.value)}
+                                        required
+                                        className="company-select-field"
+                                    >
+                                        <option value="" disabled>Select Company Domain</option>
+                                        {companies.map((comp) => (
+                                            <option key={comp.id} value={comp.id}>{comp.name}</option>
+                                        ))}
+                                    </select>
+                                    <FaBuilding className="icon-premium" />
+                                </div>
+                                <div className="input-box premium-input">
+                                    <input
+                                        type={showCpOld ? "text" : "password"}
+                                        placeholder="Old Password"
+                                        value={cpOldPassword}
+                                        onChange={(e) => setCpOldPassword(e.target.value)}
+                                        required
+                                    />
+                                    <div className="password-toggle-premium" onClick={() => setShowCpOld(!showCpOld)}>
+                                        {showCpOld ? <FaEyeSlash /> : <FaEye />}
+                                    </div>
+                                    <FaLock className="icon-premium" />
+                                </div>
+                                <div className="input-box premium-input">
+                                    <input
+                                        type={showCpNew ? "text" : "password"}
+                                        placeholder="New Password"
+                                        value={cpNewPassword}
+                                        onChange={(e) => setCpNewPassword(e.target.value)}
+                                        required
+                                    />
+                                    <div className="password-toggle-premium" onClick={() => setShowCpNew(!showCpNew)}>
+                                        {showCpNew ? <FaEyeSlash /> : <FaEye />}
+                                    </div>
+                                    <FaLock className="icon-premium" />
+                                </div>
+                                <div className="input-box premium-input">
+                                    <input
+                                        type="password"
+                                        placeholder="Confirm New Password"
+                                        value={cpConfirmPassword}
+                                        onChange={(e) => setCpConfirmPassword(e.target.value)}
+                                        required
+                                    />
+                                    <FaLock className="icon-premium" />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="login-btn premium-btn w-100 py-3 text-uppercase tracking-wider fw-bold"
+                                    disabled={loading}
+                                >
+                                    {loading ? "Updating..." : "Update Password"}
+                                </button>
+                            </form>
                         </div>
                     )}
 
