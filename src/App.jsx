@@ -96,115 +96,140 @@ import DC_FP_List from './Transactions/DC_FP_List';
 import LoaderDocumentView from './Transactions/LoaderDocumentView';
 import NavigationBar from './Components/NavigationBar';
 import { FaArrowLeft } from 'react-icons/fa';
+import PermissionRoute from './Components/PermissionRoute';
+import { REPORT_PERMISSION_KEYS } from './permissions';
+import UserList from './Pages/UserManagement/UserList';
+import UserForm from './Pages/UserManagement/UserForm';
+import RoleList from './Pages/UserManagement/RoleList';
+import RoleForm from './Pages/UserManagement/RoleForm';
+import CompanyList from './Pages/UserManagement/CompanyList';
+import CompanyForm from './Pages/UserManagement/CompanyForm';
 const App = () => {
   return (
     <Router>
       
       <Routes>
         <Route path="/" element={<Login />} />
+        {/* Always-accessible landing (safe redirect target) */}
         <Route path="/profile" element={<ProtectedRoute> <Profile /> </ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute> <Dashboard /> </ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute><ProductCard /></ProtectedRoute>} />
-        {/* <Route path="/entities" element={<ProtectedRoute> <EntityForm/> </ProtectedRoute>} /> */}
-        <Route path="/customers" element={<ProtectedRoute> <Customers/> </ProtectedRoute>} />
-        <Route path="/add-customers" element={<ProtectedRoute> <CustomerForm/> </ProtectedRoute>} />
-        <Route path="/customer-invoices/:id" element={<ProtectedRoute> <CustomerInvoices/> </ProtectedRoute>} />
-        <Route path="/suppliers" element={<ProtectedRoute> <Suppliers/> </ProtectedRoute>} />
-        <Route path="/add-suppliers" element={<ProtectedRoute> <SupplierForm/> </ProtectedRoute>} />
-        <Route path="/supplier-invoices/:id" element={<ProtectedRoute> <SupplierInvoices/> </ProtectedRoute>} />
-        <Route path="/employees" element={<ProtectedRoute> <Employees /> </ProtectedRoute>} />
-        <Route path="/add-employees" element={<ProtectedRoute> <EmployeesForm /> </ProtectedRoute>} />
+
+        {/* Entities */}
+        <Route path="/customers" element={<PermissionRoute permission="customers"> <Customers/> </PermissionRoute>} />
+        <Route path="/add-customers" element={<PermissionRoute permission="customers"> <CustomerForm/> </PermissionRoute>} />
+        <Route path="/customer-invoices/:id" element={<PermissionRoute permission="customers"> <CustomerInvoices/> </PermissionRoute>} />
+        <Route path="/suppliers" element={<PermissionRoute permission="suppliers"> <Suppliers/> </PermissionRoute>} />
+        <Route path="/add-suppliers" element={<PermissionRoute permission="suppliers"> <SupplierForm/> </PermissionRoute>} />
+        <Route path="/supplier-invoices/:id" element={<PermissionRoute permission="suppliers"> <SupplierInvoices/> </PermissionRoute>} />
+        <Route path="/employees" element={<PermissionRoute permission="employees"> <Employees /> </PermissionRoute>} />
+        <Route path="/add-employees" element={<PermissionRoute permission="employees"> <EmployeesForm /> </PermissionRoute>} />
         <Route path="/shops" element={<ProtectedRoute> <Shops/> </ProtectedRoute>} />
         <Route path="/add-shops" element={<ProtectedRoute> <ShopForm/> </ProtectedRoute>} />
 
         <Route path="/purchase" element={<ProtectedRoute> <PurchaseForm/> </ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute> <SalesForm/> </ProtectedRoute>} />
         <Route path="/transactions" element={<ProtectedRoute> <TransactionHistory/> </ProtectedRoute>} />     
-        <Route path="/add-materials" element={<ProtectedRoute> <AddMaterial/> </ProtectedRoute>} />
-        <Route path='/materials-list' element={<ProtectedRoute> <MaterialsList /> </ProtectedRoute>} />
-        <Route path='/rm-opening-stock-entry' element={<ProtectedRoute> <RM_OpeningStockList /> </ProtectedRoute>} />
-        <Route path='/rm-opening-stock-form' element={<ProtectedRoute> <RM_OpeningStockForm /> </ProtectedRoute>} />
-        <Route path='/grn-list' element={<ProtectedRoute> <GRN_List /> </ProtectedRoute>} />
-        <Route path='/grn-form' element={<ProtectedRoute> <GRN_Form /> </ProtectedRoute>} />
-        <Route path='/grn-view/:docNo' element={<ProtectedRoute> <LoaderDocumentView docType="GRN" /> </ProtectedRoute>} />
-        <Route path="/rm-purchase" element={<ProtectedRoute> <RM_Purchase/> </ProtectedRoute>} />
-        <Route path="/rm-purchase-form" element={<ProtectedRoute> <RM_PurchaseForm/> </ProtectedRoute>} />
-        <Route path='/dc-list' element={<ProtectedRoute> <DC_List /> </ProtectedRoute>} />
-        <Route path='/dc-form' element={<ProtectedRoute> <DC_Form /> </ProtectedRoute>} />
-        <Route path='/dc-view/:docNo' element={<ProtectedRoute> <LoaderDocumentView docType="DC" /> </ProtectedRoute>} />
-        <Route path='/dc-fp-list' element={<ProtectedRoute> <DC_FP_List /> </ProtectedRoute>} />
-        <Route path='/dc-fp-form' element={<ProtectedRoute> <DC_FP_Form /> </ProtectedRoute>} />
-        <Route path='/dc-fp-view/:docNo' element={<ProtectedRoute> <LoaderDocumentView docType="DC-FP" /> </ProtectedRoute>} />
-        <Route path="/rm-sale" element={<ProtectedRoute> <RM_Sale/> </ProtectedRoute>} />
-        <Route path="/rm-sale-form" element={<ProtectedRoute> <RM_SaleForm/> </ProtectedRoute>} />
-        <Route path="/rm-return" element={<ProtectedRoute> <RM_Return/> </ProtectedRoute>} />
-        <Route path="/rm-return-form" element={<ProtectedRoute> <RM_ReturnForm/> </ProtectedRoute>} />
-        <Route path="/rm-sale-return"element={<ProtectedRoute> <RM_SaleReturn/> </ProtectedRoute>} />
-        <Route path="/rm-sale-return-form"element={<ProtectedRoute> <RM_SaleReturnForm/> </ProtectedRoute>} />
-        <Route path="/rm-stock"element={<ProtectedRoute> <RMStockList/> </ProtectedRoute>} />
-        <Route path="/rm-invoice-detail" element={<ProtectedRoute> <RM_InvoiceDetail/> </ProtectedRoute>} />
-         <Route path="/rm-invoice/:invoiceNo" element={<ProtectedRoute> <RM_Invoice/> </ProtectedRoute>} />
-         <Route path='/rm-adjustment' element={<ProtectedRoute> <RM_Adjustment /> </ProtectedRoute>} />
 
-        <Route path="/recipe"element={<ProtectedRoute> <RecipeList/> </ProtectedRoute>} />
-        <Route path="/add-recipe"element={<ProtectedRoute> <AddRecipe/> </ProtectedRoute>} />
-        <Route path="/add-recipe/:id" element={<ProtectedRoute> <AddRecipe/> </ProtectedRoute>} />
+        {/* Raw Material */}
+        <Route path="/add-materials" element={<PermissionRoute permission="rm.materials_list"> <AddMaterial/> </PermissionRoute>} />
+        <Route path='/materials-list' element={<PermissionRoute permission="rm.materials_list"> <MaterialsList /> </PermissionRoute>} />
+        <Route path='/rm-opening-stock-entry' element={<PermissionRoute permission="rm.transactions"> <RM_OpeningStockList /> </PermissionRoute>} />
+        <Route path='/rm-opening-stock-form' element={<PermissionRoute permission="rm.transactions"> <RM_OpeningStockForm /> </PermissionRoute>} />
+        <Route path='/grn-list' element={<PermissionRoute permission="rm.grn"> <GRN_List /> </PermissionRoute>} />
+        <Route path='/grn-form' element={<PermissionRoute permission="rm.grn"> <GRN_Form /> </PermissionRoute>} />
+        <Route path='/grn-view/:docNo' element={<PermissionRoute permission="rm.grn"> <LoaderDocumentView docType="GRN" /> </PermissionRoute>} />
+        <Route path="/rm-purchase" element={<PermissionRoute permission="rm.transactions"> <RM_Purchase/> </PermissionRoute>} />
+        <Route path="/rm-purchase-form" element={<PermissionRoute permission="rm.transactions"> <RM_PurchaseForm/> </PermissionRoute>} />
+        <Route path='/dc-list' element={<PermissionRoute permission="rm.delivery_challan"> <DC_List /> </PermissionRoute>} />
+        <Route path='/dc-form' element={<PermissionRoute permission="rm.delivery_challan"> <DC_Form /> </PermissionRoute>} />
+        <Route path='/dc-view/:docNo' element={<PermissionRoute permission="rm.delivery_challan"> <LoaderDocumentView docType="DC" /> </PermissionRoute>} />
+        <Route path='/dc-fp-list' element={<PermissionRoute permission="fp.delivery_challan"> <DC_FP_List /> </PermissionRoute>} />
+        <Route path='/dc-fp-form' element={<PermissionRoute permission="fp.delivery_challan"> <DC_FP_Form /> </PermissionRoute>} />
+        <Route path='/dc-fp-view/:docNo' element={<PermissionRoute permission="fp.delivery_challan"> <LoaderDocumentView docType="DC-FP" /> </PermissionRoute>} />
+        <Route path="/rm-sale" element={<PermissionRoute permission="rm.transactions"> <RM_Sale/> </PermissionRoute>} />
+        <Route path="/rm-sale-form" element={<PermissionRoute permission="rm.transactions"> <RM_SaleForm/> </PermissionRoute>} />
+        <Route path="/rm-return" element={<PermissionRoute permission="rm.transactions"> <RM_Return/> </PermissionRoute>} />
+        <Route path="/rm-return-form" element={<PermissionRoute permission="rm.transactions"> <RM_ReturnForm/> </PermissionRoute>} />
+        <Route path="/rm-sale-return"element={<PermissionRoute permission="rm.transactions"> <RM_SaleReturn/> </PermissionRoute>} />
+        <Route path="/rm-sale-return-form"element={<PermissionRoute permission="rm.transactions"> <RM_SaleReturnForm/> </PermissionRoute>} />
+        <Route path="/rm-stock"element={<PermissionRoute permission="rm.stocks"> <RMStockList/> </PermissionRoute>} />
+        <Route path="/rm-invoice-detail" element={<PermissionRoute permission="invoice_details"> <RM_InvoiceDetail/> </PermissionRoute>} />
+         <Route path="/rm-invoice/:invoiceNo" element={<PermissionRoute permission="invoice_details"> <RM_Invoice/> </PermissionRoute>} />
+         <Route path='/rm-adjustment' element={<PermissionRoute permission="adjustments"> <RM_Adjustment /> </PermissionRoute>} />
 
-       
-        <Route path="/production" element={<ProtectedRoute> <ProductionList /> </ProtectedRoute>} />
-        <Route path="/production-form" element={<ProtectedRoute> <ProductionForm /> </ProtectedRoute>} />
-        <Route path="/production-form/:batch_id" element={<ProtectedRoute> <ProductionForm /> </ProtectedRoute>} />
-        <Route path="/fp-sale-list" element={<ProtectedRoute> <FP_SaleList /> </ProtectedRoute>} />
-        <Route path="/fp-sale-form" element={<ProtectedRoute> <FP_SaleForm /> </ProtectedRoute>} />
-        <Route path="/fp-salereturn-list" element={<ProtectedRoute> <FP_SaleReturnList /> </ProtectedRoute>} />
-        <Route path="/fp-salereturn-form" element={<ProtectedRoute> <FP_SaleReturnForm /> </ProtectedRoute>} />
-        <Route path="/fp-invoice-detail/:invoiceNo" element={<ProtectedRoute> <FP_InvoiceDetail /> </ProtectedRoute>} />
-        <Route path="/product-batches" element={<ProtectedRoute> <ProductBatchList /> </ProtectedRoute>} />
-        <Route path="/finished-products" element={<ProtectedRoute> <Finished_ProductList /> </ProtectedRoute>} />
-        <Route path="/fp-adjustment" element={<ProtectedRoute> <FP_Adjustment /> </ProtectedRoute>} />
-        
-        <Route path="/account-categories" element={<ProtectedRoute> <AccountCategoryList/> </ProtectedRoute>} />
-        <Route path="/create-category" element={<ProtectedRoute> <CreateAccountCategory /> </ProtectedRoute>} />
-        <Route path="/accounts" element={<ProtectedRoute> <AccountList /> </ProtectedRoute>} />
-        <Route path="/create-account" element={<ProtectedRoute> <CreateAccount /> </ProtectedRoute>} />
-        <Route path="/payments" element={<ProtectedRoute> <GeneralVoucherForm /> </ProtectedRoute>} />
-        <Route path="/payments/:voucherId" element={<ProtectedRoute> <GeneralVoucherForm /> </ProtectedRoute>} />
-        <Route path="/payments-list" element={<ProtectedRoute> <GeneralVoucherList /> </ProtectedRoute>} />
-        <Route path="/cash-vouchers-list" element={<ProtectedRoute> <CashVoucherList /> </ProtectedRoute>} />
-        <Route path="/cash-voucher-form" element={<ProtectedRoute> <CashVoucherForm /> </ProtectedRoute>} />
-        <Route path="/bank-vouchers-list" element={<ProtectedRoute> <BankVoucherList /> </ProtectedRoute>} />
-        <Route path="/bank-voucher-form" element={<ProtectedRoute> <BankVoucherForm /> </ProtectedRoute>} />
-        <Route path="/payments-list" element={<ProtectedRoute> <GeneralVoucherList /> </ProtectedRoute>} />
-        <Route path="/payment-transaction/:invoiceNo" element={<ProtectedRoute> <PaymentTransactionInvoice /> </ProtectedRoute>} />
-        <Route path="/payment-transactions/:invoiceNo" element={<ProtectedRoute> <PaymentTransactionInvoice /> </ProtectedRoute>} />
-        <Route path="/investment-list" element={<ProtectedRoute> <InvestmentList /> </ProtectedRoute>} />
-        <Route path="/investment" element={<ProtectedRoute> <InvestmentForm /> </ProtectedRoute>} />
+        {/* Recipe / Production */}
+        <Route path="/recipe"element={<PermissionRoute permission="fp.production"> <RecipeList/> </PermissionRoute>} />
+        <Route path="/add-recipe"element={<PermissionRoute permission="fp.production"> <AddRecipe/> </PermissionRoute>} />
+        <Route path="/add-recipe/:id" element={<PermissionRoute permission="fp.production"> <AddRecipe/> </PermissionRoute>} />
+        <Route path="/production" element={<PermissionRoute permission="fp.production"> <ProductionList /> </PermissionRoute>} />
+        <Route path="/production-form" element={<PermissionRoute permission="fp.production"> <ProductionForm /> </PermissionRoute>} />
+        <Route path="/production-form/:batch_id" element={<PermissionRoute permission="fp.production"> <ProductionForm /> </PermissionRoute>} />
 
+        {/* Finished Product */}
+        <Route path="/fp-sale-list" element={<PermissionRoute permission="fp.transactions"> <FP_SaleList /> </PermissionRoute>} />
+        <Route path="/fp-sale-form" element={<PermissionRoute permission="fp.transactions"> <FP_SaleForm /> </PermissionRoute>} />
+        <Route path="/fp-salereturn-list" element={<PermissionRoute permission="fp.transactions"> <FP_SaleReturnList /> </PermissionRoute>} />
+        <Route path="/fp-salereturn-form" element={<PermissionRoute permission="fp.transactions"> <FP_SaleReturnForm /> </PermissionRoute>} />
+        <Route path="/fp-invoice-detail/:invoiceNo" element={<PermissionRoute permission="fp.transactions"> <FP_InvoiceDetail /> </PermissionRoute>} />
+        <Route path="/product-batches" element={<PermissionRoute permission="fp.product_batches"> <ProductBatchList /> </PermissionRoute>} />
+        <Route path="/finished-products" element={<PermissionRoute permission="fp.history"> <Finished_ProductList /> </PermissionRoute>} />
+        <Route path="/fp-adjustment" element={<PermissionRoute permission="adjustments"> <FP_Adjustment /> </PermissionRoute>} />
 
-        <Route path='/rm-transactions' element={<ProtectedRoute> <RM_Transactions /> </ProtectedRoute>} />
-        <Route path='/fp-production' element={<ProtectedRoute> <FP_Production /> </ProtectedRoute>} />
-        <Route path='/fp-transactions' element={<ProtectedRoute> <FP_Transactions /> </ProtectedRoute>} />
-        <Route path='/accounts-setting' element={<ProtectedRoute> <Accounts /> </ProtectedRoute>} />
-        <Route path='/payment-transactions' element={<ProtectedRoute> <Transactions /> </ProtectedRoute>} />
+        {/* Chart of Account */}
+        <Route path="/account-categories" element={<PermissionRoute permission="accounts.create"> <AccountCategoryList/> </PermissionRoute>} />
+        <Route path="/create-category" element={<PermissionRoute permission="accounts.create"> <CreateAccountCategory /> </PermissionRoute>} />
+        <Route path="/accounts" element={<PermissionRoute permission="accounts.create"> <AccountList /> </PermissionRoute>} />
+        <Route path="/create-account" element={<PermissionRoute permission="accounts.create"> <CreateAccount /> </PermissionRoute>} />
+        <Route path="/payments" element={<PermissionRoute permission="accounts.transactions"> <GeneralVoucherForm /> </PermissionRoute>} />
+        <Route path="/payments/:voucherId" element={<PermissionRoute permission="accounts.transactions"> <GeneralVoucherForm /> </PermissionRoute>} />
+        <Route path="/payments-list" element={<PermissionRoute permission="accounts.transactions"> <GeneralVoucherList /> </PermissionRoute>} />
+        <Route path="/cash-vouchers-list" element={<PermissionRoute permission="accounts.transactions"> <CashVoucherList /> </PermissionRoute>} />
+        <Route path="/cash-voucher-form" element={<PermissionRoute permission="accounts.transactions"> <CashVoucherForm /> </PermissionRoute>} />
+        <Route path="/bank-vouchers-list" element={<PermissionRoute permission="accounts.transactions"> <BankVoucherList /> </PermissionRoute>} />
+        <Route path="/bank-voucher-form" element={<PermissionRoute permission="accounts.transactions"> <BankVoucherForm /> </PermissionRoute>} />
+        <Route path="/payment-transaction/:invoiceNo" element={<PermissionRoute permission="accounts.transactions"> <PaymentTransactionInvoice /> </PermissionRoute>} />
+        <Route path="/payment-transactions/:invoiceNo" element={<PermissionRoute permission="accounts.transactions"> <PaymentTransactionInvoice /> </PermissionRoute>} />
+        <Route path="/investment-list" element={<PermissionRoute permission="accounts.transactions"> <InvestmentList /> </PermissionRoute>} />
+        <Route path="/investment" element={<PermissionRoute permission="accounts.transactions"> <InvestmentForm /> </PermissionRoute>} />
 
-        <Route path='/reports' element={<ProtectedRoute> <Reports /> </ProtectedRoute>} />
-        <Route path='/entity-ledger' element={<ProtectedRoute> <EntityLedgerReport /> </ProtectedRoute>} />
-        <Route path='/entities-menu' element={<ProtectedRoute> <EntityLedgerMenu /> </ProtectedRoute>} />
-        <Route path='/ledgers/suppliers' element={<ProtectedRoute> <SupplierLedgerReport /> </ProtectedRoute>} />
-        <Route path='/ledgers/customers' element={<ProtectedRoute> <CustomerLedgerReport /> </ProtectedRoute>} />
-        <Route path='/ledgers/employees' element={<ProtectedRoute> <EmployeeLedgerReport /> </ProtectedRoute>} />
-        <Route path='/ledgers/linked-entities' element={<ProtectedRoute> <LinkedEntityLedgerReport /> </ProtectedRoute>} />
-        <Route path='/profit-loss' element={<ProtectedRoute> <ProfitLoss /> </ProtectedRoute>} />
-        <Route path='/accounts-report' element={<ProtectedRoute> <AccountLedger /> </ProtectedRoute>} />
-        <Route path='sales-report' element={<ProtectedRoute> <SalesReport /> </ProtectedRoute>} />
-        <Route path='production-report' element={<ProtectedRoute> <ProductionReport /> </ProtectedRoute>} />
-        <Route path='/inventory-adjustment' element={<ProtectedRoute > <InventoryAdjustment /> </ProtectedRoute>} /> 
-        <Route path='/stock-report' element={<ProtectedRoute > <StockReport /> </ProtectedRoute>} /> 
-        <Route path='/product-history-report' element={<ProtectedRoute > <Product_HistoryReport /> </ProtectedRoute>} />
-        <Route path='/entity-balance-report' element={<ProtectedRoute > <EntityBalanceReport /> </ProtectedRoute>} />
-        <Route path='/capital-report' element={<ProtectedRoute > <CapitalReport /> </ProtectedRoute>} />
-        <Route path='/trial-balance' element={<ProtectedRoute > <TrialBalanceReport /> </ProtectedRoute>} />
-        <Route path='/segmented-profit-loss' element={<ProtectedRoute > <SegmentedProfitLossReport /> </ProtectedRoute>} />
+        {/* Menu / hub screens */}
+        <Route path='/rm-transactions' element={<PermissionRoute permission="rm.transactions"> <RM_Transactions /> </PermissionRoute>} />
+        <Route path='/fp-production' element={<PermissionRoute permission="fp.production"> <FP_Production /> </PermissionRoute>} />
+        <Route path='/fp-transactions' element={<PermissionRoute permission="fp.transactions"> <FP_Transactions /> </PermissionRoute>} />
+        <Route path='/accounts-setting' element={<PermissionRoute permission="accounts.create"> <Accounts /> </PermissionRoute>} />
+        <Route path='/payment-transactions' element={<PermissionRoute permission="accounts.transactions"> <Transactions /> </PermissionRoute>} />
+        <Route path='/inventory-adjustment' element={<PermissionRoute permission="adjustments"> <InventoryAdjustment /> </PermissionRoute>} /> 
+
+        {/* Reports (hub visible if any report permission) */}
+        <Route path='/reports' element={<PermissionRoute anyPermission={REPORT_PERMISSION_KEYS}> <Reports /> </PermissionRoute>} />
+        <Route path='/entities-menu' element={<PermissionRoute permission="reports.entity_ledger"> <EntityLedgerMenu /> </PermissionRoute>} />
+        <Route path='/entity-ledger' element={<PermissionRoute permission="reports.entity_ledger"> <EntityLedgerReport /> </PermissionRoute>} />
+        <Route path='/ledgers/suppliers' element={<PermissionRoute permission="reports.entity_ledger"> <SupplierLedgerReport /> </PermissionRoute>} />
+        <Route path='/ledgers/customers' element={<PermissionRoute permission="reports.entity_ledger"> <CustomerLedgerReport /> </PermissionRoute>} />
+        <Route path='/ledgers/employees' element={<PermissionRoute permission="reports.entity_ledger"> <EmployeeLedgerReport /> </PermissionRoute>} />
+        <Route path='/ledgers/linked-entities' element={<PermissionRoute permission="reports.entity_ledger"> <LinkedEntityLedgerReport /> </PermissionRoute>} />
+        <Route path='/profit-loss' element={<PermissionRoute permission="reports.profit_loss"> <ProfitLoss /> </PermissionRoute>} />
+        <Route path='/accounts-report' element={<PermissionRoute permission="reports.accounts"> <AccountLedger /> </PermissionRoute>} />
+        <Route path='/sales-report' element={<PermissionRoute permission="reports.sales"> <SalesReport /> </PermissionRoute>} />
+        <Route path='/production-report' element={<PermissionRoute permission="reports.production"> <ProductionReport /> </PermissionRoute>} />
+        <Route path='/stock-report' element={<PermissionRoute permission="reports.stock"> <StockReport /> </PermissionRoute>} /> 
+        <Route path='/product-history-report' element={<PermissionRoute permission="reports.history"> <Product_HistoryReport /> </PermissionRoute>} />
+        <Route path='/entity-balance-report' element={<PermissionRoute permission="reports.balance_summary"> <EntityBalanceReport /> </PermissionRoute>} />
+        <Route path='/capital-report' element={<PermissionRoute permission="reports.capital"> <CapitalReport /> </PermissionRoute>} />
+        <Route path='/trial-balance' element={<PermissionRoute permission="reports.trial_balance"> <TrialBalanceReport /> </PermissionRoute>} />
+        <Route path='/segmented-profit-loss' element={<PermissionRoute permission="reports.segmented_pl"> <SegmentedProfitLossReport /> </PermissionRoute>} />
+
+        {/* Administration — roles.manage (Full Access) or users.manage (Super Admin) */}
+        <Route path='/user-management' element={<PermissionRoute anyPermission={['roles.manage', 'users.manage']}> <UserList /> </PermissionRoute>} />
+        <Route path='/user-management/new' element={<PermissionRoute permission="users.manage"> <UserForm /> </PermissionRoute>} />
+        <Route path='/user-management/:id' element={<PermissionRoute anyPermission={['roles.manage', 'users.manage']}> <UserForm /> </PermissionRoute>} />
+        <Route path='/roles' element={<PermissionRoute anyPermission={['roles.manage', 'users.manage']}> <RoleList /> </PermissionRoute>} />
+        <Route path='/roles/new' element={<PermissionRoute anyPermission={['roles.manage', 'users.manage']}> <RoleForm /> </PermissionRoute>} />
+        <Route path='/roles/:id' element={<PermissionRoute anyPermission={['roles.manage', 'users.manage']}> <RoleForm /> </PermissionRoute>} />
+        <Route path='/companies-admin' element={<PermissionRoute permission="users.manage"> <CompanyList /> </PermissionRoute>} />
+        <Route path='/companies-admin/new' element={<PermissionRoute permission="users.manage"> <CompanyForm /> </PermissionRoute>} />
+        <Route path='/companies-admin/:id' element={<PermissionRoute permission="users.manage"> <CompanyForm /> </PermissionRoute>} />
       </Routes>  
        <ToastContainer position="top-right" autoClose={3000} style={{ zIndex: 99999 }}/>
     </Router>

@@ -3,9 +3,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaBars, FaUserCircle, FaSignOutAlt, FaHome, FaTruck, FaUserTie,
   FaFileAlt, FaSeedling, FaCubes, FaMoneyBillAlt, FaTools, FaHistory,
-  FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus, FaFileInvoice
+  FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus, FaFileInvoice, FaBuilding
 } from "react-icons/fa";
 import { MdScience } from "react-icons/md";
+import { hasPermission, hasAnyPermission, REPORT_PERMISSION_KEYS } from "../permissions";
 import "../Bar.css";
 
 const NavigationBar = () => {
@@ -79,44 +80,59 @@ const getProfileImage = () => {
   }, [sidebarOpen]);
 
   const menuSections = [
-    { type: "link", icon: <FaHome />, label: "Dashboard", path: "/dashboard" },
-    { type: "link", icon: <FaHandshake />, label: "Customers", path: "/customers" },
-    { type: "link", icon: <FaTruck />, label: "Suppliers", path: "/suppliers" },
-    { type: "link", icon: <FaUserTie />, label: "Employees", path: "/employees" },
-    { type: "link", icon: <FaSlidersH />, label: "Adjustments", path: "/inventory-adjustment" },
-    { type: "link", icon: <FaFileAlt />, label: "Invoice Details", path: "/rm-invoice-detail" },
+    { type: "link", icon: <FaHome />, label: "Dashboard", path: "/dashboard", perm: "dashboard" },
+    { type: "link", icon: <FaHandshake />, label: "Customers", path: "/customers", perm: "customers" },
+    { type: "link", icon: <FaTruck />, label: "Suppliers", path: "/suppliers", perm: "suppliers" },
+    { type: "link", icon: <FaUserTie />, label: "Employees", path: "/employees", perm: "employees" },
+    { type: "link", icon: <FaSlidersH />, label: "Adjustments", path: "/inventory-adjustment", perm: "adjustments" },
+    { type: "link", icon: <FaFileAlt />, label: "Invoice Details", path: "/rm-invoice-detail", perm: "invoice_details" },
     {
       type: "heading", label: "RAW MATERIAL", icon: <FaSeedling />,
       children: [
-        { icon: <MdScience />, label: "Materials List", path: "/materials-list" },
-        { icon: <FaBoxes />, label: "RM Stocks", path: "/rm-stock" },
-        { icon: <FaFileInvoice />, label: "Goods Received Note", path: "/grn-list" },
-        { icon: <FaFileInvoice />, label: "Delivery Challan", path: "/dc-list" },
-        { icon: <FaExchangeAlt />, label: "RM Transactions", path: "/rm-transactions" },
+        { icon: <MdScience />, label: "Materials List", path: "/materials-list", perm: "rm.materials_list" },
+        { icon: <FaBoxes />, label: "RM Stocks", path: "/rm-stock", perm: "rm.stocks" },
+        { icon: <FaFileInvoice />, label: "Goods Received Note", path: "/grn-list", perm: "rm.grn" },
+        { icon: <FaFileInvoice />, label: "Delivery Challan", path: "/dc-list", perm: "rm.delivery_challan" },
+        { icon: <FaExchangeAlt />, label: "RM Transactions", path: "/rm-transactions", perm: "rm.transactions" },
       ], 
     },
     {
       type: "heading", label: "FINISHED PRODUCT", icon: <FaCubes />,
       children: [
-        { icon: <FaTools />, label: "FP Production", path: "/fp-production" },
-        { icon: <FaExchangeAlt />, label: "FP Transactions", path: "/fp-transactions" },
-            { icon: <FaFileInvoice />, label: "FP Delivery Challan", path: "/dc-fp-list" },
-        { icon: <FaLayerGroup />, label: "Product Batches", path: "/product-batches" },
-        { icon: <FaHistory />, label: "FP History", path: "/finished-products" },
+        { icon: <FaTools />, label: "FP Production", path: "/fp-production", perm: "fp.production" },
+        { icon: <FaExchangeAlt />, label: "FP Transactions", path: "/fp-transactions", perm: "fp.transactions" },
+            { icon: <FaFileInvoice />, label: "FP Delivery Challan", path: "/dc-fp-list", perm: "fp.delivery_challan" },
+        { icon: <FaLayerGroup />, label: "Product Batches", path: "/product-batches", perm: "fp.product_batches" },
+        { icon: <FaHistory />, label: "FP History", path: "/finished-products", perm: "fp.history" },
       ],
     },
     {
       type: "heading", label: "CHART OF ACCOUNT", icon: <FaMoneyBillAlt />,
       children: [
-        { icon: <FaUserPlus />, label: "Create Account", path: "/accounts-setting" },
-        { icon: <FaExchangeAlt />, label: "Transactions", path: "/payment-transactions" },
-        { icon: <FaChartBar />, label: "Reports", path: "/reports" },
+        { icon: <FaUserPlus />, label: "Create Account", path: "/accounts-setting", perm: "accounts.create" },
+        { icon: <FaExchangeAlt />, label: "Transactions", path: "/payment-transactions", perm: "accounts.transactions" },
+        { icon: <FaChartBar />, label: "Reports", path: "/reports", anyPerm: REPORT_PERMISSION_KEYS },
+      ],
+    },
+    {
+      type: "heading", label: "ADMINISTRATION", icon: <FaUserTie />,
+      children: [
+        { icon: <FaUserPlus />, label: "User Management", path: "/user-management", anyPerm: ["roles.manage", "users.manage"] },
+        { icon: <FaBuilding />, label: "Companies", path: "/companies-admin", perm: "users.manage" },
       ],
     },
   ];
 
+  // A menu entry is visible if the user has its required permission
+  // (or any of anyPerm, used for the aggregate "Reports" tab).
+  const canSee = (item) => {
+    if (item.anyPerm) return hasAnyPermission(item.anyPerm);
+    return hasPermission(item.perm);
+  };
+
   const renderMenuItem = (item) => {
     if (item.type === "link") {
+      if (!canSee(item)) return null;
       return (
         <li key={item.label} onClick={() => { navigate(item.path); setSidebarOpen(false); }} className={location.pathname === item.path ? "active" : ""}>
           <span className="icon">{item.icon}</span>
@@ -125,10 +141,12 @@ const getProfileImage = () => {
       );
     }
     if (item.type === "heading") {
+      const visibleChildren = item.children.filter(canSee);
+      if (visibleChildren.length === 0) return null; // hide empty group heading
       return (
         <React.Fragment key={item.label}>
           <li className="sidebar-heading"><span><b>{item.label}</b></span></li>
-          {item.children.map((child) => (
+          {visibleChildren.map((child) => (
             <li key={child.label} onClick={() => { navigate(child.path); setSidebarOpen(false); }} className={`nested-link ${location.pathname === child.path ? "active" : ""}`}>
               <span className="icon">{child.icon}</span>
               <span className="label">{child.label}</span>

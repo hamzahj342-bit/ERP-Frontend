@@ -14,11 +14,15 @@ import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../FP_Production.css'; 
 import Footer from '../Components/Footer';
 import NavigationBar from '../Components/NavigationBar';
+import { hasPermission } from '../permissions';
 
 // Reusable Card component for Reports
-const ReportCard = ({ title, description, icon, path, color }) => {
+const ReportCard = ({ title, description, icon, path, color, perm }) => {
     const navigate = useNavigate();
-    
+
+    // Hide the card if the user lacks its permission.
+    if (!hasPermission(perm)) return null;
+
     return (
         // Reusing .production-card class for consistent styling
         <div className="production-card" style={{ borderLeft: `5px solid ${color}` }}>
@@ -71,6 +75,7 @@ const Reports = () => {
                         icon={<FaFileInvoiceDollar size={40} />}
                         path="/entities-menu" // Assuming this is your target route
                         color="#00A86B" // Green for Money Tracking
+                        perm="reports.entity_ledger"
                     />
 
                     {/* 2. PROFIT & LOSS REPORT CARD */}
@@ -80,6 +85,7 @@ const Reports = () => {
                         icon={<FaChartLine size={40} />}
                         path="/profit-loss" // Assuming this is your target route
                         color="#CC5500" // Orange/Brown for Financial Statement
+                        perm="reports.profit_loss"
                     />
 
                     <ReportCard 
@@ -88,6 +94,7 @@ const Reports = () => {
                         icon={<FaChartLine size={40} />}
                         path="/accounts-report" // Assuming this is your target route
                         color="#00a3ccff" // Orange/Brown for Financial Statement
+                        perm="reports.accounts"
                     />
 
                     <ReportCard 
@@ -96,6 +103,7 @@ const Reports = () => {
                        icon={<FaFileInvoiceDollar size={40} />}
                        path="/sales-report" // Jo bhi aapka route name hai
                        color="#4caf50" // Professional Green color for Sales/Growth
+                       perm="reports.sales"
                     />
                     
                     <ReportCard 
@@ -104,6 +112,7 @@ const Reports = () => {
                        icon={<MdPrecisionManufacturing size={40} />}
                        path="/production-report" 
                        color="#3f51b5" // Professional Indigo/Blue color for Manufacturing/Industry
+                       perm="reports.production"
                      />
                     {/* Add more reports here if needed, e.g., Trial Balance, Balance Sheet */}
 
@@ -113,6 +122,7 @@ const Reports = () => {
                        icon={<MdInventory size={40} />}
                        path="/stock-report" 
                        color="#10b981" // Professional Emerald/Green color for Inventory & Growth
+                       perm="reports.stock"
                     />
 
 
@@ -122,6 +132,7 @@ const Reports = () => {
   icon={<FaFileInvoiceDollar size={40} />} 
   path="/entity-balance-report" 
   color="#3f51b5" 
+  perm="reports.balance_summary"
 />
 
 <ReportCard 
@@ -130,6 +141,7 @@ const Reports = () => {
    icon={<FaBalanceScale size={40} />}
    path="/capital-report" 
    color="#0d47a1" // Professional Deep Blue color for Financial Structure, Capital & Equity
+   perm="reports.capital"
 />
 
 <ReportCard 
@@ -138,6 +150,7 @@ const Reports = () => {
    icon={<FaBookOpen size={40} />}
    path="/trial-balance" 
    color="#495057" // Professional Dark Charcoal/Slate gray for accounting ledgers and balancing metrics
+   perm="reports.trial_balance"
 />
 
 <ReportCard 
@@ -146,6 +159,7 @@ const Reports = () => {
    icon={<FaChartBar size={40} />}
    path="/segmented-profit-loss" 
    color="#ff9800" 
+   perm="reports.segmented_pl"
 />
 <ReportCard 
    title="📦 Material And Product History Report"
@@ -153,6 +167,7 @@ const Reports = () => {
    icon={<FaHistory size={40} />}
    path="/product-history-report" 
    color="#4caf50" 
+   perm="reports.history"
 />
 
                 </div>
