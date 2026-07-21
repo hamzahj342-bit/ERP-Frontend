@@ -130,8 +130,8 @@ const UserForm = () => {
   return (
     <>
       <NavigationBar />
-      <div className="page-container" style={{ maxWidth: 560, margin: "0 auto", padding: "0 16px" }}>
-        <button className="back-btn" style={{ marginTop: 30 }} onClick={() => navigate("/user-management")}>
+      <div className="page-wrapper" style={{ maxWidth: 560, margin: "0 auto", padding: "0 16px" }}>
+        <button className="back-btn" style={{ marginTop: '50px' }} onClick={() => navigate("/user-management")}>
           <FaArrowLeft />
         </button>
 

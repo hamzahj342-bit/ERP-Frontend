@@ -77,7 +77,7 @@ const RoleList = () => {
   };
 
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper " style={{ marginTop: '30px'}}>
       <NavigationBar />
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "30px 0 25px 0" }}>

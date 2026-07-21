@@ -100,7 +100,7 @@ const RoleForm = () => {
     <>
       <NavigationBar />
       <div className="page-container" style={{ maxWidth: 760, margin: "0 auto", padding: "0 16px" }}>
-        <button className="back-btn" style={{ marginTop: 30 }} onClick={() => navigate("/roles")}>
+        <button className="back-btn" style={{ marginTop: '50px' }} onClick={() => navigate("/roles")}>
           <FaArrowLeft />
         </button>
 

@@ -549,7 +549,7 @@ const Login = () => {
                 <div className="login-box premium-box shadow-lg">
                     
                     <div className="login-header text-center mb-4">
-                        <h1 className='company-name-premium text-uppercase tracking-wider'>Next-Gen ERP Suite</h1>
+                        <h1 className='company-name-premium text-uppercase tracking-wider'>CodeBase Next-Gen</h1>
                         <p className="form-subtitle-premium"> For Multi-Tenant Organizations</p>
                     </div>
 
@@ -580,9 +580,9 @@ const Login = () => {
                                     <span className="forgot-link-premium" onClick={() => setView('forgot')}>Forgot Password?</span>
                                     <span className="forgot-link-premium font-medium text-primary" onClick={openChangePassword}>Change Password</span>
                                 </div>
-                                <div className="options premium-options mb-3" style={{ justifyContent: 'center' }}>
+                                {/* <div className="options premium-options mb-3" style={{ justifyContent: 'center' }}>
                                     <span className="forgot-link-premium font-medium text-primary" onClick={() => setView('register')}>Create Corporate Account</span>
-                                </div>
+                                </div> */}
                                 <button type="submit" className="login-btn premium-btn w-100 py-3 text-uppercase tracking-wider fw-bold">Sign In</button>
                             </form>
                         </div>
