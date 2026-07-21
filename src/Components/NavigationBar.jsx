@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaBars, FaUserCircle, FaSignOutAlt, FaHome, FaTruck, FaUserTie,
   FaFileAlt, FaSeedling, FaCubes, FaMoneyBillAlt, FaTools, FaHistory,
-  FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus, FaFileInvoice, FaBuilding
+  FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus, FaFileInvoice, FaBuilding,
+  FaStore, FaWarehouse, FaCashRegister, FaUndo, FaShoppingCart
 } from "react-icons/fa";
 import { MdScience } from "react-icons/md";
 import { hasPermission, hasAnyPermission, REPORT_PERMISSION_KEYS } from "../permissions";
@@ -95,6 +96,24 @@ const getProfileImage = () => {
         { icon: <FaFileInvoice />, label: "Delivery Challan", path: "/dc-list", perm: "rm.delivery_challan" },
         { icon: <FaExchangeAlt />, label: "RM Transactions", path: "/rm-transactions", perm: "rm.transactions" },
       ], 
+    },
+    {
+      type: "heading", label: "RETAIL", icon: <FaStore />,
+      children: [
+        { icon: <FaShoppingCart />, label: "Retail Purchase", path: "/retail/purchases", perm: "retail.transactions" },
+        { icon: <FaUndo />, label: "Retail Purchase Return", path: "/retail/purchase-returns", perm: "retail.transactions" },
+        { icon: <FaCashRegister />, label: "Retail Sales", path: "/retail/sales", perm: "retail.transactions" },
+        { icon: <FaUndo />, label: "Retail Sale Returns", path: "/retail/sale-returns", perm: "retail.transactions" },
+      ],
+    },
+    {
+      type: "heading", label: "WHOLESALE", icon: <FaWarehouse />,
+      children: [
+        { icon: <FaShoppingCart />, label: "Wholesale Purchase", path: "/wholesale/purchases", perm: "wholesale.transactions" },
+        { icon: <FaUndo />, label: "Wholesale Purchase Return", path: "/wholesale/purchase-returns", perm: "wholesale.transactions" },
+        { icon: <FaCashRegister />, label: "Wholesale Sales", path: "/wholesale/sales", perm: "wholesale.transactions" },
+        { icon: <FaUndo />, label: "Wholesale Sale Returns", path: "/wholesale/sale-returns", perm: "wholesale.transactions" },
+      ],
     },
     {
       type: "heading", label: "FINISHED PRODUCT", icon: <FaCubes />,

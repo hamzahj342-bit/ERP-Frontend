@@ -8,14 +8,20 @@ import Pagination from '../Components/Pagination';
 import api from "../../api"; 
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
 import Swal from 'sweetalert2'; // Swal import kiya confirmation dialogs k liye
+import { formatRmDetailsList } from '../utils/rmQtyDisplay';
 
-const RM_Purchase = () => {
+const RM_Purchase = ({ channel = null }) => {
   const [purchases, setPurchases] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const navigate = useNavigate();
+
+  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+  const formPath = channel ? `/${channel}/purchase-form` : '/rm-purchase-form';
+  const backPath = channel ? '/dashboard' : '/rm-transactions';
+  const pageTitle = channelLabel ? `${channelLabel} Purchases` : 'Raw Material Purchase';
 
   // Fetch paginated data using api.js
   const fetchPurchases = async () => {
@@ -24,7 +30,8 @@ const RM_Purchase = () => {
         params: {
           type: "purchase",
           page: page,
-          limit: 50
+          limit: 50,
+          ...(channel ? { channel } : {})
         }
       });
 
@@ -45,7 +52,7 @@ const RM_Purchase = () => {
 
   useEffect(() => {
     fetchPurchases();
-  }, [page]); // Runs whenever the page changes
+  }, [page, channel]);
 
   // ---------------------------------------------------------
   // 1️⃣ Approve Handler with SweetAlert2 (Yes/No Confirmation)
@@ -115,32 +122,25 @@ const RM_Purchase = () => {
 
     if (result.isConfirmed) {
       // Edit form screen par navigate karega query parameter pass kar ke
-      navigate(`/rm-purchase-form?editId=${masterId}`);
+      navigate(`${formPath}?editId=${masterId}`);
     }
   };
 
-  const renderItemNames = (details = []) => {
-    if (!Array.isArray(details) || details.length === 0) return "-";
-    const itemNames = details
-      .slice(0, 3)
-      .map((detail) => detail.rm_name || detail.product_name || detail.name || "Unknown")
-      .filter(Boolean);
-    return itemNames.join(", ");
-  };
+  const renderItemNames = (details = []) => formatRmDetailsList(details);
 
   return (
     <>
       <NavigationBar />
       <div className="rm-page">
         <div className="top-nav-container" style={{marginTop: '30px'}}>
-          <button className="back-btn" onClick={() => navigate('/rm-transactions')}>
+          <button className="back-btn" onClick={() => navigate(backPath)}>
             <FaArrowLeft />
           </button>
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h3>Raw Material Purchase</h3>
+            <h3>{pageTitle}</h3>
             <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW PURCHASE
             </button>
@@ -231,9 +231,9 @@ const RM_Purchase = () => {
           onClose={() => setIsInvoiceModalOpen(false)}
           onSelect={(type) => {
             setIsInvoiceModalOpen(false);
-            navigate(`/rm-purchase-form?invoiceType=${type}`);
+            navigate(`${formPath}?invoiceType=${type}`);
           }}
-          title="Purchase Invoice Type"
+          title={channelLabel ? `${channelLabel} Purchase Invoice Type` : "Purchase Invoice Type"}
         />
       </div>
       <Footer />

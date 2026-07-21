@@ -34,6 +34,18 @@ export const PERMISSION_GROUPS = [
     ],
   },
   {
+    group: "Retail",
+    permissions: [
+      { key: "retail.transactions", label: "Retail Purchases, Sales & Returns" },
+    ],
+  },
+  {
+    group: "Wholesale",
+    permissions: [
+      { key: "wholesale.transactions", label: "Wholesale Purchases, Sales & Returns" },
+    ],
+  },
+  {
     group: "Chart of Account",
     permissions: [
       { key: "accounts.create", label: "Create Account" },

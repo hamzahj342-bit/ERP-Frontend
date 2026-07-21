@@ -22,6 +22,7 @@ const StockReport = () => {
   
   const [rmData, setRmData] = useState([]);
   const [fgData, setFgData] = useState([]);
+  const [hasPackSizes, setHasPackSizes] = useState(false);
 
   const fetchStockReport = async () => {
     setLoading(true);
@@ -29,6 +30,7 @@ const StockReport = () => {
       const response = await api.get(`/reports/stock-report?type=${reportType}`);
       if (reportType === 'rm') {
         setRmData(response.data.rawMaterials || []);
+        setHasPackSizes(Boolean(response.data.has_pack_sizes));
       } else {
         setFgData(response.data.finishedGoods || []);
       }
@@ -52,6 +54,11 @@ const StockReport = () => {
     (item['product.name'] || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Show Pack Stock only when at least one RM has a pack size defined
+  const showPackStock = hasPackSizes || rmData.some(
+    (item) => Array.isArray(item.pack_breakdown) && item.pack_breakdown.length > 0
+  );
+
   // Calculate Totals for Footer
   const totalRMStock = filteredRM.reduce((acc, i) => acc + Number(i.total_current_stock), 0);
   const totalRMValue = filteredRM.reduce((acc, i) => acc + Number(i.total_stock_price), 0);
@@ -71,10 +78,29 @@ const StockReport = () => {
     };
 
     if (reportType === 'rm') {
-      const headers = ["Material Name", "Stock Qty", "Stock Value", "Avg Cost", "Consumed"].map(h => ({ v: h, s: headerStyle }));
-      const rows = filteredRM.map(i => [i['RawMaterial.name'], Number(i.total_current_stock), Number(i.total_stock_price), Number(i.average_unit_cost), Number(i.total_consumed)]);
-      rows.push(["", "", "", "", ""]); // Empty line
-      rows.push([{v: "GRAND TOTAL", s: {font: {bold: true}}}, totalRMStock, totalRMValue, "", ""]);
+      const headerLabels = showPackStock
+        ? ["Material Name", "Base Stock", "Pack Stock", "Stock Value", "Avg Cost", "Consumed"]
+        : ["Material Name", "Base Stock", "Stock Value", "Avg Cost", "Consumed"];
+      const headers = headerLabels.map(h => ({ v: h, s: headerStyle }));
+      const rows = filteredRM.map(i => {
+        const row = [
+          i['RawMaterial.name'],
+          `${Number(i.total_current_stock).toLocaleString()}${i.base_uom_name ? ` ${i.base_uom_name}` : ''}`,
+        ];
+        if (showPackStock) row.push(i.pack_stock_display || '-');
+        row.push(
+          Number(i.total_stock_price),
+          Number(i.average_unit_cost),
+          Number(i.total_consumed)
+        );
+        return row;
+      });
+      const emptyCols = showPackStock ? ["", "", "", "", "", ""] : ["", "", "", "", ""];
+      const totalRow = showPackStock
+        ? [{v: "GRAND TOTAL", s: {font: {bold: true}}}, totalRMStock, "", totalRMValue, "", ""]
+        : [{v: "GRAND TOTAL", s: {font: {bold: true}}}, totalRMStock, totalRMValue, "", ""];
+      rows.push(emptyCols);
+      rows.push(totalRow);
       const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
       XLSX.utils.book_append_sheet(wb, ws, "Raw Materials");
     } else {
@@ -108,26 +134,37 @@ const StockReport = () => {
       doc.text(`Date: ${today}`, 14, 22);
       
       if (reportType === 'rm') {
-        const bodyData = filteredRM.map(i => [
-          i['RawMaterial.name'] || 'N/A', 
-          Number(i.total_current_stock).toLocaleString(), 
-          Number(i.total_stock_price).toLocaleString(), 
-          Number(i.average_unit_cost).toFixed(2), 
-          Number(i.total_consumed || 0).toLocaleString() // Consumed Column
-        ]);
+        const bodyData = filteredRM.map(i => {
+          const row = [
+            i['RawMaterial.name'] || 'N/A',
+            `${Number(i.total_current_stock).toLocaleString()}${i.base_uom_name ? ` ${i.base_uom_name}` : ''}`,
+          ];
+          if (showPackStock) row.push(i.pack_stock_display || '-');
+          row.push(
+            Number(i.total_stock_price).toLocaleString(),
+            Number(i.average_unit_cost).toFixed(2),
+            Number(i.total_consumed || 0).toLocaleString()
+          );
+          return row;
+        });
         
-        // Grand Total Row with Consumed Total
-        bodyData.push([
+        const totalRow = [
           { content: "GRAND TOTAL", styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }, 
           { content: totalRMStock.toLocaleString(), styles: { fontStyle: 'bold' } }, 
+        ];
+        if (showPackStock) totalRow.push("");
+        totalRow.push(
           { content: totalRMValue.toLocaleString(), styles: { fontStyle: 'bold' } }, 
           "", 
-          { content: totalRMConsumed.toLocaleString(), styles: { fontStyle: 'bold' } } // Yahan total add kiya
-        ]);
+          { content: totalRMConsumed.toLocaleString(), styles: { fontStyle: 'bold' } }
+        );
+        bodyData.push(totalRow);
 
         autoTable(doc, {
           startY: 28,
-          head: [['Material Name', 'Stock', 'Value', 'Avg Cost', 'Consumed']],
+          head: [showPackStock
+            ? ['Material Name', 'Base Stock', 'Pack Stock', 'Value', 'Avg Cost', 'Consumed']
+            : ['Material Name', 'Base Stock', 'Value', 'Avg Cost', 'Consumed']],
           body: bodyData,
           headStyles: { fillColor: [46, 125, 50] },
           theme: 'grid'
@@ -237,7 +274,10 @@ const StockReport = () => {
                 <thead>
                   <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #eee' }}>
                     <th style={{ padding: '15px', textAlign: 'left', color: '#444' }}>Material Name</th>
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Stock Qty</th>
+                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Base Stock</th>
+                    {showPackStock && (
+                      <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Pack Stock</th>
+                    )}
                     <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Stock Value</th>
                     <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Avg Cost</th>
                     <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Consumed</th>
@@ -249,9 +289,14 @@ const StockReport = () => {
                       <td style={{ padding: '18px 15px', fontWeight: '600', color: '#2c3e50' }}>{row['RawMaterial.name']}</td>
                       <td style={{ textAlign: 'center' }}>
                         <span style={{ color: '#2e7d32', background: '#e8f5e9', padding: '4px 10px', borderRadius: '12px', fontSize: '0.9em', fontWeight: 'bold' }}>
-                          {Number(row.total_current_stock).toLocaleString()}
+                          {Number(row.total_current_stock).toLocaleString()}{row.base_uom_name ? ` ${row.base_uom_name}` : ''}
                         </span>
                       </td>
+                      {showPackStock && (
+                        <td style={{ textAlign: 'center', fontWeight: '500', color: '#1565c0' }}>
+                          {row.pack_stock_display || '-'}
+                        </td>
+                      )}
                       <td style={{ textAlign: 'center', fontWeight: '500' }}>{Number(row.total_stock_price).toLocaleString()}</td>
                       <td style={{ textAlign: 'center', color: '#666' }}>{Number(row.average_unit_cost).toFixed(2)}</td>
                       <td style={{ textAlign: 'center' }}>
@@ -266,6 +311,7 @@ const StockReport = () => {
                   <tr>
                     <td style={{ padding: '15px' }}>GRAND TOTAL</td>
                     <td style={{ textAlign: 'center', color: '#2e7d32' }}>{totalRMStock.toLocaleString()}</td>
+                    {showPackStock && <td></td>}
                     <td style={{ textAlign: 'center' }}>{totalRMValue.toLocaleString()}</td>
                     <td></td>
                     <td style={{ textAlign: 'center', color: '#2196f3'}}>{totalRMConsumed.toLocaleString()}</td>

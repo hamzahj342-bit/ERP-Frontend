@@ -8,17 +8,59 @@ import api from '../../api';
 import '../Model.css';
 import '../Transactions.css';
 
+const emptyRow = () => ({
+    rm_id: "",
+    rm_name: "",
+    quantity: "",
+    uom_id: "",
+    uom_name: "",
+    supplier_id: "",
+    customer_id: "",
+    shop_name: "",
+    current_stock: 0,
+    pack_sizes: [],
+    factor: 1,
+});
+
+const normalizePackSizes = (material) =>
+    (material?.pack_sizes || []).map((p) => ({
+        uom_id: p.uom_id,
+        uom_name: p.uom?.name || p.uom_name || "",
+        factor_to_base: Number(p.factor_to_base) || 1,
+        is_base: !!p.is_base,
+    }));
+
+const getMaterialPackMeta = (material, preferredUomId = null) => {
+    const packSizes = normalizePackSizes(material);
+    const baseUomId = material?.uom_id ?? material?.uom?.id ?? packSizes[0]?.uom_id ?? "";
+    const uomId = preferredUomId || baseUomId;
+    const selectedPack =
+        packSizes.find((p) => Number(p.uom_id) === Number(uomId)) ||
+        packSizes.find((p) => p.is_base) ||
+        packSizes[0] ||
+        null;
+
+    return {
+        pack_sizes: packSizes,
+        uom_id: selectedPack?.uom_id || uomId || "",
+        uom_name:
+            selectedPack?.uom_name ||
+            material?.uom_name ||
+            material?.uom?.name ||
+            "",
+        factor: Number(selectedPack?.factor_to_base) || 1,
+    };
+};
+
 const GRN_Form = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     const queryParams = new URLSearchParams(location.search);
-    const editId = queryParams.get('editId'); 
+    const editId = queryParams.get('editId');
     const isEditMode = !!editId;
 
-    const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", customer_id: "", shop_name: "", current_stock: 0 }
-    ]);
+    const [rows, setRows] = useState([emptyRow()]);
     const [materials, setMaterials] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [drivers, setDrivers] = useState([]);
@@ -28,16 +70,15 @@ const GRN_Form = () => {
     const [vehicleNo, setVehicleNo] = useState("");
     const [grnNo, setGrnNo] = useState("");
     const [date, setDate] = useState("");
-    
+
     const [showSupplierModal, setShowSupplierModal] = useState(false);
     const [showDriverModal, setShowDriverModal] = useState(false);
 
-    // States for Controlled Modal Forms
     const [modalSupplier, setModalSupplier] = useState({ name: "", contact: "", address: "" });
     const [modalDriver, setModalDriver] = useState({ name: "", contact: "", cnic: "" });
 
     const fetchGRNNo = useCallback(async () => {
-        if (isEditMode) return; 
+        if (isEditMode) return;
         try {
             const res = await api.get("/loader-documents/next-number", {
                 params: { type: "GRN" }
@@ -66,23 +107,21 @@ const GRN_Form = () => {
                 if (!isEditMode) {
                     fetchGRNNo();
                 } else {
-                    // Calling the clean standard getDocumentById endpoint
                     const editRes = await api.get(`/loader-documents/${editId}`);
                     const master = editRes.data?.data;
-                    
+
                     if (master) {
                         setGrnNo(master.no);
-                        setSelectedSupplier(master.entity_id); // Maps to master supplier/entity
+                        setSelectedSupplier(master.entity_id);
                         setSelectedDriver(master.driver_id);
                         setVehicleNo(master.vehicle_no);
-                        
+
                         if (master.date) {
                             setDate(new Date(master.date).toISOString().split('T')[0]);
                         } else if (master.created_at) {
                             setDate(new Date(master.created_at).toISOString().split('T')[0]);
                         }
 
-                        // Extract items array from Sequelize relational include format
                         const nestedDetails = master.LoaderDocumentDetails || master.details || [];
 
                         if (Array.isArray(nestedDetails) && nestedDetails.length > 0) {
@@ -91,27 +130,27 @@ const GRN_Form = () => {
                                 const cleanSupplierId = d.supplier_id ? Number(d.supplier_id) : null;
                                 const cleanCustomerId = d.customer_id ? Number(d.customer_id) : null;
 
-                                const matchingMaterial = materialsRes.data.find(m => 
-                                    Number(m.rm_id) === cleanRmId && Number(m.supplier_id) === cleanSupplierId
+                                const matchingMaterial = materialsRes.data.find(m =>
+                                    Number(m.rm_id) === cleanRmId
                                 );
 
-                                const qty = Math.abs(parseFloat(d.quantity || d.qty) || 0);
-                                const finalUomName = matchingMaterial?.uom_name || d.uom_name || "Kg";
-                                const finalRmName = matchingMaterial?.rm_name || d.material_name || "Material";
-                                const finalShopName = matchingMaterial?.shop_name || d.supplier_name || "Supplier";
-                                const finalUomId = matchingMaterial?.uom_id || d.uom_id || "";
+                                const packMeta = getMaterialPackMeta(matchingMaterial, d.uom_id);
+                                // Prefer entered (pack) qty; fall back to base for legacy rows
+                                const qty = Math.abs(parseFloat(d.entered_qty ?? d.quantity ?? d.qty) || 0);
 
                                 return {
-                                    id: d.id || null, // Keep individual row ID for proper PUT updates
+                                    id: d.id || null,
                                     rm_id: cleanRmId,
-                                    rm_name: finalRmName,
+                                    rm_name: matchingMaterial?.name || matchingMaterial?.rm_name || d.material_name || "Material",
                                     quantity: qty,
-                                    uom_id: finalUomId,
-                                    uom_name: finalUomName,
+                                    uom_id: packMeta.uom_id,
+                                    uom_name: packMeta.uom_name,
+                                    pack_sizes: packMeta.pack_sizes,
+                                    factor: packMeta.factor,
                                     supplier_id: cleanSupplierId ? String(cleanSupplierId) : "",
                                     customer_id: cleanCustomerId ? String(cleanCustomerId) : "",
-                                    shop_name: finalShopName,
-                                    current_stock: matchingMaterial ? Number(matchingMaterial.current_stock) : qty
+                                    shop_name: matchingMaterial?.shop_name || d.supplier_name || "",
+                                    current_stock: matchingMaterial ? Number(matchingMaterial.current_stock) : 0
                                 };
                             });
                             setRows(mappedRows);
@@ -131,7 +170,7 @@ const GRN_Form = () => {
     const handleMaterialSelection = (index, value) => {
         const updated = [...rows];
         if (!value) {
-            updated[index] = { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", customer_id: "", shop_name: "", current_stock: 0 };
+            updated[index] = emptyRow();
             setRows(updated);
             return;
         }
@@ -139,17 +178,36 @@ const GRN_Form = () => {
         const selected = materials.find(m => Number(m.rm_id) === Number(value));
 
         if (selected) {
-            updated[index].rm_id = Number(selected.rm_id);
-            updated[index].rm_name = selected.rm_name || selected.name;
-            updated[index].uom_id = selected.uom_id;
-            updated[index].uom_name = selected.uom_name || selected.uom?.name || "";
-            updated[index].supplier_id = String(selected.supplier_id || "");
-            updated[index].customer_id = "";
-            updated[index].shop_name = selected.shop_name || "";
-            updated[index].current_stock = selected.current_stock || 0;
-            updated[index].quantity = "";
+            const packMeta = getMaterialPackMeta(selected);
+            updated[index] = {
+                ...updated[index],
+                rm_id: Number(selected.rm_id),
+                rm_name: selected.rm_name || selected.name,
+                uom_id: packMeta.uom_id,
+                uom_name: packMeta.uom_name,
+                pack_sizes: packMeta.pack_sizes,
+                factor: packMeta.factor,
+                supplier_id: String(selected.supplier_id || ""),
+                customer_id: "",
+                shop_name: selected.shop_name || "",
+                current_stock: selected.current_stock || 0,
+                quantity: "",
+            };
         }
 
+        setRows(updated);
+    };
+
+    const handleUomSelection = (index, uomId) => {
+        const updated = [...rows];
+        const row = { ...updated[index] };
+        const pack = (row.pack_sizes || []).find((p) => Number(p.uom_id) === Number(uomId));
+        if (!pack) return;
+
+        row.uom_id = pack.uom_id;
+        row.uom_name = pack.uom_name;
+        row.factor = Number(pack.factor_to_base) || 1;
+        updated[index] = row;
         setRows(updated);
     };
 
@@ -160,7 +218,7 @@ const GRN_Form = () => {
     };
 
     const addRow = () => {
-        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", customer_id: "", shop_name: "", current_stock: 0 }]);
+        setRows([...rows, emptyRow()]);
     };
 
     const deleteRow = (index) => {
@@ -179,7 +237,7 @@ const GRN_Form = () => {
         if (validRows.length === 0) return toast.error("Please add at least one valid material row.");
 
         const user = JSON.parse(localStorage.getItem("user"));
-        
+
         const payload = {
             no: grnNo,
             type: "GRN",
@@ -189,9 +247,9 @@ const GRN_Form = () => {
             created_by: user?.id || null,
             updated_by: user?.id || null,
             entity_id: Number(selectedSupplier),
-            // Map row item details along with granular ownership IDs
+            // Send entered qty + selected uom; backend converts to base
             details: validRows.map(r => ({
-                id: r.id || undefined, 
+                id: r.id || undefined,
                 material_id: Number(r.rm_id),
                 material_name: r.rm_name,
                 quantity: parseFloat(r.quantity),
@@ -218,37 +276,37 @@ const GRN_Form = () => {
     const handleQuickSupplierAdd = async () => {
         if (!modalSupplier.name.trim()) return toast.error("Supplier name is required.");
         try {
-            const res = await api.post("/entities", { 
-                name: modalSupplier.name.trim(), 
-                contact: modalSupplier.contact.trim(), 
-                address: modalSupplier.address.trim(), 
-                type: "supplier" 
+            const res = await api.post("/entities", {
+                name: modalSupplier.name.trim(),
+                contact: modalSupplier.contact.trim(),
+                address: modalSupplier.address.trim(),
+                type: "supplier"
             });
             setSuppliers(prev => [...prev, res.data]);
             setSelectedSupplier(res.data.id);
-            setModalSupplier({ name: "", contact: "", address: "" }); 
+            setModalSupplier({ name: "", contact: "", address: "" });
             setShowSupplierModal(false);
             toast.success("Supplier Linked Successfully!");
-        } catch (err) { 
-            toast.error("Failed to add supplier."); 
+        } catch (err) {
+            toast.error("Failed to add supplier.");
         }
     };
 
     const handleQuickDriverAdd = async () => {
         if (!modalDriver.name.trim()) return toast.error("Driver name is required.");
         try {
-            const res = await api.post("/drivers", { 
-                driver_name: modalDriver.name.trim(), 
-                contact_no: modalDriver.contact.trim(), 
-                cnic: modalDriver.cnic.trim() 
+            const res = await api.post("/drivers", {
+                driver_name: modalDriver.name.trim(),
+                contact_no: modalDriver.contact.trim(),
+                cnic: modalDriver.cnic.trim()
             });
             setDrivers(prev => [...prev, res.data]);
             setSelectedDriver(res.data.id);
-            setModalDriver({ name: "", contact: "", cnic: "" }); 
+            setModalDriver({ name: "", contact: "", cnic: "" });
             setShowDriverModal(false);
             toast.success("Driver Added!");
-        } catch (err) { 
-            toast.error("Failed to add driver."); 
+        } catch (err) {
+            toast.error("Failed to add driver.");
         }
     };
 
@@ -327,8 +385,30 @@ const GRN_Form = () => {
                                         ))}
                                     </select>
 
-                                    <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name || ''} readOnly />
-                                    <input type="number" step="any" className="rm-input-field" placeholder="Qty" value={row.quantity || ''} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                    {Array.isArray(row.pack_sizes) && row.pack_sizes.length > 1 ? (
+                                        <select
+                                            className="rm-input-field"
+                                            value={row.uom_id}
+                                            onChange={(e) => handleUomSelection(index, e.target.value)}
+                                        >
+                                            {row.pack_sizes.map((p) => (
+                                                <option key={p.uom_id} value={p.uom_id}>
+                                                    {p.uom_name}{!p.is_base ? ` (=${Number(p.factor_to_base)} base)` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name || ''} readOnly />
+                                    )}
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <input type="number" step="any" className="rm-input-field" placeholder="Qty" value={row.quantity || ''} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                        {Number(row.factor) !== 1 && parseFloat(row.quantity) > 0 && (
+                                            <small style={{ fontSize: '11px', color: '#3182ce', paddingLeft: '4px' }}>
+                                                = {(parseFloat(row.quantity) * Number(row.factor)).toFixed(2)} base units
+                                            </small>
+                                        )}
+                                    </div>
 
                                     <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
                                         <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
@@ -348,7 +428,6 @@ const GRN_Form = () => {
             </div>
             <Footer />
 
-            {/* Quick Supplier Modal */}
             {showSupplierModal && (
                 <div className="modal-overlay" onClick={() => setShowSupplierModal(false)}>
                     <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -358,27 +437,27 @@ const GRN_Form = () => {
                         <div className="modal-body">
                             <div className="form-group">
                                 <label>Name *</label>
-                                <input 
-                                    type="text" 
-                                    className="rm-input-field" 
+                                <input
+                                    type="text"
+                                    className="rm-input-field"
                                     value={modalSupplier.name}
                                     onChange={(e) => setModalSupplier({...modalSupplier, name: e.target.value})}
                                 />
                             </div>
                             <div className="form-group">
                                 <label>Address</label>
-                                <input 
-                                    type="text" 
-                                    className="rm-input-field" 
+                                <input
+                                    type="text"
+                                    className="rm-input-field"
                                     value={modalSupplier.address}
                                     onChange={(e) => setModalSupplier({...modalSupplier, address: e.target.value})}
                                 />
                             </div>
                             <div className="form-group">
                                 <label>Contact</label>
-                                <input 
-                                    type="text" 
-                                    className="rm-input-field" 
+                                <input
+                                    type="text"
+                                    className="rm-input-field"
                                     value={modalSupplier.contact}
                                     onChange={(e) => setModalSupplier({...modalSupplier, contact: e.target.value})}
                                 />
@@ -392,7 +471,6 @@ const GRN_Form = () => {
                 </div>
             )}
 
-            {/* Quick Driver Modal */}
             {showDriverModal && (
                 <div className="modal-overlay" onClick={() => setShowDriverModal(false)}>
                     <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -402,27 +480,27 @@ const GRN_Form = () => {
                         <div className="modal-body">
                             <div className="form-group">
                                 <label>Driver Name *</label>
-                                <input 
-                                    type="text" 
-                                    className="rm-input-field" 
+                                <input
+                                    type="text"
+                                    className="rm-input-field"
                                     value={modalDriver.name}
                                     onChange={(e) => setModalDriver({...modalDriver, name: e.target.value})}
                                 />
                             </div>
                             <div className="form-group">
                                 <label>Contact Number</label>
-                                <input 
-                                    type="text" 
-                                    className="rm-input-field" 
+                                <input
+                                    type="text"
+                                    className="rm-input-field"
                                     value={modalDriver.contact}
                                     onChange={(e) => setModalDriver({...modalDriver, contact: e.target.value})}
                                 />
                             </div>
                             <div className="form-group">
                                 <label>CNIC</label>
-                                <input 
-                                    type="text" 
-                                    className="rm-input-field" 
+                                <input
+                                    type="text"
+                                    className="rm-input-field"
                                     value={modalDriver.cnic}
                                     onChange={(e) => setModalDriver({...modalDriver, cnic: e.target.value})}
                                 />

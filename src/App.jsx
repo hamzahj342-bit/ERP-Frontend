@@ -154,6 +154,24 @@ const App = () => {
         <Route path="/rm-sale-return"element={<PermissionRoute permission="rm.transactions"> <RM_SaleReturn/> </PermissionRoute>} />
         <Route path="/rm-sale-return-form"element={<PermissionRoute permission="rm.transactions"> <RM_SaleReturnForm/> </PermissionRoute>} />
         <Route path="/rm-stock"element={<PermissionRoute permission="rm.stocks"> <RMStockList/> </PermissionRoute>} />
+
+        {/* Retail / Wholesale channel tabs — same RM engine, channel-tagged */}
+        <Route path="/retail/purchases" element={<PermissionRoute permission="retail.transactions"> <RM_Purchase channel="retail" /> </PermissionRoute>} />
+        <Route path="/retail/purchase-form" element={<PermissionRoute permission="retail.transactions"> <RM_PurchaseForm channel="retail" /> </PermissionRoute>} />
+        <Route path="/retail/purchase-returns" element={<PermissionRoute permission="retail.transactions"> <RM_Return channel="retail" /> </PermissionRoute>} />
+        <Route path="/retail/purchase-return-form" element={<PermissionRoute permission="retail.transactions"> <RM_ReturnForm channel="retail" /> </PermissionRoute>} />
+        <Route path="/retail/sales" element={<PermissionRoute permission="retail.transactions"> <RM_Sale channel="retail" /> </PermissionRoute>} />
+        <Route path="/retail/sale-form" element={<PermissionRoute permission="retail.transactions"> <RM_SaleForm channel="retail" /> </PermissionRoute>} />
+        <Route path="/retail/sale-returns" element={<PermissionRoute permission="retail.transactions"> <RM_SaleReturn channel="retail" /> </PermissionRoute>} />
+        <Route path="/retail/sale-return-form" element={<PermissionRoute permission="retail.transactions"> <RM_SaleReturnForm channel="retail" /> </PermissionRoute>} />
+        <Route path="/wholesale/purchases" element={<PermissionRoute permission="wholesale.transactions"> <RM_Purchase channel="wholesale" /> </PermissionRoute>} />
+        <Route path="/wholesale/purchase-form" element={<PermissionRoute permission="wholesale.transactions"> <RM_PurchaseForm channel="wholesale" /> </PermissionRoute>} />
+        <Route path="/wholesale/purchase-returns" element={<PermissionRoute permission="wholesale.transactions"> <RM_Return channel="wholesale" /> </PermissionRoute>} />
+        <Route path="/wholesale/purchase-return-form" element={<PermissionRoute permission="wholesale.transactions"> <RM_ReturnForm channel="wholesale" /> </PermissionRoute>} />
+        <Route path="/wholesale/sales" element={<PermissionRoute permission="wholesale.transactions"> <RM_Sale channel="wholesale" /> </PermissionRoute>} />
+        <Route path="/wholesale/sale-form" element={<PermissionRoute permission="wholesale.transactions"> <RM_SaleForm channel="wholesale" /> </PermissionRoute>} />
+        <Route path="/wholesale/sale-returns" element={<PermissionRoute permission="wholesale.transactions"> <RM_SaleReturn channel="wholesale" /> </PermissionRoute>} />
+        <Route path="/wholesale/sale-return-form" element={<PermissionRoute permission="wholesale.transactions"> <RM_SaleReturnForm channel="wholesale" /> </PermissionRoute>} />
         <Route path="/rm-invoice-detail" element={<PermissionRoute permission="invoice_details"> <RM_InvoiceDetail/> </PermissionRoute>} />
          <Route path="/rm-invoice/:invoiceNo" element={<PermissionRoute permission="invoice_details"> <RM_Invoice/> </PermissionRoute>} />
          <Route path='/rm-adjustment' element={<PermissionRoute permission="adjustments"> <RM_Adjustment /> </PermissionRoute>} />

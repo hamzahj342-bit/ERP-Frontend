@@ -8,14 +8,20 @@ import Pagination from '../Components/Pagination';
 import api from "../../api"; 
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
 import Swal from 'sweetalert2'; 
+import { formatRmDetailsList } from '../utils/rmQtyDisplay';
 
-const RM_Return = () => {
+const RM_Return = ({ channel = null }) => {
   const [returns, setReturns] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const navigate = useNavigate();
+
+  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+  const formPath = channel ? `/${channel}/purchase-return-form` : '/rm-return-form';
+  const backPath = channel ? '/dashboard' : '/rm-transactions';
+  const pageTitle = channelLabel ? `${channelLabel} Purchase Returns` : 'Raw Material Returns';
 
   // Fetch paginated data using exact same structure
   const fetchReturns = async () => {
@@ -24,7 +30,8 @@ const RM_Return = () => {
         params: {
           type: "Return", // Purchase Return k liye standard identifier
           page: page,
-          limit: 50
+          limit: 50,
+          ...(channel ? { channel } : {})
         }
       });
 
@@ -45,7 +52,7 @@ const RM_Return = () => {
 
   useEffect(() => {
     fetchReturns();
-  }, [page]);
+  }, [page, channel]);
 
   // ---------------------------------------------------------
   // 1️⃣ Approve Handler with SweetAlert2 (Exact Purchase Pattern)
@@ -113,7 +120,7 @@ const RM_Return = () => {
 
     if (result.isConfirmed) {
       // Return form code par navigate krega standard flow me
-      navigate(`/rm-return-form?editId=${masterId}`);
+      navigate(`${formPath}?editId=${masterId}`);
     }
   };
 
@@ -122,14 +129,14 @@ const RM_Return = () => {
       <NavigationBar />
       <div className="rm-page">
         <div className="top-nav-container" style={{marginTop: '30px'}}>
-          <button className="back-btn" onClick={() => navigate('/rm-transactions')}>
+          <button className="back-btn" onClick={() => navigate(backPath)}>
             <FaArrowLeft />
           </button>
         </div>
 
         <div className="card">
           <div className="card-header">
-            <h3>Raw Material Returns</h3>
+            <h3>{pageTitle}</h3>
             <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW RETURN
             </button>
@@ -145,6 +152,7 @@ const RM_Return = () => {
                   <th><FaCalendarAlt /> DATE</th>
                   <th><FaUserAlt /> CREATED BY</th>
                   <th>SUPPLIER</th>
+                  <th>ITEMS</th>
                   <th>GRAND TOTAL</th>
                   <th>INVOICE STATUS</th>
                   <th style={{ textAlign: 'center' }}>ACTION</th>
@@ -160,6 +168,7 @@ const RM_Return = () => {
                       <td>{r.date ? new Date(r.date).toLocaleDateString() : "-"}</td>
                       <td><span className="user-tag">{r.createdby}</span></td>
                       <td><span className="supplier-tag">{r.entity_name}</span></td>
+                      <td><span className="user-tag" style={{ whiteSpace: 'normal', maxWidth: '280px', display: 'inline-block' }}>{formatRmDetailsList(r.details)}</span></td>
                       <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
                         {parseFloat(r.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
                       </td>
@@ -201,7 +210,7 @@ const RM_Return = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>No Transactions Found</td>
+                    <td colSpan="10" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>No Transactions Found</td>
                   </tr>
                 )}
               </tbody>
@@ -217,9 +226,9 @@ const RM_Return = () => {
           onClose={() => setIsInvoiceModalOpen(false)}
           onSelect={(type) => {
             setIsInvoiceModalOpen(false);
-            navigate(`/rm-return-form?invoiceType=${type}`);
+            navigate(`${formPath}?invoiceType=${type}`);
           }}
-          title="Return Invoice Type"
+          title={channelLabel ? `${channelLabel} Purchase Return Invoice Type` : "Return Invoice Type"}
         />
       </div>
       <Footer />
