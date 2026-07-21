@@ -20,43 +20,17 @@ const RM_OpeningStockForm = () => {
     const HARDCODED_STARTUP_SUPPLIER_ID = 999999;
 
     const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }
+        { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "" }
     ]);
     const [materials, setMaterials] = useState([]);
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
-    const [subTotal, setSubTotal] = useState(0);
-    const [globalDiscount, setGlobalDiscount] = useState("");
-    const [grandTotal, setGrandTotal] = useState(0);
     const [showMaterialModal, setShowMaterialModal] = useState(false);
     const [uoms, setUoms] = useState([]);
 
     // --- State Controlled Modal Variables for flawless UI Sync ---
     const [newMaterialName, setNewMaterialName] = useState("");
     const [newMaterialUom, setNewMaterialUom] = useState("");
-
-    // Generate explicit system runtime invoice number on frontend
-    const generateFrontendInvoiceNo = () => {
-        const uniqueSequence = Math.floor(100000 + Math.random() * 900000); 
-        return `OPENING-${uniqueSequence}`;
-    };
-
-    // ---------------------------------------------------------
-    // 🔥 CALCULATION MECHANICS (TAX REMOVED)
-    // ---------------------------------------------------------
-    const calculateTotals = (currentRows, discountValue) => {
-        const currentSubTotal = currentRows.reduce((sum, row) => {
-            const qty = parseFloat(row.quantity) || 0;
-            const price = parseFloat(row.unitPrice) || 0;
-            return sum + (qty * price);
-        }, 0);
-
-        const discount = parseFloat(discountValue) || 0;
-        const netValue = Math.max(0, currentSubTotal - discount);
-
-        setSubTotal(currentSubTotal.toFixed(2));
-        setGrandTotal(netValue.toFixed(2));
-    };
 
     // ---------------------------------------------------------
     // 🔥 ASYNC INITIALIZATION PIPELINE
@@ -65,16 +39,17 @@ const RM_OpeningStockForm = () => {
         const loadInitialData = async () => {
             try {
                 // Parallel fetching of setup masters
-                const [materialsRes, uomsRes] = await Promise.all([
+                const [materialsRes, uomsRes, invoiceRes] = await Promise.all([
                     api.get("/add-materials"),
-                    api.get('/uoms')
+                    api.get('/uoms'),
+                    api.get('/rm-transactions/opening-stock/next')
                 ]);
 
                 setMaterials(materialsRes.data);
                 setUoms(uomsRes.data);
 
                 if (!isEditMode) {
-                    setInvoiceNo(generateFrontendInvoiceNo());
+                    setInvoiceNo(invoiceRes.data?.invoice_no || 'OPN-0001');
                 } else {
                     // Initialization loading sequence for edit structures
                     const editRes = await api.get(`/rm-transactions/edit-preview/${editId}`);
@@ -86,10 +61,6 @@ const RM_OpeningStockForm = () => {
                         setDate(new Date(invoiceDate).toISOString().split('T')[0]);
                     }
                     
-                    setSubTotal(parseFloat(master.subtotal || 0).toFixed(2));
-                    setGlobalDiscount(master.discount || "");
-                    setGrandTotal(parseFloat(master.grand_total || 0).toFixed(2));
-
                     if (Array.isArray(details) && details.length > 0) {
                         const mappedRows = details.map(d => {
                             const qty = Math.abs(parseFloat(d.quantity) || 0);
@@ -100,8 +71,6 @@ const RM_OpeningStockForm = () => {
                                 rm_id: d.rm_id,
                                 rm_name: d.rm_name,
                                 quantity: qty,
-                                unitPrice: price,
-                                total: (qty * price).toFixed(2),
                                 uom_id: d.uom_id || matchingMaterial?.uom?.id || "",
                                 uom_name: d.uom_name || matchingMaterial?.uom?.name || ""
                             };
@@ -121,30 +90,15 @@ const RM_OpeningStockForm = () => {
     const handleChange = (index, field, value) => {
         const updated = [...rows];
         updated[index][field] = value;
-
-        if (field === "quantity" || field === "unitPrice") {
-            const qty = parseFloat(updated[index].quantity) || 0;
-            const price = parseFloat(updated[index].unitPrice) || 0;
-            updated[index].total = (qty * price).toFixed(2);
-        }
-
         setRows(updated);
-        calculateTotals(updated, globalDiscount);
-    };
-
-    const handleGlobalDiscountChange = (value) => {
-        setGlobalDiscount(value);
-        calculateTotals(rows, value);
     };
 
     const addRow = () => {
-        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }]);
+        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "" }]);
     };
 
     const deleteRow = (index) => {
-        const updated = rows.filter((_, i) => i !== index);
-        setRows(updated);
-        calculateTotals(updated, globalDiscount);
+        setRows(rows.filter((_, i) => i !== index));
     };
 
     // ---------------------------------------------------------
@@ -152,38 +106,31 @@ const RM_OpeningStockForm = () => {
     // ---------------------------------------------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!date) return toast.error("Please select a initialization runtime date.");
+        if (!date) return toast.error("Please select an initialization date.");
 
-        const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0 && parseFloat(r.unitPrice) > 0);
-        if (validRows.length === 0) return toast.error("Please add at least one execution initialization item.");
-
-        const disc = parseFloat(globalDiscount) || 0;
-        if (disc > parseFloat(subTotal)) {
-            return toast.error("Global system discount limits exceeded.");
-        }
+        const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
+        if (validRows.length === 0) return toast.error("Please add at least one item with quantity.");
 
         const user = JSON.parse(localStorage.getItem("user"));
         
         const initializationPayload = {
-            entityid: HARDCODED_STARTUP_SUPPLIER_ID, 
-            grand_total: parseFloat(grandTotal),
-            sub_total: parseFloat(subTotal),
-            discount: disc,
-            taxable_amount: parseFloat(grandTotal), 
-            tax_amount: 0.00,
+            entityid: HARDCODED_STARTUP_SUPPLIER_ID,
+            grand_total: 0,
+            sub_total: 0,
+            discount: 0,
+            taxable_amount: 0,
+            tax_amount: 0,
             is_taxable: false,
             tax_mode: 'exclusive',
-            tax_rate: 0.00,
+            tax_rate: 0,
             tax_id: null,
-            type: "purchase", 
+            type: "purchase",
             createdby: user?.username || "system",
             invoice_no: invoiceNo,
             details: validRows.map(r => ({
                 rm_id: r.rm_id,
                 rm_name: r.rm_name,
                 quantity: parseFloat(r.quantity),
-                unit_price: parseFloat(r.unitPrice),
-                total_price: parseFloat(r.total),
                 uom_id: r.uom_id,
                 date,
                 entity_supplier_id: HARDCODED_STARTUP_SUPPLIER_ID,
@@ -274,8 +221,6 @@ const RM_OpeningStockForm = () => {
                             <span>Material</span>
                             <span>UOM</span>
                             <span>Qty</span>
-                            <span>Unit Cost Price</span>
-                            <span>Total</span>
                             <span>Action</span>
                         </div>
 
@@ -305,8 +250,6 @@ const RM_OpeningStockForm = () => {
 
                                 <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
                                 <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
-                                <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
-                                <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
 
                                 <div style={{ display: 'flex', gap: '5px' }}>
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
@@ -319,20 +262,12 @@ const RM_OpeningStockForm = () => {
 
                         <div className="summary-container">
                             <div className="summary-row">
-                                <label>Sub Total Amount:</label>
-                                <span>{subTotal}</span>
-                            </div>
-                            <div className="summary-row">
-                                <label>System Setup Discount:</label>
-                                <input type="number" className="rm-input-field" style={{ width: '120px' }} value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />
-                            </div>
-                            <div className="summary-row grand-total-box">
-                                <b>Calculated Setup Total:</b>
-                                <b>{grandTotal}</b>
+                                <label>Physical Quantity Only:</label>
+                                <span>{rows.reduce((sum, row) => sum + (parseFloat(row.quantity) || 0), 0)}</span>
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn">{isEditMode ? "Update Initialization Draft" : "Post Opening Stock Setup"}</button>
+                        <button type="submit" className="save-btn">{isEditMode ? "Update Opening Stock" : "Save Opening Stock"}</button>
                     </form>
                 </div>
             </div>

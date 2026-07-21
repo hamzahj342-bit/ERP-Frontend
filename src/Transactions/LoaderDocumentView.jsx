@@ -119,9 +119,8 @@ const LoaderDocumentView = ({ docType }) => {
       ]);
     });
 
-    // Add total row to Excel export
     rows.push([
-      { v: "Total Quantity", s: { font: { bold: true }, alignment: { horizontal: "right" } } },
+      { v: "TOTAL QTY:", s: { font: { bold: true }, alignment: { horizontal: "right" } } },
       { v: excelTotalQty, s: { font: { bold: true } } },
       ""
     ]);
@@ -159,8 +158,6 @@ const LoaderDocumentView = ({ docType }) => {
 
   const detailRows = documentData.payload?.LoaderDocumentDetails || documentData.payload?.details || [];
   const master = documentData.master;
-
-  // Calculate the sum of all material quantities
   const totalQuantity = detailRows.reduce((sum, item) => sum + parseFloat(item.quantity || 0), 0);
 
   return (
@@ -172,7 +169,6 @@ const LoaderDocumentView = ({ docType }) => {
           
           <header className="invoice-header">
             <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              {/* Dynamic Logo Wrapper */}
               {user?.profile_image ? (
                 <img 
                   src={getLogoUrl()} 
@@ -186,7 +182,6 @@ const LoaderDocumentView = ({ docType }) => {
                 </div>
               )}
               <div>
-                {/* Dynamic Company Name */}
                 <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
                   {currentCompanyName}
                 </p>
@@ -203,7 +198,7 @@ const LoaderDocumentView = ({ docType }) => {
               <div className="billed-to">
                 <p className="label">Party Details</p>
                 <h5 className="customer-name"><b>Name: </b>{master?.entity?.name || 'N/A'}</h5>
-                <p className="customer-detail"><b>Type: </b>{docTitle}</p>
+                <p className="customer-detail"><b>Address: </b>{master?.entity?.address || 'N/A'}</p>
               </div>
 
               <div className="invoice-dates">
@@ -229,8 +224,10 @@ const LoaderDocumentView = ({ docType }) => {
               <table className="item-table">
                 <thead>
                   <tr>
-                    <th className="product-col">Material Description</th>
-                    <th className="qty-col text-right">Qty</th>
+                    <th style={{ width: '8%', textAlign: 'left' }}>SR</th>
+                    <th style={{ width: '17%', textAlign: 'left' }}>MODEL</th>
+                    <th style={{ width: '60%', textAlign: 'left' }}>DESCRIPTION</th>
+                    <th style={{ width: '15%', textAlign: 'right' }}>QTY</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -238,19 +235,22 @@ const LoaderDocumentView = ({ docType }) => {
                     <>
                       {detailRows.map((item, index) => (
                         <tr key={index}>
-                          <td className="product-col">{cleanMaterialLabel(item.material_name || item.rm_name || item.name || "-")}</td>
-                          <td className="qty-col text-right">{parseFloat(item.quantity || 0)}</td>
+                          <td style={{ width: '8%', textAlign: 'left' }}>{index + 1}</td>
+                          <td style={{ width: '17%', textAlign: 'left' }}>{cleanMaterialLabel(item.material_name || item.rm_name || item.name || "-")}</td>
+                          <td style={{ width: '60%', textAlign: 'left' }}>{item.description || 'N/A'}</td>
+                          <td style={{ width: '15%', textAlign: 'right' }}>{parseFloat(item.quantity || 0)}</td>
                         </tr>
                       ))}
-                      {/* Integrated Total Quantity Summary Row */}
+                      
+                      {/* Fixed Total Quantity Row Matching the Provided Grid Layout */}
                       <tr style={{ fontWeight: 'bold', borderTop: '2px solid #444', backgroundColor: '#f9f9f9' }}>
-                        <td className="product-col text-right" style={{ paddingRight: '15px' }}>Total Quantity:</td>
-                        <td className="qty-col text-right">{totalQuantity}</td>
+                        <td colSpan="3" style={{ textAlign: 'right', paddingRight: '15px' }}>TOTAL QTY:</td>
+                        <td style={{ textAlign: 'right' }}>{totalQuantity}</td>
                       </tr>
                     </>
                   ) : (
                     <tr>
-                      <td colSpan="2" className="text-center text-muted py-4">No details found.</td>
+                      <td colSpan="4" className="text-center text-muted py-4">No details found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -264,7 +264,6 @@ const LoaderDocumentView = ({ docType }) => {
                 Thank you. This is a computer-generated document.
               </p>
               
-              {/* Document Action Trigger Controls */}
               <div className="action-buttons-group no-print" style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => navigate(-1)} className="back-button" style={{ padding: '10px 20px', cursor: 'pointer' }}>
                   <FaArrowLeft className="me-1" /> Back

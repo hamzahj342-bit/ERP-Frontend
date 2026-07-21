@@ -14,6 +14,7 @@ const AddMaterial = () => {
   const [rawMaterial, setRawMaterial] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
+    description: '',
     uom_id: '',
     unit_quantity: '',
     material_category_id: '',
@@ -143,11 +144,11 @@ const AddMaterial = () => {
       return;
     }
 
-    const selectedUom = uoms.find((u) => u.id == formData.uom_id)?.name;
-    if (["Bag", "Drum", "Piece", "Bottle Piece", "Cap Piece"].includes(selectedUom) && !formData.unit_quantity) {
-      toast.error("Please enter Unit Weight for this UOM!");
-      return;
-    }
+    // const selectedUom = uoms.find((u) => u.id == formData.uom_id)?.name;
+    // if (["Bag", "Drum", "Piece", "Bottle Piece", "Cap Piece"].includes(selectedUom) && !formData.unit_quantity) {
+    //   toast.error("Please enter Unit Weight for this UOM!");
+    //   return;
+    // }
        
     const payload = {
       ...formData,
@@ -192,6 +193,13 @@ const AddMaterial = () => {
               onChange={handleInputChange}
               required
             />
+            <input
+              type="text"
+              name="description"
+              placeholder="Material Description"
+              value={formData.description}
+              onChange={handleInputChange}
+            />
 
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: '-30px' }}>
               <select
@@ -265,7 +273,7 @@ const AddMaterial = () => {
             </div>
 
             {/* Conditional input for Bag, Drum, Piece */}
-            {['Bag', 'Drum', 'Piece', 'Bottle Piece', 'Cap Piece'].includes(
+{/*             {['Bag', 'Drum', 'Piece', 'Bottle Piece', 'Cap Piece'].includes(
               uoms.find((u) => u.id == formData.uom_id)?.name
             ) && (
               <input
@@ -276,7 +284,7 @@ const AddMaterial = () => {
                 onChange={handleInputChange}
                 required // Added required if conditional is true
               />
-            )}
+            )} */}
 
             <button className="save-btn" type="submit">
               Add Raw Material

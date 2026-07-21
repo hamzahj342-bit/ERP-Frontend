@@ -25,6 +25,8 @@ const MaterialsList = () => {
     const [editData, setEditData] = useState({
         rm_id: null,
         name: '',
+        description: '',
+        material_category_id: '',
         uom_id: '',
         unit_quantity: '',
     });
@@ -93,6 +95,7 @@ const MaterialsList = () => {
         setEditData({
             rm_id: material.rm_id,
             name: material.name,
+            description: material.description || '',
             uom_id: material.uom_id,
             unit_quantity: material.unit_quantity || '',
             material_category_id: material.material_category_id || (material.material_category?.id || ''),
@@ -150,7 +153,8 @@ const MaterialsList = () => {
                                     <th>Name</th>
                                     <th>Category</th>
                                     <th>UOM</th>
-                                    <th>Unit Weight</th>
+                                    <th>Description</th>
+                                    {/* <th>Unit Weight</th> */}
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -163,7 +167,8 @@ const MaterialsList = () => {
                                         <td data-label="Name" style={{fontWeight:'600'}}>{m.name}</td>
                                         <td data-label="Category">{m.material_category?.name || '-'}</td>
                                         <td data-label="UOM">{m.uom?.name}</td>
-                                        <td data-label="Weight">{m.unit_quantity || '-'}</td>
+                                        <td data-label="Description">{m.description || '-'}</td>
+                                        {/* <td data-label="Weight">{m.unit_quantity || '-'}</td> */}
                                         <td data-label="Actions">
                                             <div className="action-btns">
                                                 <button onClick={() => openEditModal(m)} className="edit-btn-action"><FaEdit /></button>
@@ -193,6 +198,8 @@ const MaterialsList = () => {
                             <form onSubmit={handleUpdateMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 <label style={{fontSize:'0.85rem', color:'#64748b'}}>Material Name</label>
                                 <input className='search-input' type="text" value={editData.name} onChange={(e)=>setEditData({...editData, name:e.target.value})} required />
+                                <label style={{fontSize:'0.85rem', color:'#64748b'}}>Material Description</label>
+                                <input className='search-input' type="text" value={editData.description} onChange={(e)=>setEditData({...editData, description:e.target.value})} />
                                 
                                 <label style={{fontSize:'0.85rem', color:'#64748b'}}>Select UOM</label>
                                 <select className='search-input' value={editData.uom_id} onChange={(e)=>setEditData({...editData, uom_id:e.target.value})} required>

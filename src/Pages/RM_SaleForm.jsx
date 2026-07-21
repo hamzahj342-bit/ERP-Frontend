@@ -355,6 +355,15 @@ const RM_SaleForm = () => {
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0 && parseFloat(r.unitPrice) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one valid material row.");
 
+        for (const row of validRows) {
+            const available = Number(row.current_stock || 0);
+            const requested = Number(row.quantity || 0);
+            if (requested > available) {
+                toast.error(`Insufficient stock for ${row.rm_name || 'selected material'}. Available: ${available}`);
+                return;
+            }
+        }
+
         const user = JSON.parse(localStorage.getItem("user"));
         const saleData = {
             entityid: selectedCustomer,

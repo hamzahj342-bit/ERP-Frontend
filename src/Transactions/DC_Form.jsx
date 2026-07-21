@@ -17,7 +17,7 @@ const DC_Form = () => {
     const isEditMode = !!editId;
 
     const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }
+        { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0, description: "" }
     ]);
     const [materials, setMaterials] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -111,7 +111,8 @@ const DC_Form = () => {
                             uom_name: matchingMaterial?.uom_name || d.uom_name || "Kg",
                             supplier_id: cleanSupplierId,
                             shop_name: matchingMaterial?.shop_name || d.supplier_name || "Supplier",
-                            current_stock: baseStock + qty 
+                            current_stock: baseStock + qty,
+                            description: matchingMaterial?.description || d.description || ""
                         };
                     });
                     setRows(mappedRows);
@@ -130,7 +131,7 @@ const DC_Form = () => {
     const handleMaterialSelection = (index, value) => {
         const updated = [...rows];
         if (!value) {
-            updated[index] = { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 };
+            updated[index] = { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0, description: "" };
             setRows(updated);
             return;
         }
@@ -150,6 +151,7 @@ const DC_Form = () => {
             updated[index].shop_name = selected.shop_name;
             updated[index].current_stock = selected.current_stock;
             updated[index].quantity = "";
+            updated[index].description = selected.description || "";
         }
 
         setRows(updated);
@@ -222,6 +224,15 @@ const DC_Form = () => {
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one valid material row.");
 
+        for (const row of validRows) {
+            const available = Number(row.current_stock || 0);
+            const requested = Number(row.quantity || 0);
+            if (requested > available) {
+                toast.error(`Insufficient stock for ${row.rm_name || 'selected material'}. Available: ${available}`);
+                return;
+            }
+        }
+
         const user = JSON.parse(localStorage.getItem("user"));
         
         const payload = {
@@ -239,7 +250,8 @@ const DC_Form = () => {
                 material_name: r.rm_name,
                 quantity: parseFloat(r.quantity),
                 uom_id: r.uom_id ? Number(r.uom_id) : null,
-                supplier_id: r.supplier_id ? Number(r.supplier_id) : null
+                supplier_id: r.supplier_id ? Number(r.supplier_id) : null,
+                description: r.description || null
             }))
         };
 
@@ -303,10 +315,11 @@ const DC_Form = () => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
-                        <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '4.5fr 1.5fr 2fr 1.5fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
+                        <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.5fr 4.5fr 1.5fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
                             <span>Material</span>
                             <span>UOM</span>
-                            <span>Dispatched Qty</span>
+                            <span>Qty</span>
+                            <span>Description</span>
                             <span>Action</span>
                         </div>
 
@@ -315,7 +328,7 @@ const DC_Form = () => {
                             const currentSelectionValue = row.rm_id ? `${row.rm_id}-${mSubId}` : "";
 
                             return (
-                                <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '4.5fr 1.5fr 2fr 1.5fr', gap: '12px', alignItems: 'start', marginBottom: '12px' }}>
+                                <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.5fr 4.5fr 1.5fr', gap: '12px', alignItems: 'start', marginBottom: '12px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <select
                                             className="rm-input-field"
@@ -342,6 +355,7 @@ const DC_Form = () => {
 
                                     <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
                                     <input type="number" step="any" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                    <input type="text" className="rm-input-field" placeholder="Description" value={row.description} onChange={(e) => handleChange(index, "description", e.target.value)} />
 
                                     <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
                                         <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>

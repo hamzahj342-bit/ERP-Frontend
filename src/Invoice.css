@@ -145,6 +145,10 @@
 .item-table .qty-col, .item-table .uom-col { width: 10%; text-align: right; }
 .item-table .price-col { width: 15%; text-align: right; color: var(--text-muted); }
 .item-table .amount-col { width: 25%; font-weight: 700; color: var(--dark-color); text-align: right; }
+/* .item-table .model-col { width: 5%; text-align: left; font-weight: 600; color: var(--dark-color); }
+.item-table .sl-col { width: 5%; text-align: left; font-weight: 600; color: var(--dark-color); }
+.item-table .description-col { width: 30%; text-align: left; font-weight: 400; color: var(--text-muted); } */
+
 
 .text-right { text-align: right !important; }
 

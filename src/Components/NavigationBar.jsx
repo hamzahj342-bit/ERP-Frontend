@@ -90,21 +90,21 @@ const getProfileImage = () => {
       children: [
         { icon: <MdScience />, label: "Materials List", path: "/materials-list" },
         { icon: <FaBoxes />, label: "RM Stocks", path: "/rm-stock" },
-        { icon: <FaFileInvoice />, label: "Goods Received Note", path: "/grn-list" },
+        // { icon: <FaFileInvoice />, label: "Goods Received Note", path: "/grn-list" },
         { icon: <FaFileInvoice />, label: "Delivery Challan", path: "/dc-list" },
         { icon: <FaExchangeAlt />, label: "RM Transactions", path: "/rm-transactions" },
       ], 
     },
-    {
-      type: "heading", label: "FINISHED PRODUCT", icon: <FaCubes />,
-      children: [
-        { icon: <FaTools />, label: "FP Production", path: "/fp-production" },
-        { icon: <FaExchangeAlt />, label: "FP Transactions", path: "/fp-transactions" },
-            { icon: <FaFileInvoice />, label: "FP Delivery Challan", path: "/dc-fp-list" },
-        { icon: <FaLayerGroup />, label: "Product Batches", path: "/product-batches" },
-        { icon: <FaHistory />, label: "FP History", path: "/finished-products" },
-      ],
-    },
+    // {
+    //   type: "heading", label: "FINISHED PRODUCT", icon: <FaCubes />,
+    //   children: [
+    //     { icon: <FaTools />, label: "FP Production", path: "/fp-production" },
+    //     { icon: <FaExchangeAlt />, label: "FP Transactions", path: "/fp-transactions" },
+    //         { icon: <FaFileInvoice />, label: "FP Delivery Challan", path: "/dc-fp-list" },
+    //     { icon: <FaLayerGroup />, label: "Product Batches", path: "/product-batches" },
+    //     { icon: <FaHistory />, label: "FP History", path: "/finished-products" },
+    //   ],
+    // },
     {
       type: "heading", label: "CHART OF ACCOUNT", icon: <FaMoneyBillAlt />,
       children: [

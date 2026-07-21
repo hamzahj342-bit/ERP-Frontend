@@ -29,18 +29,19 @@ const RM_Transactions = () => {
   const navigate = useNavigate();
 
   const transactionData = [
-    { id: 1, title: "RM Purchase", description: "Manage inward stock and invoices.", icon: <FaShoppingCart />, path: "/rm-purchase", color: "#10b981" },
-    { id: 2, title: "Purchase Return", description: "Track materials sent back to suppliers.", icon: <FaUndo />, path: "/rm-return", color: "#f59e0b" },
-    { id: 3, title: "RM Sale", description: "Manage outward sales and billing.", icon: <FaCashRegister />, path: "/rm-sale", color: "#3b82f6" },
-    { id: 4, title: "Sale Return", description: "Manage materials returned by customers.", icon: <FaExchangeAlt />, path: "/rm-sale-return", color: "#ef4444" },
-    { 
-  id: 5, 
+    // { id: 1, title: "RM Purchase", description: "Manage inward stock and invoices.", icon: <FaShoppingCart />, path: "/rm-purchase", color: "#10b981" },
+    // { id: 2, title: "Purchase Return", description: "Track materials sent back to suppliers.", icon: <FaUndo />, path: "/rm-return", color: "#f59e0b" },
+     { 
+  id: 1, 
   title: "Opening Stock Entry", 
   description: "Initialize startup inventory and setup opening stock balances for new clients.", 
   icon: <FaPlayCircle />, // Startup entries ke liye active initiation icon
   path: "/rm-opening-stock-entry", 
   color: "#6b7280" // Professional Slate Gray color setup/initialization tasks ke liye
-}
+},
+    { id: 2, title: "RM Sale", description: "Manage outward sales and billing.", icon: <FaCashRegister />, path: "/rm-sale", color: "#3b82f6" },
+    { id: 3, title: "Sale Return", description: "Manage materials returned by customers.", icon: <FaExchangeAlt />, path: "/rm-sale-return", color: "#ef4444" },
+   
   ];
 
   return (

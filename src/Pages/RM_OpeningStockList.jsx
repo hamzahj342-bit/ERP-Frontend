@@ -32,7 +32,7 @@ const RM_OpeningStockList = () => {
 
       if (Array.isArray(data.data)) {
         // Safe fallbacks to display entries synced under startup ID 999999
-        const targetedData = data.data.filter(p => parseInt(p.entityid) === 999999 || p.invoice_no?.startsWith('OPENING-'));
+        const targetedData = data.data.filter(p => parseInt(p.entityid) === 999999 || p.invoice_no?.startsWith('OPN-'));
         setOpeningEntries(targetedData.length > 0 ? targetedData : data.data);
         setTotalPages(data.totalPages);
       } else {
@@ -162,7 +162,7 @@ const RM_OpeningStockList = () => {
                       <td><span className="user-tag">{p.createdby}</span></td>
                       <td><span className="supplier-tag" style={{ backgroundColor: '#edf2f7', color: '#4a5568' }}>System Startup Entity</span></td>
                       <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
-                        {parseFloat(p.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                        {p.grand_total ? parseFloat(p.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2}) : '0.00'}
                       </td>
                       {/* <td>
                         <span className={`status-badge ${
