@@ -152,13 +152,13 @@ const RM_Sale = ({ channel = null }) => {
                 <tr>
                   <th>ID</th>
                   <th><FaFileInvoice /> INVOICE NO</th>
-                  <th>CREATED AT</th>
+                  {/* <th>CREATED AT</th> */}
                   <th><FaCalendarAlt /> DATE</th>
-                  <th><FaUserAlt /> CREATED BY</th>
+                  {/* <th><FaUserAlt /> CREATED BY</th> */}
                   <th>CUSTOMER</th>
-                  <th>ITEMS</th>
+                  <th>ITEM NAME</th>
                   <th>GRAND TOTAL</th>
-                  <th>INVOICE STATUS</th>
+                  {/* <th>INVOICE STATUS</th> */}
                   <th style={{ textAlign: 'center' }}>ACTION</th>
                 </tr>
               </thead>
@@ -168,16 +168,15 @@ const RM_Sale = ({ channel = null }) => {
                     <tr key={s.master_id}>
                       <td style={{ color: '#94a3b8' }}>#{s.master_id}</td>
                       <td style={{ fontWeight: '700' }}>{s.invoice_no}</td>
-                      <td>{s.createdat ? new Date(s.createdat).toLocaleDateString() : "-"}</td>
+                      {/* <td>{s.createdat ? new Date(s.createdat).toLocaleDateString() : "-"}</td> */}
                       <td>{s.date ? new Date(s.date).toLocaleDateString() : "-"}</td>
-                      <td><span className="user-tag">{s.createdby}</span></td>
+                      {/* <td><span className="user-tag">{s.createdby}</span></td> */}
                       <td><span className="supplier-tag">{s.entity_name}</span></td>
-                      <td><span className="user-tag" style={{ whiteSpace: 'normal', maxWidth: '280px', display: 'inline-block' }}>{formatRmDetailsList(s.details)}</span></td>
+                      <td><span className="user-tag">{formatRmDetailsList(s.details)}</span></td>
                       <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
                         {parseFloat(s.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
                       </td>
-                      <td>
-                        {/* Dynamic Status Text Badge */}
+                      {/* <td>   
                         <span className={`status-badge ${
   s.status === 'Approved' 
     ? 'status-approved' 
@@ -187,7 +186,7 @@ const RM_Sale = ({ channel = null }) => {
 }`}>
   {s.status === 'Draft' || !s.status ? 'Unapproved' : s.status}
 </span>
-                      </td>
+                      </td> */}
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
                           <button onClick={() => navigate(`/rm-invoice/${s.invoice_no}`)} className="primary-btn">

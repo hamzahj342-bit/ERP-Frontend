@@ -158,8 +158,12 @@ body {
 .company-name-premium {
     font-size: 1.45rem !important; /* Crisp & clear */
     font-weight: 800 !important;
-    color: #0f172a !important;
     margin-bottom: 4px;
+    display: inline-block;
+    background: linear-gradient(90deg, #0f172a 20%, #2563eb 55%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .form-subtitle-premium {
@@ -313,6 +317,11 @@ select.company-select-field {
     font-weight: 700;
 }
 
+.company-logo-premium{
+    width: 100px;
+    height: auto;
+    margin-bottom: 1.5rem;
+}
 /* ==========================================================================
    ADVANCED MOBILE COMPATIBILITY BREAKPOINTS
    ========================================================================== */
