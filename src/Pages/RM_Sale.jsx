@@ -162,7 +162,7 @@ const RM_Sale = ({ channel = null }) => {
                   <th style={{ textAlign: 'center' }}>ACTION</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody> 
                 {sales.length > 0 ? (
                   sales.map((s) => (
                     <tr key={s.master_id}>
