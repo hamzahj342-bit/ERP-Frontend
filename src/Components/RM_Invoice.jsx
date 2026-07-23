@@ -161,22 +161,35 @@ const getLogoUrl = () => {
                             <thead>
                                 <tr>
                                     <th className="product-col">Material Description</th>
-                                    <th className="qty-col text-right">Qty</th>
-                                    <th className="uom-col text-right">UOM</th>
+                                    <th className="qty-col text-right">Pack Qty</th>
+                                    <th className="qty-col text-right">Base Qty</th>
                                     <th className="price-col text-right">Unit Price</th>
                                     <th className="amount-col text-right">Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoice.RmDetails?.map((item, i) => (
+                                {invoice.RmDetails?.map((item, i) => {
+                                    const packQty = Math.abs(Number(item.entered_qty ?? item.quantity) || 0);
+                                    const baseQty = Math.abs(Number(item.quantity) || 0);
+                                    const packUom = item.pack_uom_name || item.uom?.name || "";
+                                    const baseUom = item.base_uom_name || packUom;
+                                    const unitPrice = item.entered_unit_price != null
+                                        ? Number(item.entered_unit_price)
+                                        : Number(item.unit_price);
+                                    return (
                                     <tr key={i}>
                                         <td className="product-col">{item.rm_name}</td>
-                                        <td className="qty-col text-right">{item.quantity}</td>
-                                        <td className="uom-col text-right">{item.uom?.name}</td>
-                                        <td className="price-col text-right">{Number(item.unit_price).toLocaleString()}</td>
+                                        <td className="qty-col text-right">
+                                            {packQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {packUom}
+                                        </td>
+                                        <td className="qty-col text-right">
+                                            {baseQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {baseUom}
+                                        </td>
+                                        <td className="price-col text-right">{unitPrice.toLocaleString()}</td>
                                         <td className="amount-col text-right">{Number(item.total_price).toLocaleString()}</td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

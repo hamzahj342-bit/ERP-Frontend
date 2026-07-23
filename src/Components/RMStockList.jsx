@@ -19,6 +19,7 @@ const RMStockList = () => {
     const [categories, setCategories] = useState([]);
     const [activeCategoryId, setActiveCategoryId] = useState(null);
     const [activeCategoryName, setActiveCategoryName] = useState('');
+    const [hasPackSizes, setHasPackSizes] = useState(false);
     const navigate = useNavigate();
 
     // Debounce Logic
@@ -54,9 +55,11 @@ const RMStockList = () => {
             if (res.data && res.data.data) {
                 setStock(res.data.data);
                 setTotalPages(res.data.totalPages || 1);
+                setHasPackSizes(Boolean(res.data.has_pack_sizes));
             } else {
                 setStock([]);
                 setTotalPages(1);
+                setHasPackSizes(false);
             }
         } catch (err) {
             toast.error(`Failed to load inventory.`);
@@ -89,6 +92,14 @@ const RMStockList = () => {
     }, []);
 
     const categoryFilteredStock = activeCategoryId ? stock : [];
+
+    // Show Pack Stock only when at least one RM has a pack size defined
+    const showPackStock = hasPackSizes || stock.some(
+        (item) => Array.isArray(item.pack_breakdown) && item.pack_breakdown.length > 0
+    );
+
+    const displayStock = (viewMode === 'category' && activeCategoryId) ? categoryFilteredStock : stock;
+    const emptyColSpan = (viewMode === 'entity' ? 8 : 6) + (showPackStock ? 1 : 0);
 
     return (
         <div className="page-wrapper">
@@ -181,12 +192,15 @@ const RMStockList = () => {
                                             <th style={{ textAlign: 'center' }}>Sold</th>
                                             <th style={{ textAlign: 'center' }}>Consumed</th>
                                             <th style={{ textAlign: 'center' }}>Available</th>
+                                            {showPackStock && (
+                                                <th style={{ textAlign: 'center' }}>Pack Stock</th>
+                                            )}
                                             <th>Valuation</th>
                                             <th>UOM</th> 
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {((viewMode === 'category' && activeCategoryId) ? categoryFilteredStock : stock).length > 0 ? ((viewMode === 'category' && activeCategoryId) ? categoryFilteredStock : stock).map((item, index) => (
+                                        {displayStock.length > 0 ? displayStock.map((item, index) => (
                                             <tr key={viewMode === 'entity' ? item.stock_id : index}>
                                                 {viewMode === 'entity' && <td><span style={{color:'#94a3b8', fontSize: '0.8rem'}}>#{item.stock_id}</span></td>}
                                                 <td style={{ fontWeight: '600', color: '#1e293b' }}>{item.material_name}</td> 
@@ -196,13 +210,18 @@ const RMStockList = () => {
                                                 <td style={{ textAlign: 'center', color: '#f59e0b' }}>{parseFloat(item.consumed_qty || 0).toFixed(2)}</td>
                                                 <td style={{ textAlign: 'center' }}>
                                                     <span className="stock-qty-bold">{parseFloat(item.current_stock || 0).toFixed(2)}</span>
-                                                </td> 
+                                                </td>
+                                                {showPackStock && (
+                                                    <td style={{ textAlign: 'center', fontSize: '0.9rem', color: '#334155' }}>
+                                                        {item.pack_stock_display || '-'}
+                                                    </td>
+                                                )}
                                                 <td style={{ fontWeight: '600' }}>{parseFloat(item.current_stock_price || 0).toFixed(2)}</td>
                                                 <td><span className="uom-badge">{item.uom_name}</span></td> 
                                             </tr>
                                         )) : (
                                             <tr>
-                                                <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No records found for current search.</td>
+                                                <td colSpan={emptyColSpan} style={{ textAlign: 'center', padding: '30px', color: '#94a3b8' }}>No records found for current search.</td>
                                             </tr>
                                         )}
                                     </tbody>

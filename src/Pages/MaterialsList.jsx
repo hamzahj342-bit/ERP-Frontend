@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { FaArrowLeft, FaEdit, FaPlus, FaSearch, FaTrashAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaEdit, FaPlus, FaSearch, FaTrashAlt, FaBalanceScale, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import NavigationBar from '../Components/NavigationBar';
@@ -28,6 +28,12 @@ const MaterialsList = () => {
         uom_id: '',
         unit_quantity: '',
     });
+
+    // Pack sizes (item_uoms) editor: 1 Bora = 50 kg etc.
+    const [packModalOpen, setPackModalOpen] = useState(false);
+    const [packMaterial, setPackMaterial] = useState(null); // { rm_id, name, baseUomName }
+    const [packRows, setPackRows] = useState([]);           // non-base rows [{ uom_id, factor_to_base }]
+    const [packSaving, setPackSaving] = useState(false);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -100,6 +106,49 @@ const MaterialsList = () => {
         setEditModalOpen(true);
     };
 
+    const openPackModal = async (material) => {
+        try {
+            const res = await api.get(`/add-materials/${material.rm_id}/uoms`);
+            const list = Array.isArray(res.data) ? res.data : [];
+            const baseRow = list.find(p => p.is_base);
+            setPackMaterial({
+                rm_id: material.rm_id,
+                name: material.name,
+                baseUomName: baseRow?.uom?.name || material.uom?.name || 'base unit',
+            });
+            setPackRows(
+                list.filter(p => !p.is_base).map(p => ({
+                    uom_id: p.uom_id,
+                    factor_to_base: Number(p.factor_to_base),
+                }))
+            );
+            setPackModalOpen(true);
+        } catch (err) {
+            toast.error('Failed to load pack sizes');
+        }
+    };
+
+    const handleSavePackSizes = async () => {
+        for (const row of packRows) {
+            if (!row.uom_id) return toast.error('Please select a UOM for every pack size row.');
+            if (!(Number(row.factor_to_base) > 0)) return toast.error('Conversion factor must be greater than 0.');
+        }
+        const uomIds = packRows.map(r => Number(r.uom_id));
+        if (new Set(uomIds).size !== uomIds.length) return toast.error('Each UOM can only appear once.');
+
+        setPackSaving(true);
+        try {
+            await api.put(`/add-materials/${packMaterial.rm_id}/uoms`, { uoms: packRows });
+            toast.success('Pack sizes updated');
+            setPackModalOpen(false);
+            fetchMaterials();
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to save pack sizes');
+        } finally {
+            setPackSaving(false);
+        }
+    };
+
     const handleUpdateMaterial = async (e) => {
         e.preventDefault();
         try {
@@ -150,23 +199,32 @@ const MaterialsList = () => {
                                     <th>Name</th>
                                     <th>Category</th>
                                     <th>UOM</th>
+                                    <th>Pack Sizes</th>
                                     <th>Unit Weight</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan="6" style={{textAlign:'center'}}>Loading...</td></tr>
+                                    <tr><td colSpan="7" style={{textAlign:'center'}}>Loading...</td></tr>
                                 ) : rawMaterial.map((m) => (
                                     <tr key={m.rm_id}>
                                         <td data-label="ID">#{m.rm_id}</td>
                                         <td data-label="Name" style={{fontWeight:'600'}}>{m.name}</td>
                                         <td data-label="Category">{m.material_category?.name || '-'}</td>
                                         <td data-label="UOM">{m.uom?.name}</td>
+                                        <td data-label="Pack Sizes">
+                                            {(m.pack_sizes || []).filter(p => !p.is_base).length > 0
+                                                ? m.pack_sizes.filter(p => !p.is_base).map(p =>
+                                                    `1 ${p.uom?.name} = ${Number(p.factor_to_base)} ${m.uom?.name}`
+                                                  ).join(', ')
+                                                : '-'}
+                                        </td>
                                         <td data-label="Weight">{m.unit_quantity || '-'}</td>
                                         <td data-label="Actions">
                                             <div className="action-btns">
                                                 <button onClick={() => openEditModal(m)} className="edit-btn-action"><FaEdit /></button>
+                                                <button onClick={() => openPackModal(m)} className="edit-btn-action" title="Pack Sizes (UOM conversion)"><FaBalanceScale /></button>
                                                 <button onClick={() => handleDelete(m.rm_id, m.name)} className="delete-btn"><FaTrashAlt /></button>
                                             </div>
                                         </td>
@@ -209,6 +267,83 @@ const MaterialsList = () => {
                                 <button type="submit" className="btn-add">Update Material</button>
                                 <button type="button" onClick={() => setEditModalOpen(false)} style={{background:'none', border:'none', color:'#64748b', cursor:'pointer'}}>Cancel</button>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Pack Sizes (UOM conversion) Modal */}
+                {packModalOpen && packMaterial && (
+                    <div className="modal-overlay">
+                        <div className="modal-content" style={{ maxWidth: '520px' }}>
+                            <h3>Pack Sizes — {packMaterial.name}</h3>
+                            <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px' }}>
+                                Base unit: <b>{packMaterial.baseUomName}</b>. Define bigger/smaller selling
+                                units, e.g. 1 Bora = 50 {packMaterial.baseUomName}. Stock always stays in {packMaterial.baseUomName}.
+                            </p>
+
+                            {packRows.length === 0 && (
+                                <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>No extra pack sizes yet.</p>
+                            )}
+
+                            {packRows.map((row, idx) => (
+                                <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
+                                    <span style={{ fontSize: '0.9rem' }}>1</span>
+                                    <select
+                                        className='search-input'
+                                        style={{ flex: 1 }}
+                                        value={row.uom_id}
+                                        onChange={(e) => {
+                                            const updated = [...packRows];
+                                            updated[idx] = { ...updated[idx], uom_id: e.target.value };
+                                            setPackRows(updated);
+                                        }}
+                                    >
+                                        <option value="">Select UOM</option>
+                                        {uoms
+                                            .filter(u => u.name !== packMaterial.baseUomName)
+                                            .map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                    </select>
+                                    <span style={{ fontSize: '0.9rem' }}>=</span>
+                                    <input
+                                        className='search-input'
+                                        type="number"
+                                        min="0"
+                                        step="any"
+                                        style={{ width: '110px' }}
+                                        placeholder="Factor"
+                                        value={row.factor_to_base}
+                                        onChange={(e) => {
+                                            const updated = [...packRows];
+                                            updated[idx] = { ...updated[idx], factor_to_base: e.target.value };
+                                            setPackRows(updated);
+                                        }}
+                                    />
+                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>{packMaterial.baseUomName}</span>
+                                    <button
+                                        type="button"
+                                        className="delete-btn"
+                                        onClick={() => setPackRows(packRows.filter((_, i) => i !== idx))}
+                                    >
+                                        <FaTrash />
+                                    </button>
+                                </div>
+                            ))}
+
+                            <button
+                                type="button"
+                                className="edit-btn-action"
+                                style={{ marginBottom: '15px' }}
+                                onClick={() => setPackRows([...packRows, { uom_id: '', factor_to_base: '' }])}
+                            >
+                                <FaPlus /> Add Pack Size
+                            </button>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <button type="button" className="btn-add" disabled={packSaving} onClick={handleSavePackSizes}>
+                                    {packSaving ? 'Saving...' : 'Save Pack Sizes'}
+                                </button>
+                                <button type="button" onClick={() => setPackModalOpen(false)} style={{background:'none', border:'none', color:'#64748b', cursor:'pointer'}}>Cancel</button>
+                            </div>
                         </div>
                     </div>
                 )}

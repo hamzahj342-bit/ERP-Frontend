@@ -8,17 +8,58 @@ import api from '../../api';
 import '../Model.css';
 import '../Transactions.css';
 
+const emptyRow = () => ({
+    rm_id: "",
+    rm_name: "",
+    quantity: "",
+    uom_id: "",
+    uom_name: "",
+    supplier_id: "",
+    shop_name: "",
+    current_stock: 0,
+    pack_sizes: [],
+    factor: 1,
+});
+
+const normalizePackSizes = (material) =>
+    (material?.pack_sizes || []).map((p) => ({
+        uom_id: p.uom_id,
+        uom_name: p.uom?.name || p.uom_name || "",
+        factor_to_base: Number(p.factor_to_base) || 1,
+        is_base: !!p.is_base,
+    }));
+
+const getMaterialPackMeta = (material, preferredUomId = null) => {
+    const packSizes = normalizePackSizes(material);
+    const baseUomId = material?.uom_id ?? material?.uom?.id ?? packSizes[0]?.uom_id ?? "";
+    const uomId = preferredUomId || baseUomId;
+    const selectedPack =
+        packSizes.find((p) => Number(p.uom_id) === Number(uomId)) ||
+        packSizes.find((p) => p.is_base) ||
+        packSizes[0] ||
+        null;
+
+    return {
+        pack_sizes: packSizes,
+        uom_id: selectedPack?.uom_id || uomId || "",
+        uom_name:
+            selectedPack?.uom_name ||
+            material?.uom_name ||
+            material?.uom?.name ||
+            "",
+        factor: Number(selectedPack?.factor_to_base) || 1,
+    };
+};
+
 const DC_Form = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    
+
     const queryParams = new URLSearchParams(location.search);
-    const editId = queryParams.get('editId'); 
+    const editId = queryParams.get('editId');
     const isEditMode = !!editId;
 
-    const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }
-    ]);
+    const [rows, setRows] = useState([emptyRow()]);
     const [materials, setMaterials] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [drivers, setDrivers] = useState([]);
@@ -28,12 +69,12 @@ const DC_Form = () => {
     const [vehicleNo, setVehicleNo] = useState("");
     const [dcNo, setDcNo] = useState("");
     const [date, setDate] = useState("");
-    
+
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     const [showDriverModal, setShowDriverModal] = useState(false);
 
     const fetchDCNo = useCallback(async () => {
-        if (isEditMode) return; 
+        if (isEditMode) return;
         try {
             const res = await api.get("/loader-documents/next-number", {
                 params: { type: "DC" }
@@ -44,93 +85,89 @@ const DC_Form = () => {
         }
     }, [isEditMode]);
 
-   useEffect(() => {
-    const loadInitialData = async () => {
-        try {
-            console.log("--- START LOADING INITIAL DATA ---");
-            const [materialsRes, entitiesRes, driversRes] = await Promise.all([
-                api.get("/rm-transactions/materials-with-suppliers"),
-                api.get("/entities/transactions"),
-                api.get("/drivers")
-            ]);
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                const [materialsRes, entitiesRes, driversRes] = await Promise.all([
+                    api.get("/rm-transactions/materials-with-suppliers"),
+                    api.get("/entities/transactions"),
+                    api.get("/drivers")
+                ]);
 
-            setMaterials(materialsRes.data);
-            setDrivers(driversRes.data);
-            setCustomers(entitiesRes.data.filter(ent => ent.type === 'customer'));
+                setMaterials(materialsRes.data);
+                setDrivers(driversRes.data);
+                setCustomers(entitiesRes.data.filter(ent => ent.type === 'customer'));
 
-            if (!isEditMode) {
-                fetchDCNo();
-            } else {
-                console.log("Edit Mode Active. Fetching ID:", editId);
-                const editRes = await api.get(`/loader-documents/${editId}`);
-                
-                // FIX: API Response wrapped inside .data wrapper safely
-                const responseEnvelope = editRes.data || {};
-                const targetData = responseEnvelope.data || responseEnvelope; 
+                if (!isEditMode) {
+                    fetchDCNo();
+                } else {
+                    const editRes = await api.get(`/loader-documents/${editId}`);
+                    const responseEnvelope = editRes.data || {};
+                    const targetData = responseEnvelope.data || responseEnvelope;
 
-                console.log("Actual Target Object extracted:", targetData);
+                    const docNo = targetData.no || "";
+                    const custId = targetData.entity_id || targetData.customer_id;
+                    const drvId = targetData.driver_id;
+                    const vNo = targetData.vehicle_no || "";
+                    const docDate = targetData.date || targetData.documentDate;
+                    const details = targetData.LoaderDocumentDetails || targetData.details || [];
 
-                // Safe extraction matching your log properties
-                const docNo = targetData.no || "";
-                const custId = targetData.entity_id || targetData.customer_id;
-                const drvId = targetData.driver_id;
-                const vNo = targetData.vehicle_no || "";
-                const docDate = targetData.date || targetData.documentDate;
-                
-                // Target details backend key matches 'LoaderDocumentDetails'
-                const details = targetData.LoaderDocumentDetails || targetData.details || [];
+                    setDcNo(docNo);
+                    setSelectedCustomer(custId ? String(custId) : "");
+                    setSelectedDriver(drvId ? String(drvId) : "");
+                    setVehicleNo(vNo);
 
-                setDcNo(docNo);
-                setSelectedCustomer(custId ? String(custId) : "");
-                setSelectedDriver(drvId ? String(drvId) : "");
-                setVehicleNo(vNo);
-                
-                if (docDate) {
-                    setDate(new Date(docDate).toISOString().split('T')[0]);
-                }
+                    if (docDate) {
+                        setDate(new Date(docDate).toISOString().split('T')[0]);
+                    }
 
-                if (Array.isArray(details) && details.length > 0) {
-                    const mappedRows = details.map((d, idx) => {
-                        const cleanRmId = Number(d.material_id || d.rm_id);
-                        const cleanSupplierId = d.supplier_id && Number(d.supplier_id) !== 0 ? String(d.supplier_id) : "";
+                    if (Array.isArray(details) && details.length > 0) {
+                        const mappedRows = details.map((d) => {
+                            const cleanRmId = Number(d.material_id || d.rm_id);
+                            const cleanSupplierId = d.supplier_id && Number(d.supplier_id) !== 0 ? String(d.supplier_id) : "";
 
-                        const matchingMaterial = materialsRes.data.find(m => {
-                            const mSupplierId = m.supplier_id ? String(m.supplier_id) : "";
-                            return Number(m.rm_id) === cleanRmId && mSupplierId === cleanSupplierId;
+                            const matchingMaterial = materialsRes.data.find(m => {
+                                const mSupplierId = m.supplier_id ? String(m.supplier_id) : "";
+                                return Number(m.rm_id) === cleanRmId && mSupplierId === cleanSupplierId;
+                            });
+
+                            const packMeta = getMaterialPackMeta(matchingMaterial, d.uom_id);
+                            const baseQty = Math.abs(parseFloat(d.quantity || d.qty) || 0);
+                            const enteredQty = Math.abs(parseFloat(d.entered_qty ?? d.quantity ?? d.qty) || 0);
+                            const liveStock = matchingMaterial ? Number(matchingMaterial.current_stock) : 0;
+
+                            return {
+                                id: d.id || null,
+                                rm_id: cleanRmId,
+                                rm_name: matchingMaterial?.rm_name || d.material_name || "Material",
+                                quantity: enteredQty,
+                                uom_id: packMeta.uom_id,
+                                uom_name: packMeta.uom_name,
+                                pack_sizes: packMeta.pack_sizes,
+                                factor: packMeta.factor,
+                                supplier_id: cleanSupplierId,
+                                shop_name: matchingMaterial?.shop_name || d.supplier_name || "Supplier",
+                                // Stock is base; add back this DC line's base qty while editing
+                                current_stock: liveStock + baseQty
+                            };
                         });
-
-                        const qty = Math.abs(parseFloat(d.quantity || d.qty) || 0);
-                        const baseStock = matchingMaterial ? Number(matchingMaterial.current_stock) : 0;
-
-                        return {
-                            id: d.id || null,
-                            rm_id: cleanRmId,
-                            rm_name: matchingMaterial?.rm_name || d.material_name || "Material",
-                            quantity: qty,
-                            uom_id: matchingMaterial?.uom_id || d.uom_id || "",
-                            uom_name: matchingMaterial?.uom_name || d.uom_name || "Kg",
-                            supplier_id: cleanSupplierId,
-                            shop_name: matchingMaterial?.shop_name || d.supplier_name || "Supplier",
-                            current_stock: baseStock + qty 
-                        };
-                    });
-                    setRows(mappedRows);
+                        setRows(mappedRows);
+                    }
                 }
+            } catch (err) {
+                console.error("Error loading initial data:", err);
+                toast.error("Failed to load required data.");
+                navigate("/dc-list");
             }
-        } catch (err) {
-            console.error("Error loading initial data:", err);
-            toast.error("Failed to load required data.");
-            navigate("/dc-list");
-        }
-    };
+        };
 
-    loadInitialData();
-}, [editId, isEditMode, navigate, fetchDCNo]);
+        loadInitialData();
+    }, [editId, isEditMode, navigate, fetchDCNo]);
 
     const handleMaterialSelection = (index, value) => {
         const updated = [...rows];
         if (!value) {
-            updated[index] = { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 };
+            updated[index] = emptyRow();
             setRows(updated);
             return;
         }
@@ -142,16 +179,44 @@ const DC_Form = () => {
         });
 
         if (selected) {
-            updated[index].rm_id = Number(selected.rm_id);
-            updated[index].rm_name = selected.rm_name;
-            updated[index].uom_id = selected.uom_id;
-            updated[index].uom_name = selected.uom_name;
-            updated[index].supplier_id = selected.supplier_id ? String(selected.supplier_id) : "";
-            updated[index].shop_name = selected.shop_name;
-            updated[index].current_stock = selected.current_stock;
-            updated[index].quantity = "";
+            const packMeta = getMaterialPackMeta(selected);
+            updated[index] = {
+                ...updated[index],
+                rm_id: Number(selected.rm_id),
+                rm_name: selected.rm_name,
+                uom_id: packMeta.uom_id,
+                uom_name: packMeta.uom_name,
+                pack_sizes: packMeta.pack_sizes,
+                factor: packMeta.factor,
+                supplier_id: selected.supplier_id ? String(selected.supplier_id) : "",
+                shop_name: selected.shop_name,
+                current_stock: selected.current_stock,
+                quantity: "",
+            };
         }
 
+        setRows(updated);
+    };
+
+    const handleUomSelection = (index, uomId) => {
+        const updated = [...rows];
+        const row = { ...updated[index] };
+        const pack = (row.pack_sizes || []).find((p) => Number(p.uom_id) === Number(uomId));
+        if (!pack) return;
+
+        row.uom_id = pack.uom_id;
+        row.uom_name = pack.uom_name;
+        row.factor = Number(pack.factor_to_base) || 1;
+
+        const qty = parseFloat(row.quantity) || 0;
+        const baseQty = qty * row.factor;
+        const available = parseFloat(row.current_stock) || 0;
+        if (qty > 0 && baseQty > available + 1e-9) {
+            toast.error(`Out of stock! Only ${available} base units available.`);
+            row.quantity = "";
+        }
+
+        updated[index] = row;
         setRows(updated);
     };
 
@@ -159,9 +224,11 @@ const DC_Form = () => {
         const updated = [...rows];
         if (field === "quantity") {
             const typedQty = parseFloat(value) || 0;
+            const factor = Number(updated[index].factor) || 1;
+            const baseQty = typedQty * factor;
             const available = parseFloat(updated[index].current_stock) || 0;
-            if (typedQty > available) {
-                toast.error(`Out of stock! Only ${available} units available.`);
+            if (baseQty > available + 1e-9) {
+                toast.error(`Out of stock! Only ${available} base units available.`);
                 updated[index][field] = "";
                 setRows(updated);
                 return;
@@ -172,7 +239,7 @@ const DC_Form = () => {
     };
 
     const addRow = () => {
-        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }]);
+        setRows([...rows, emptyRow()]);
     };
 
     const deleteRow = (index) => {
@@ -190,8 +257,8 @@ const DC_Form = () => {
             setSelectedCustomer(String(res.data.id));
             setShowCustomerModal(false);
             toast.success("Customer Linked Successfully!");
-        } catch (err) { 
-            toast.error("Failed to add customer."); 
+        } catch (err) {
+            toast.error("Failed to add customer.");
         }
     };
 
@@ -207,8 +274,8 @@ const DC_Form = () => {
             setSelectedDriver(String(formattedDriver.id));
             setShowDriverModal(false);
             toast.success("Driver Added!");
-        } catch (err) { 
-            toast.error("Failed to add driver."); 
+        } catch (err) {
+            toast.error("Failed to add driver.");
         }
     };
 
@@ -222,8 +289,15 @@ const DC_Form = () => {
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one valid material row.");
 
+        for (const r of validRows) {
+            const baseQty = (parseFloat(r.quantity) || 0) * (Number(r.factor) || 1);
+            if (baseQty > (Number(r.current_stock) || 0) + 1e-9) {
+                return toast.error(`${r.rm_name}: qty exceeds available stock (${r.current_stock} base units).`);
+            }
+        }
+
         const user = JSON.parse(localStorage.getItem("user"));
-        
+
         const payload = {
             no: dcNo,
             type: "DC",
@@ -234,7 +308,7 @@ const DC_Form = () => {
             updated_by: user?.id || null,
             entity_id: Number(selectedCustomer),
             details: validRows.map(r => ({
-                id: r.id || undefined, 
+                id: r.id || undefined,
                 material_id: Number(r.rm_id),
                 material_name: r.rm_name,
                 quantity: parseFloat(r.quantity),
@@ -294,7 +368,7 @@ const DC_Form = () => {
                         </div>
                         <div className="info-item">
                             <label>Vehicle No</label>
-                            <input type="text" className="rm-input-field" placeholder='e.g LET-6731' value={vehicleNo} onChange={(e) => setVehicleNo(e.target.value)} />
+                            <input type="text" placeholder="e.g. LET-1234" className="rm-input-field" value={vehicleNo} onChange={(e) => setVehicleNo(e.target.value)} />
                         </div>
                         <div className="info-item">
                             <label>Date</label>
@@ -306,17 +380,17 @@ const DC_Form = () => {
                         <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '4.5fr 1.5fr 2fr 1.5fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
                             <span>Material</span>
                             <span>UOM</span>
-                            <span>Dispatched Qty</span>
+                            <span>Delivered Qty</span>
                             <span>Action</span>
                         </div>
 
                         {rows.map((row, index) => {
-                            const mSubId = row.supplier_id ? String(row.supplier_id) : "";
-                            const currentSelectionValue = row.rm_id ? `${row.rm_id}-${mSubId}` : "";
+                            const optSupplierId = row.supplier_id ? String(row.supplier_id) : "";
+                            const currentSelectionValue = row.rm_id ? `${row.rm_id}-${optSupplierId}` : "";
 
                             return (
                                 <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '4.5fr 1.5fr 2fr 1.5fr', gap: '12px', alignItems: 'start', marginBottom: '12px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
                                         <select
                                             className="rm-input-field"
                                             value={currentSelectionValue}
@@ -324,8 +398,8 @@ const DC_Form = () => {
                                         >
                                             <option value="">Select Material</option>
                                             {materials.map(m => {
-                                                const optSupplierId = m.supplier_id ? String(m.supplier_id) : "";
-                                                const optValue = `${m.rm_id}-${optSupplierId}`;
+                                                const mSupplierId = m.supplier_id ? String(m.supplier_id) : "";
+                                                const optValue = `${m.rm_id}-${mSupplierId}`;
                                                 return (
                                                     <option key={optValue} value={optValue}>
                                                         {m.rm_name} - {m.shop_name || 'No Supplier'}
@@ -335,13 +409,35 @@ const DC_Form = () => {
                                         </select>
                                         {row.rm_id && (
                                             <small className='text-success' style={{ fontSize: '12px', paddingLeft: '4px', marginTop: '2px' }}>
-                                                Available Stock: {row.current_stock}
+                                                Available Stock: {row.current_stock} base units
                                             </small>
                                         )}
                                     </div>
 
-                                    <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
-                                    <input type="number" step="any" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                    {Array.isArray(row.pack_sizes) && row.pack_sizes.length > 1 ? (
+                                        <select
+                                            className="rm-input-field"
+                                            value={row.uom_id}
+                                            onChange={(e) => handleUomSelection(index, e.target.value)}
+                                        >
+                                            {row.pack_sizes.map((p) => (
+                                                <option key={p.uom_id} value={p.uom_id}>
+                                                    {p.uom_name}{!p.is_base ? ` (=${Number(p.factor_to_base)} base)` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name || ''} readOnly />
+                                    )}
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <input type="number" step="any" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                        {Number(row.factor) !== 1 && parseFloat(row.quantity) > 0 && (
+                                            <small style={{ fontSize: '11px', color: '#3182ce', paddingLeft: '4px' }}>
+                                                = {(parseFloat(row.quantity) * Number(row.factor)).toFixed(2)} base units
+                                            </small>
+                                        )}
+                                    </div>
 
                                     <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
                                         <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
@@ -361,7 +457,6 @@ const DC_Form = () => {
             </div>
             <Footer />
 
-            {/* Quick Customer Modal */}
             {showCustomerModal && (
                 <div className="modal-overlay" onClick={() => setShowCustomerModal(false)}>
                     <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -381,7 +476,6 @@ const DC_Form = () => {
                 </div>
             )}
 
-            {/* Quick Driver Modal */}
             {showDriverModal && (
                 <div className="modal-overlay" onClick={() => setShowDriverModal(false)}>
                     <div className="modal-box" onClick={(e) => e.stopPropagation()}>

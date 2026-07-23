@@ -8,7 +8,9 @@ import api from "../../api";
 import '../Model.css';
 import '../Transactions.css'; // Standardized CSS
 
-const RM_SaleReturnForm = () => {
+const EMPTY_RETURN_ROW = { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "", pack_sizes: [], factor: 1 };
+
+const RM_SaleReturnForm = ({ channel = null }) => {
     const navigate = useNavigate();
     const location = useLocation();
     
@@ -18,9 +20,11 @@ const RM_SaleReturnForm = () => {
     const editId = queryParams.get('editId');
     const isEditMode = !!editId;
 
-    const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }
-    ]);
+    // Channel-aware navigation/labels (Retail & Wholesale tabs reuse this form)
+    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+    const listPath = channel ? `/${channel}/sale-returns` : '/rm-sale-return';
+
+    const [rows, setRows] = useState([{ ...EMPTY_RETURN_ROW }]);
 
     const [materials, setMaterials] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -115,8 +119,9 @@ const RM_SaleReturnForm = () => {
                         // Map database rows with exact structure from details
                         if (Array.isArray(details) && details.length > 0) {
                             const mappedRows = details.map(d => {
-                                const qty = Math.abs(parseFloat(d.quantity) || 0);
-                                const price = parseFloat(d.unit_price) || 0;
+                                // Entered values are in the selected UOM; quantity is base
+                                const qty = Math.abs(parseFloat(d.entered_qty ?? d.quantity) || 0);
+                                const price = parseFloat(d.entered_unit_price ?? d.unit_price) || 0;
 
                                 return {
                                     rm_id: d.rm_id,
@@ -126,9 +131,11 @@ const RM_SaleReturnForm = () => {
                                     total: (qty * price).toFixed(2),
                                     uom_id: d.uom_id,
                                     uom_name: d.uom_name || "",
-                                    soldQty: qty,
+                                    soldQty: Math.abs(parseFloat(d.quantity) || 0),
                                     supplier_name: d.supplier_name || "",
-                                    original_supplier_id: d.original_supplier_id || ""
+                                    original_supplier_id: d.original_supplier_id || "",
+                                    pack_sizes: [],
+                                    factor: 1
                                 };
                             });
                             setRows(mappedRows);
@@ -150,13 +157,13 @@ const RM_SaleReturnForm = () => {
                     } catch (err) {
                         console.error("Error loading sale return draft data:", err);
                         toast.error("Failed to load sale return transaction draft details.");
-                        navigate("/rm-sale-return");
+                        navigate(listPath);
                     }
                 }
             } catch (err) {
                 console.error("Error loading initial data:", err);
                 toast.error("Failed to load required data.");
-                if (isEditMode) navigate("/rm-sale-return");
+                if (isEditMode) navigate(listPath);
             }
         };
 
@@ -214,14 +221,22 @@ const RM_SaleReturnForm = () => {
     useEffect(() => {
         if (Array.isArray(materials) && materials.length > 0 && rows.length > 0) {
             const updatedRows = rows.map(row => {
-                if (row.rm_id && (!row.uom_name || row.uom_name === "")) {
-                    // Try to find matching material by rm_id
-                    const found = materials.find(m => String(m.rm_id) === String(row.rm_id));
-                    if (found) {
-                        return { ...row, uom_name: found.uom_name || "" };
-                    }
-                }
-                return row;
+                if (!row.rm_id) return row;
+                const needsUomName = !row.uom_name || row.uom_name === "";
+                const needsPackSizes = !Array.isArray(row.pack_sizes) || row.pack_sizes.length === 0;
+                if (!needsUomName && !needsPackSizes) return row;
+
+                const found = materials.find(m => String(m.rm_id) === String(row.rm_id));
+                if (!found) return row;
+
+                const packs = found.pack_sizes || [];
+                const selectedPack = packs.find(p => Number(p.uom_id) === Number(row.uom_id));
+                return {
+                    ...row,
+                    uom_name: row.uom_name || selectedPack?.uom_name || found.uom_name || "",
+                    pack_sizes: packs,
+                    factor: Number(selectedPack?.factor_to_base) || 1,
+                };
             });
             
             // Only update if something changed
@@ -238,12 +253,15 @@ const RM_SaleReturnForm = () => {
         if (field === "quantity" || field === "unitPrice") {
             const qty = parseFloat(updatedRows[index].quantity) || 0;
             const price = parseFloat(updatedRows[index].unitPrice) || 0;
+            // soldQty is in BASE units; entered qty is in the selected UOM
+            const factor = Number(updatedRows[index].factor) || 1;
             const maxSoldQty = parseFloat(updatedRows[index].soldQty) || 0;
 
-            if (qty > maxSoldQty) {
-                toast.error(`Customer bought only ${maxSoldQty} units!`);
-                updatedRows[index].quantity = maxSoldQty; 
-                updatedRows[index].total = (maxSoldQty * price).toFixed(2);
+            if (qty * factor > maxSoldQty) {
+                const maxInUom = maxSoldQty / factor;
+                toast.error(`Customer bought only ${maxSoldQty} base units (${maxInUom.toFixed(2)} ${updatedRows[index].uom_name})!`);
+                updatedRows[index].quantity = maxInUom;
+                updatedRows[index].total = (maxInUom * price).toFixed(2);
             } else {
                 updatedRows[index].total = (qty * price).toFixed(2);
             }
@@ -258,7 +276,31 @@ const RM_SaleReturnForm = () => {
         updateGrandTotal(rows, value, taxMode, taxRate);
     };
 
-    const addRow = () => setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }]);
+    const addRow = () => setRows([...rows, { ...EMPTY_RETURN_ROW }]);
+
+    // UOM change on a line: qty is re-interpreted in the new UOM
+    const handleUomSelection = (index, uomId) => {
+        const updatedRows = [...rows];
+        const row = updatedRows[index];
+        const pack = (row.pack_sizes || []).find(p => Number(p.uom_id) === Number(uomId));
+        if (!pack) return;
+
+        row.uom_id = pack.uom_id;
+        row.uom_name = pack.uom_name;
+        row.factor = Number(pack.factor_to_base) || 1;
+
+        const qty = parseFloat(row.quantity) || 0;
+        const maxSoldQty = parseFloat(row.soldQty) || 0;
+        if (qty * row.factor > maxSoldQty) {
+            const maxInUom = maxSoldQty / row.factor;
+            toast.error(`Customer bought only ${maxSoldQty} base units (${maxInUom.toFixed(2)} ${row.uom_name})!`);
+            row.quantity = maxInUom;
+            row.total = (maxInUom * (parseFloat(row.unitPrice) || 0)).toFixed(2);
+        }
+
+        setRows(updatedRows);
+        updateGrandTotal(updatedRows, isTaxable, taxMode, taxRate);
+    };
     
     const deleteRow = (i) => { 
         const updated = rows.filter((_, idx) => idx !== i); 
@@ -292,6 +334,7 @@ const RM_SaleReturnForm = () => {
             tax_rate: parseFloat(taxRate),
             tax_id: taxId,
             type: "SaleReturn",
+            channel,
             createdby: user?.username || "guest",
             invoice_no: invoiceNo,
             details: validRows.map(r => ({
@@ -315,7 +358,7 @@ const RM_SaleReturnForm = () => {
                 await api.post("/rm-transactions", returnData);
                 toast.success("Sale Return Successful!");
             }
-            navigate('/rm-sale-return');
+            navigate(listPath);
         } catch (err) {
             toast.error(err.response?.data?.message || "Error saving return.");
         }
@@ -327,10 +370,10 @@ const RM_SaleReturnForm = () => {
 
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate("/rm-sale-return")}>
+                    <button className="back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">{isEditMode ? `Modify Sale Return Draft (${invoiceNo})` : "Raw Material Sale Return"}</h2>
+                    <h2 className="form-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Sale Return Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Sale Return` : "Raw Material Sale Return")}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -347,7 +390,7 @@ const RM_SaleReturnForm = () => {
                                 value={selectedCustomer} 
                                 onChange={(e) => {
                                     setSelectedCustomer(e.target.value);
-                                    setRows([{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", soldQty: 0, supplier_name: "", original_supplier_id: "" }]);
+                                    setRows([{ ...EMPTY_RETURN_ROW }]);
                                 }}
                             >
                                 <option value="">Select Customer</option>
@@ -384,6 +427,8 @@ const RM_SaleReturnForm = () => {
                                             const selected = materials.find(m => String(m.rm_id) === rmIdStr && String(m.original_supplier_id) === supplierIdStr);
 
                                             if (selected) {
+                                                const packs = selected.pack_sizes || [];
+                                                const selectedPack = packs.find(p => Number(p.uom_id) === Number(selected.uom_id));
                                                 handleChange(index, "rm_id", selected.rm_id);
                                                 handleChange(index, "rm_name", selected.rm_name);
                                                 handleChange(index, "uom_id", selected.uom_id);
@@ -391,6 +436,8 @@ const RM_SaleReturnForm = () => {
                                                 handleChange(index, "soldQty", selected.soldQty);
                                                 handleChange(index, "supplier_name", selected.shop_name);
                                                 handleChange(index, "original_supplier_id", selected.original_supplier_id);
+                                                handleChange(index, "pack_sizes", packs);
+                                                handleChange(index, "factor", Number(selectedPack?.factor_to_base) || 1);
                                             }
                                         }}
                                         style={{ marginTop: '20px'}}
@@ -412,8 +459,29 @@ const RM_SaleReturnForm = () => {
                                     <small style={{ color: "gray", fontSize: '11px' }}>Sold: {row.soldQty}</small>
                                 </div>
 
-                                <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
-                                <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                {Array.isArray(row.pack_sizes) && row.pack_sizes.length > 1 ? (
+                                    <select
+                                        className="rm-input-field"
+                                        value={row.uom_id}
+                                        onChange={(e) => handleUomSelection(index, e.target.value)}
+                                    >
+                                        {row.pack_sizes.map(p => (
+                                            <option key={p.uom_id} value={p.uom_id}>
+                                                {p.uom_name}{!p.is_base ? ` (=${Number(p.factor_to_base)} base)` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name} readOnly />
+                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                    {Number(row.factor) !== 1 && parseFloat(row.quantity) > 0 && (
+                                        <small style={{ fontSize: '11px', color: '#3182ce', paddingLeft: '4px' }}>
+                                            = {(parseFloat(row.quantity) * Number(row.factor)).toFixed(2)} base units
+                                        </small>
+                                    )}
+                                </div>
                                 <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
                                 <input type="text" className="rm-input-field readonly-input" value={row.total} readOnly />
 

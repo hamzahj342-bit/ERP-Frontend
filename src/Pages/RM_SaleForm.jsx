@@ -8,7 +8,9 @@ import api from '../../api';
 import '../Model.css';
 import '../Transactions.css';
 
-const RM_SaleForm = () => {
+const EMPTY_ROW = { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0, pack_sizes: [], factor: 1 };
+
+const RM_SaleForm = ({ channel = null }) => {
     const navigate = useNavigate();
     const location = useLocation();
     
@@ -17,9 +19,11 @@ const RM_SaleForm = () => {
     const editId = queryParams.get('editId'); 
     const isEditMode = !!editId;
 
-    const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }
-    ]);
+    // Channel-aware navigation/labels (Retail & Wholesale tabs reuse this form)
+    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+    const listPath = channel ? `/${channel}/sales` : '/rm-sale';
+
+    const [rows, setRows] = useState([{ ...EMPTY_ROW }]);
     const [materials, setMaterials] = useState([]);
     const [customers, setCustomers] = useState([]);
 
@@ -42,15 +46,30 @@ const RM_SaleForm = () => {
     const [originalSourceItems, setOriginalSourceItems] = useState([]);
 
     const getMaterialMeta = (material, fallbackDetail = {}) => {
+        const packSizes = (material?.pack_sizes || []).map((p) => ({
+            uom_id: p.uom_id,
+            uom_name: p.uom?.name || p.uom_name || "",
+            factor_to_base: Number(p.factor_to_base) || 1,
+            is_base: !!p.is_base,
+        }));
+        const preferredUomId = fallbackDetail?.uom_id ?? material?.uom_id ?? material?.uom?.id ?? "";
+        const selectedPack =
+            packSizes.find((p) => Number(p.uom_id) === Number(preferredUomId)) ||
+            packSizes.find((p) => p.is_base) ||
+            packSizes[0] ||
+            null;
         const uom = material?.uom || fallbackDetail?.uom || null;
+
         return {
             rm_id: Number(material?.rm_id ?? fallbackDetail?.material_id ?? fallbackDetail?.rm_id ?? 0),
             rm_name: material?.rm_name || material?.name || fallbackDetail?.material_name || fallbackDetail?.rm_name || "Material",
-            uom_id: material?.uom_id ?? fallbackDetail?.uom_id ?? uom?.id ?? "",
-            uom_name: material?.uom_name || material?.uom?.name || fallbackDetail?.uom_name || uom?.name || "",
+            uom_id: selectedPack?.uom_id ?? preferredUomId ?? uom?.id ?? "",
+            uom_name: selectedPack?.uom_name || material?.uom_name || material?.uom?.name || fallbackDetail?.uom_name || uom?.name || "",
             supplier_id: material?.supplier_id ?? fallbackDetail?.supplier_id ?? "",
             shop_name: material?.shop_name || fallbackDetail?.shop_name || "",
             current_stock: Number(material?.current_stock ?? fallbackDetail?.current_stock ?? 0),
+            pack_sizes: packSizes,
+            factor: Number(selectedPack?.factor_to_base) || 1,
         };
     };
 
@@ -161,13 +180,17 @@ const RM_SaleForm = () => {
                                 Number(m.rm_id) === cleanRmId && Number(m.supplier_id) === cleanSupplierId
                             );
 
-                            const qty = Math.abs(parseFloat(d.quantity || d.qty) || 0);
-                            const price = parseFloat(d.unit_price || d.price || d.unitPrice) || 0;
+                            // Restore what the user typed (entered_qty/entered_unit_price
+                            // are in the selected UOM; quantity/unit_price are base).
+                            const qty = Math.abs(parseFloat(d.entered_qty ?? d.quantity ?? d.qty) || 0);
+                            const price = parseFloat(d.entered_unit_price ?? d.unit_price ?? d.price ?? d.unitPrice) || 0;
 
-                            const finalUomName = matchingMaterial?.uom_name || d.uom_name || "Kg";
+                            const packSizes = matchingMaterial?.pack_sizes || [];
+                            const finalUomId = d.uom_id || matchingMaterial?.uom_id || "";
+                            const selectedPack = packSizes.find(p => Number(p.uom_id) === Number(finalUomId));
+                            const finalUomName = selectedPack?.uom_name || matchingMaterial?.uom_name || d.uom_name || "Kg";
                             const finalRmName = matchingMaterial?.rm_name || d.rm_name || "Material";
                             const finalShopName = matchingMaterial?.shop_name || d.supplier_name || "Supplier";
-                            const finalUomId = matchingMaterial?.uom_id || d.uom_id || "";
 
                             return {
                                 rm_id: cleanRmId,
@@ -179,7 +202,9 @@ const RM_SaleForm = () => {
                                 uom_name: finalUomName,
                                 supplier_id: String(cleanSupplierId),
                                 shop_name: finalShopName,
-                                current_stock: matchingMaterial ? Number(matchingMaterial.current_stock) : qty
+                                current_stock: matchingMaterial ? Number(matchingMaterial.current_stock) : qty * (Number(selectedPack?.factor_to_base) || 1),
+                                pack_sizes: packSizes,
+                                factor: Number(selectedPack?.factor_to_base) || 1
                             };
                         });
                         setRows(mappedRows);
@@ -197,7 +222,7 @@ const RM_SaleForm = () => {
             } catch (err) {
                 console.error("Error loading initial form data:", err);
                 toast.error("Failed to load required data.");
-                if (isEditMode) navigate("/rm-sale");
+                if (isEditMode) navigate(listPath);
             }
         };
 
@@ -207,7 +232,7 @@ const RM_SaleForm = () => {
     const handleMaterialSelection = (index, value) => {
         const updated = [...rows];
         if (!value) {
-            updated[index] = { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 };
+            updated[index] = { ...EMPTY_ROW };
             setRows(updated);
             calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
             return;
@@ -226,6 +251,33 @@ const RM_SaleForm = () => {
             updated[index].current_stock = selected.current_stock;
             updated[index].quantity = "";
             updated[index].total = "0.00";
+            updated[index].pack_sizes = selected.pack_sizes || [];
+            updated[index].factor = 1;
+        }
+
+        setRows(updated);
+        calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+    };
+
+    // UOM change on a line: qty/price are re-interpreted in the new UOM
+    const handleUomSelection = (index, uomId) => {
+        const updated = [...rows];
+        const row = updated[index];
+        const pack = (row.pack_sizes || []).find(p => Number(p.uom_id) === Number(uomId));
+        if (!pack) return;
+
+        row.uom_id = pack.uom_id;
+        row.uom_name = pack.uom_name;
+        row.factor = Number(pack.factor_to_base) || 1;
+
+        // Re-validate stock for the new UOM (stock is tracked in base units)
+        const qty = parseFloat(row.quantity) || 0;
+        const baseQty = qty * row.factor;
+        const available = parseFloat(row.current_stock) || 0;
+        if (baseQty > available) {
+            toast.error(`Out of stock! Only ${available} base units available (${(available / row.factor).toFixed(2)} ${row.uom_name}).`);
+            row.quantity = "";
+            row.total = "0.00";
         }
 
         setRows(updated);
@@ -235,7 +287,7 @@ const RM_SaleForm = () => {
     const handleSourceDocumentSelection = async (docId, existingRowsOverride = rows, materialsList = materials) => {
         setSelectedSourceDoc(docId || "");
         if (!docId) {
-            setRows(Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0 ? existingRowsOverride : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }]);
+            setRows(Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0 ? existingRowsOverride : [{ ...EMPTY_ROW }]);
             setOriginalSourceItems([]);
             return;
         }
@@ -255,7 +307,7 @@ const RM_SaleForm = () => {
 
             const fallbackRows = Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0
                 ? existingRowsOverride
-                : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }];
+                : [{ ...EMPTY_ROW }];
 
             const mappedRows = details.map((detail) => {
                 const cleanRmId = Number(detail.material_id || detail.rm_id);
@@ -263,12 +315,14 @@ const RM_SaleForm = () => {
                 const existingRow = fallbackRows.find((row) => Number(row.rm_id) === cleanRmId) || {};
                 const matchingMaterial = materialsList.find((m) => Number(m.rm_id) === cleanRmId && Number(m.supplier_id) === cleanSupplierId);
                 const meta = getMaterialMeta(matchingMaterial, detail);
+                const enteredQty = Number(detail.entered_qty ?? detail.quantity ?? 0);
+                const baseQty = Number(detail.quantity || 0);
 
                 return {
                     ...existingRow,
                     rm_id: cleanRmId,
                     rm_name: meta.rm_name,
-                    quantity: existingRow.quantity ?? Number(detail.quantity || 0),
+                    quantity: existingRow.quantity ?? enteredQty,
                     unitPrice: existingRow.unitPrice ?? "",
                     total: existingRow.total ?? "0.00",
                     uom_id: meta.uom_id,
@@ -276,6 +330,9 @@ const RM_SaleForm = () => {
                     supplier_id: cleanSupplierId ? String(cleanSupplierId) : "",
                     shop_name: meta.shop_name,
                     current_stock: meta.current_stock,
+                    pack_sizes: meta.pack_sizes,
+                    factor: meta.factor,
+                    source_base_qty: baseQty,
                     source_doc_id: sourceDoc.id,
                     source_doc_no: sourceDoc.no,
                     source_doc_type: sourceDoc.type,
@@ -284,7 +341,12 @@ const RM_SaleForm = () => {
 
             const nextRows = mappedRows.length > 0 ? mappedRows : fallbackRows;
             setRows(nextRows);
-            setOriginalSourceItems(mappedRows.map((item) => ({ ...item, quantity: Number(item.quantity || 0) })));
+            setOriginalSourceItems(mappedRows.map((item) => ({
+                ...item,
+                quantity: Number(item.quantity || 0),
+                source_base_qty: Number(item.source_base_qty || 0),
+                factor: Number(item.factor) || 1,
+            })));
             toast.success(`Loaded ${sourceDoc.no} for autofill.`);
         } catch (err) {
             console.error("Error loading source document:", err);
@@ -298,20 +360,25 @@ const RM_SaleForm = () => {
         if (field === "quantity") {
             const inputQty = parseFloat(value) || 0;
             const originalItem = originalSourceItems[index];
-            const maxAllowed = parseFloat(originalItem?.quantity || 0);
+            const factor = Number(updated[index]?.factor) || Number(originalItem?.factor) || 1;
+            const inputBase = inputQty * factor;
+            const maxBase = Number(originalItem?.source_base_qty ?? originalItem?.quantity ?? 0);
 
-            if (selectedSourceDoc && originalItem && inputQty > maxAllowed) {
-                toast.error(`Error: Maximum quantity allowed is ${maxAllowed}. You cannot exceed the original quantity.`);
-                updated[index].quantity = String(maxAllowed);
+            if (selectedSourceDoc && originalItem && inputBase > maxBase + 1e-9) {
+                toast.error(`Error: Maximum allowed is ${maxBase} base units from the source document.`);
+                const cappedEntered = factor > 0 ? maxBase / factor : maxBase;
+                updated[index].quantity = String(cappedEntered);
                 updated[index].total = "0.00";
                 setRows(updated);
                 calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
                 return;
             }
 
+            // Stock is tracked in BASE units; convert entered qty before checking
             const available = parseFloat(updated[index].current_stock) || 0;
-            if (inputQty > available) {
-                toast.error(`Out of stock! Only ${available} units available.`);
+            if (inputQty * factor > available) {
+                const availableInUom = factor !== 1 ? ` (${(available / factor).toFixed(2)} ${updated[index].uom_name})` : "";
+                toast.error(`Out of stock! Only ${available} units available${availableInUom}.`);
                 updated[index][field] = "";
                 updated[index].total = "0.00";
                 setRows(updated);
@@ -338,7 +405,7 @@ const RM_SaleForm = () => {
     };
 
     const addRow = () => {
-        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }]);
+        setRows([...rows, { ...EMPTY_ROW }]);
     };
 
     const deleteRow = (index) => {
@@ -368,6 +435,7 @@ const RM_SaleForm = () => {
             tax_rate: parseFloat(taxRate),
             tax_id: taxId,
             type: "sale", 
+            channel,
             createdby: user?.username || "guest",
             invoice_no: invoiceNo,
             details: validRows.map(r => ({
@@ -395,7 +463,7 @@ const RM_SaleForm = () => {
                 const res = await api.post("/rm-transactions", saleData);
                 toast.success(`Sale Transaction Saved as Draft! Invoice: ${res.data.invoice_no}`);
             }
-            navigate("/rm-sale");
+            navigate(listPath);
         } catch (err) {
             toast.error(err.response?.data?.message || "Error saving sale transaction.");
         }
@@ -420,10 +488,10 @@ const RM_SaleForm = () => {
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate("/rm-sale")}>
+                    <button className="back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">{isEditMode ? `Modify Sale Draft (${invoiceNo})` : "Raw Material Sale"}</h2>
+                    <h2 className="form-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Sale Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Sale` : "Raw Material Sale")}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -499,8 +567,30 @@ const RM_SaleForm = () => {
                                         )}
                                     </div>
 
-                                    <input type="text" className="rm-input-field readonly-input" style={{ marginTop: '0px' }} placeholder="UOM" value={row.uom_name} readOnly />
-                                    <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                    {Array.isArray(row.pack_sizes) && row.pack_sizes.length > 1 ? (
+                                        <select
+                                            className="rm-input-field"
+                                            style={{ marginTop: '0px' }}
+                                            value={row.uom_id}
+                                            onChange={(e) => handleUomSelection(index, e.target.value)}
+                                        >
+                                            {row.pack_sizes.map(p => (
+                                                <option key={p.uom_id} value={p.uom_id}>
+                                                    {p.uom_name}{!p.is_base ? ` (=${Number(p.factor_to_base)} base)` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input type="text" className="rm-input-field readonly-input" style={{ marginTop: '0px' }} placeholder="UOM" value={row.uom_name} readOnly />
+                                    )}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
+                                        {Number(row.factor) !== 1 && parseFloat(row.quantity) > 0 && (
+                                            <small style={{ fontSize: '11px', color: '#3182ce', paddingLeft: '4px' }}>
+                                                = {(parseFloat(row.quantity) * Number(row.factor)).toFixed(2)} base units
+                                            </small>
+                                        )}
+                                    </div>
                                     <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
                                     <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
 

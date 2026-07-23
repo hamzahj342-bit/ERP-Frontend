@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import NavigationBar from '../Components/NavigationBar';
 import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -7,20 +7,40 @@ import { toast } from 'react-toastify';
 import api from "../../api";
 import '../Transactions.css';
 
-const RM_ReturnForm = () => {
+const emptyRow = () => ({
+    rm_id: "",
+    rm_name: "",
+    quantity: "",
+    unitPrice: "",
+    total: "",
+    uom_id: "",
+    uom_name: "",
+    stock: 0,
+    pack_sizes: [],
+    factor: 1,
+});
+
+const normalizePackSizes = (material) =>
+    (material?.pack_sizes || []).map((p) => ({
+        uom_id: p.uom_id,
+        uom_name: p.uom_name || p.uom?.name || "",
+        factor_to_base: Number(p.factor_to_base) || 1,
+        is_base: !!p.is_base,
+    }));
+
+const RM_ReturnForm = ({ channel = null }) => {
     const navigate = useNavigate();
     const location = useLocation();
-    
-    // URL parameters and Edit Mode flags
+
     const queryParams = new URLSearchParams(location.search);
     const invoiceType = queryParams.get('invoiceType');
-    const editId = queryParams.get('editId'); 
+    const editId = queryParams.get('editId');
     const isEditMode = !!editId;
 
-    const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }
-    ]);
+    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+    const listPath = channel ? `/${channel}/purchase-returns` : '/rm-return';
 
+    const [rows, setRows] = useState([emptyRow()]);
     const [materials, setMaterials] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
     const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -36,14 +56,12 @@ const RM_ReturnForm = () => {
     const [globalDiscount, setGlobalDiscount] = useState(0);
     const [grandTotal, setGrandTotal] = useState(0);
 
-    // 1. Fetch eligible suppliers
     useEffect(() => {
         api.get("/rm-transactions/eligible-suppliers")
             .then((res) => setSuppliers(res.data))
             .catch((err) => console.error("Error fetching eligible suppliers:", err));
     }, []);
 
-    // 2. Fetch materials & tax info of selected supplier (Only runs automatically in Creation Mode)
     useEffect(() => {
         if (!selectedSupplier) {
             setMaterials([]);
@@ -56,7 +74,6 @@ const RM_ReturnForm = () => {
             return;
         }
 
-        // Fetch supplier specific raw materials
         api.get(`/rm-transactions/materials/${selectedSupplier}`)
             .then((res) => {
                 if (Array.isArray(res.data)) setMaterials(res.data);
@@ -67,7 +84,6 @@ const RM_ReturnForm = () => {
                 setMaterials([]);
             });
 
-        // Fetch tax configurations only if creating a new form instance
         if (!isEditMode) {
             api.get(`/rm-transactions/supplier-last-tax/${selectedSupplier}`)
                 .then((res) => {
@@ -86,7 +102,6 @@ const RM_ReturnForm = () => {
         }
     }, [selectedSupplier, isEditMode]);
 
-    // 3. Fetch Next Invoice Number (Only if not editing)
     useEffect(() => {
         if (isEditMode) return;
         api.get("/rm-transactions/rm-invoice", { params: { type: "Return" } })
@@ -94,9 +109,6 @@ const RM_ReturnForm = () => {
             .catch(err => console.error("Error fetching invoice number:", err));
     }, [isEditMode]);
 
-    // ---------------------------------------------------------
-    // 🔥 EDIT MODE: Fetch and Populate Draft Data
-    // ---------------------------------------------------------
     useEffect(() => {
         const loadDraftDataForEdit = async () => {
             if (!isEditMode) return;
@@ -107,28 +119,30 @@ const RM_ReturnForm = () => {
 
                 setInvoiceNo(master.invoice_no);
                 setSelectedSupplier(master.entityid);
-                
+
                 if (invoiceDate) {
                     setDate(new Date(invoiceDate).toISOString().split('T')[0]);
                 }
-                
+
                 setIsTaxable(master.is_taxable);
                 setTaxMode(master.tax_mode || 'exclusive');
                 setTaxRate(Number(master.tax_rate) || 0);
                 setTaxId(master.tax_id);
                 setGlobalDiscount(master.discount || 0);
 
-                // Map database rows smoothly
                 if (Array.isArray(details) && details.length > 0) {
                     const mappedRows = await Promise.all(details.map(async (d) => {
-                        const qty = Math.abs(parseFloat(d.quantity) || 0);
-                        const price = parseFloat(d.unit_price) || 0;
-                        
+                        // Prefer entered (pack) qty/price so edit restores what user typed
+                        const qty = Math.abs(parseFloat(d.entered_qty ?? d.quantity) || 0);
+                        const price = parseFloat(d.entered_unit_price ?? d.unit_price) || 0;
+
                         let itemStock = 0;
                         try {
                             const stockRes = await api.get(`/rm-transactions/stock/${d.rm_id}/${master.entityid}`);
                             itemStock = stockRes.data.stock || 0;
-                        } catch(e) { console.error("Error fetching stock during edit mapping:", e); }
+                        } catch (e) {
+                            console.error("Error fetching stock during edit mapping:", e);
+                        }
 
                         return {
                             rm_id: d.rm_id,
@@ -137,8 +151,10 @@ const RM_ReturnForm = () => {
                             unitPrice: price,
                             total: (qty * price).toFixed(2),
                             uom_id: d.uom_id,
-                            uom_name: d.uom_name || "", // Synced continuously below
-                            stock: itemStock
+                            uom_name: d.uom_name || "",
+                            stock: itemStock,
+                            pack_sizes: [],
+                            factor: 1,
                         };
                     }));
                     setRows(mappedRows);
@@ -147,56 +163,81 @@ const RM_ReturnForm = () => {
             } catch (err) {
                 console.error("Error loading return draft data:", err);
                 toast.error("Failed to load return transaction draft details.");
-                navigate("/rm-return");
+                navigate(listPath);
             }
         };
 
         loadDraftDataForEdit();
     }, [editId, isEditMode]);
 
-    // ---------------------------------------------------------
-    // 🔥 AUTO-SYNC LOGIC FOR UOM NAMES (Identical to Purchase Form)
-    // ---------------------------------------------------------
+    // Attach pack_sizes / factor once materials load (create + edit).
+    // Depends on rows so edit-mode mapping that lands after materials still gets enriched.
     useEffect(() => {
-        if (materials.length > 0 && rows.length > 0) {
-            const updatedRows = rows.map(row => {
-                if (row.rm_id && !row.uom_name) {
-                    const found = materials.find(m => m.rm_id === parseInt(row.rm_id));
-                    if (found) {
-                        return { ...row, uom_name: found.uom?.uom_name || found.uom?.name || "" };
-                    }
-                }
-                return row;
-            });
-            if (JSON.stringify(updatedRows) !== JSON.stringify(rows)) {
-                setRows(updatedRows);
+        if (materials.length === 0 || rows.length === 0) return;
+
+        let changed = false;
+        const updatedRows = rows.map((row) => {
+            if (!row.rm_id) return row;
+            const found = materials.find((m) => Number(m.rm_id) === Number(row.rm_id));
+            if (!found) return row;
+
+            const packSizes = normalizePackSizes(found);
+            const uomId = row.uom_id || found.uom_id || found.uom?.id || "";
+            const selectedPack = packSizes.find((p) => Number(p.uom_id) === Number(uomId));
+            const next = {
+                ...row,
+                uom_id: uomId,
+                uom_name: selectedPack?.uom_name || row.uom_name || found.uom_name || found.uom?.uom_name || found.uom?.name || "",
+                pack_sizes: packSizes,
+                factor: Number(selectedPack?.factor_to_base) || 1,
+            };
+
+            if (
+                String(next.uom_id) !== String(row.uom_id) ||
+                next.uom_name !== row.uom_name ||
+                Number(next.factor) !== Number(row.factor) ||
+                JSON.stringify(next.pack_sizes) !== JSON.stringify(row.pack_sizes || [])
+            ) {
+                changed = true;
             }
-        }
+            return next;
+        });
+
+        if (changed) setRows(updatedRows);
     }, [materials, rows]);
 
-    // 4. Fetch Stock Function
-    const fetchStock = async (rm_id, index) => {
-        if (!selectedSupplier) return;
+    const fetchStock = async (rm_id, index, currentRows = rows) => {
+        if (!selectedSupplier) return currentRows;
         try {
             const res = await api.get(`/rm-transactions/stock/${rm_id}/${selectedSupplier}`);
-            const updatedRows = [...rows];
-            updatedRows[index].stock = res.data.stock || 0;
+            const updatedRows = [...currentRows];
+            updatedRows[index] = { ...updatedRows[index], stock: res.data.stock || 0 };
             setRows(updatedRows);
+            return updatedRows;
         } catch (err) {
             console.error("Error fetching stock:", err);
+            return currentRows;
         }
+    };
+
+    const getBaseQty = (row) => {
+        const qty = parseFloat(row.quantity) || 0;
+        const factor = Number(row.factor) || 1;
+        return qty * factor;
     };
 
     const handleChange = (index, field, value) => {
         const updatedRows = [...rows];
-        updatedRows[index][field] = value;
+        updatedRows[index] = { ...updatedRows[index], [field]: value };
 
         if (field === "quantity" || field === "unitPrice") {
             const qty = parseFloat(updatedRows[index].quantity) || 0;
             const price = parseFloat(updatedRows[index].unitPrice) || 0;
+            const baseQty = getBaseQty(updatedRows[index]);
+            const available = Number(updatedRows[index].stock) || 0;
 
-            if (qty > updatedRows[index].stock && field === "quantity") {
-                toast.error(`Only ${updatedRows[index].stock} units available!`);
+            if (field === "quantity" && baseQty > available + 1e-9) {
+                toast.error(`Only ${available} base units available!`);
                 updatedRows[index].quantity = "";
                 updatedRows[index].total = "";
             } else {
@@ -205,6 +246,60 @@ const RM_ReturnForm = () => {
         }
         setRows(updatedRows);
         updateGrandTotal(updatedRows, isTaxable, taxMode, taxRate);
+    };
+
+    const handleUomSelection = (index, uomId) => {
+        const updatedRows = [...rows];
+        const row = { ...updatedRows[index] };
+        const pack = (row.pack_sizes || []).find((p) => Number(p.uom_id) === Number(uomId));
+        if (!pack) return;
+
+        row.uom_id = pack.uom_id;
+        row.uom_name = pack.uom_name;
+        row.factor = Number(pack.factor_to_base) || 1;
+
+        const qty = parseFloat(row.quantity) || 0;
+        const price = parseFloat(row.unitPrice) || 0;
+        const baseQty = qty * row.factor;
+        const available = Number(row.stock) || 0;
+
+        if (qty > 0 && baseQty > available + 1e-9) {
+            toast.error(`Only ${available} base units available!`);
+            row.quantity = "";
+            row.total = "";
+        } else if (qty > 0) {
+            row.total = (qty * price).toFixed(2);
+        }
+
+        updatedRows[index] = row;
+        setRows(updatedRows);
+        updateGrandTotal(updatedRows, isTaxable, taxMode, taxRate);
+    };
+
+    const handleMaterialSelect = async (index, rmIdValue) => {
+        const selected = materials.find((m) => Number(m.rm_id) === parseInt(rmIdValue, 10));
+        const packSizes = normalizePackSizes(selected);
+        const defaultUomId = selected?.uom_id ?? selected?.uom?.id ?? packSizes[0]?.uom_id ?? "";
+        const selectedPack = packSizes.find((p) => Number(p.uom_id) === Number(defaultUomId)) || packSizes[0];
+
+        let updatedRows = [...rows];
+        updatedRows[index] = {
+            ...updatedRows[index],
+            rm_id: rmIdValue,
+            rm_name: selected?.rm_name || "",
+            uom_id: selectedPack?.uom_id || "",
+            uom_name: selectedPack?.uom_name || selected?.uom_name || "",
+            pack_sizes: packSizes,
+            factor: Number(selectedPack?.factor_to_base) || 1,
+            quantity: "",
+            unitPrice: "",
+            total: "",
+        };
+        setRows(updatedRows);
+        updateGrandTotal(updatedRows, isTaxable, taxMode, taxRate);
+
+        const id = parseInt(rmIdValue, 10);
+        if (!isNaN(id)) await fetchStock(id, index, updatedRows);
     };
 
     const updateGrandTotal = (currentRows, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate, discountValue = globalDiscount) => {
@@ -236,7 +331,7 @@ const RM_ReturnForm = () => {
     };
 
     const addRow = () => {
-        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", stock: 0 }]);
+        setRows([...rows, emptyRow()]);
     };
 
     const deleteRow = (index) => {
@@ -253,6 +348,13 @@ const RM_ReturnForm = () => {
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one material item.");
 
+        for (const r of validRows) {
+            const baseQty = (parseFloat(r.quantity) || 0) * (Number(r.factor) || 1);
+            if (baseQty > (Number(r.stock) || 0) + 1e-9) {
+                return toast.error(`${r.rm_name}: return qty exceeds available stock (${r.stock} base units).`);
+            }
+        }
+
         const user = JSON.parse(localStorage.getItem("user"));
         const returnData = {
             entityid: selectedSupplier,
@@ -265,6 +367,7 @@ const RM_ReturnForm = () => {
             tax_rate: parseFloat(taxRate),
             tax_id: taxId,
             type: "PurchaseReturn",
+            channel,
             createdby: user ? user.username : "guest",
             invoice_no: invoiceNo,
             details: validRows.map(r => ({
@@ -286,7 +389,7 @@ const RM_ReturnForm = () => {
                 await api.post("/rm-transactions", returnData);
                 toast.success("Purchase Return Transaction Successful");
             }
-            navigate('/rm-return');
+            navigate(listPath);
         } catch (err) {
             toast.error(err.response?.data?.message || "Error saving return transaction data!");
         }
@@ -298,10 +401,10 @@ const RM_ReturnForm = () => {
 
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate('/rm-return')}>
+                    <button className="back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">{isEditMode ? `Modify Return Draft (${invoiceNo})` : "Raw Material Purchase Return"}</h2>
+                    <h2 className="form-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Return Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Purchase Return` : "Raw Material Purchase Return")}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -350,16 +453,7 @@ const RM_ReturnForm = () => {
                                     <select
                                         className="rm-input-field"
                                         value={row.rm_id}
-                                        onChange={(e) => {
-                                            const selected = materials.find(m => m.rm_id === parseInt(e.target.value));
-                                            handleChange(index, "rm_id", e.target.value);
-                                            handleChange(index, "rm_name", selected ? selected.rm_name : "");
-                                            handleChange(index, "uom_id", selected ? selected.uom?.id : "");
-                                            handleChange(index, "uom_name", selected ? (selected.uom?.uom_name || selected.uom?.name) : "");
-                                            
-                                            const id = parseInt(e.target.value);
-                                            if (!isNaN(id)) fetchStock(id, index);
-                                        }}
+                                        onChange={(e) => handleMaterialSelect(index, e.target.value)}
                                         style={{marginTop: '20px'}}
                                     >
                                         <option value="">Select Material</option>
@@ -367,18 +461,41 @@ const RM_ReturnForm = () => {
                                             <option key={m.rm_id} value={m.rm_id}>{m.rm_name}</option>
                                         ))}
                                     </select>
-                                    <small style={{ marginTop: '4px', fontSize: '11px', fontWeight: 'bold' }} className="text-success">Available: {row.stock}</small>
+                                    <small style={{ marginTop: '4px', fontSize: '11px', fontWeight: 'bold' }} className="text-success">
+                                        Available: {row.stock} base units
+                                    </small>
                                 </div>
 
-                                <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name || ""} readOnly />
-                                
-                                <input
-                                    type="number"
-                                    className="rm-input-field"
-                                    placeholder="Qty"
-                                    value={row.quantity}
-                                    onChange={(e) => handleChange(index, "quantity", e.target.value)}
-                                />
+                                {Array.isArray(row.pack_sizes) && row.pack_sizes.length > 1 ? (
+                                    <select
+                                        className="rm-input-field"
+                                        value={row.uom_id}
+                                        onChange={(e) => handleUomSelection(index, e.target.value)}
+                                    >
+                                        {row.pack_sizes.map((p) => (
+                                            <option key={p.uom_id} value={p.uom_id}>
+                                                {p.uom_name}{!p.is_base ? ` (=${Number(p.factor_to_base)} base)` : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <input type="text" className="rm-input-field readonly-input" placeholder="UOM" value={row.uom_name || ""} readOnly />
+                                )}
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <input
+                                        type="number"
+                                        className="rm-input-field"
+                                        placeholder="Qty"
+                                        value={row.quantity}
+                                        onChange={(e) => handleChange(index, "quantity", e.target.value)}
+                                    />
+                                    {Number(row.factor) !== 1 && parseFloat(row.quantity) > 0 && (
+                                        <small style={{ fontSize: '11px', color: '#3182ce', paddingLeft: '4px' }}>
+                                            = {(parseFloat(row.quantity) * Number(row.factor)).toFixed(2)} base units
+                                        </small>
+                                    )}
+                                </div>
 
                                 <input
                                     type="number"
@@ -412,10 +529,10 @@ const RM_ReturnForm = () => {
                                 <>
                                     <div className="summary-row">
                                         <label>Tax Rate (%)</label>
-                                        <input 
+                                        <input
                                             type="number"
                                             className="rm-input-field readonly-input"
-                                            value={taxRate} 
+                                            value={taxRate}
                                             readOnly
                                             style={{ width: '120px' }}
                                         />

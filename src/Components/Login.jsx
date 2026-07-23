@@ -299,6 +299,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../index.css';
 import { saveAuthData } from '../auth';
+import logo from '../assets/ERP favicon-bg.png';
 import { FaBuilding, FaUser, FaLock, FaEnvelope, FaArrowLeft, FaEye, FaEyeSlash, FaMicrochip  } from 'react-icons/fa';
 import api from '../../api';
 
@@ -519,6 +520,7 @@ const Login = () => {
 
                 <div className="container position-relative z-index-2 text-center px-5">
                     <div className="erp-brand-content animate-fade-in">
+                        <img src={logo} alt="Codebase Logo" className="company-logo-premium" />
                         <div className="d-flex justify-content-center gap-2 mb-4">
                             <span className="badge rounded-pill bg-primary bg-opacity-25 text-info border border-info border-opacity-25 px-3 py-2 fs-7 tracking-wide uppercase-text">
                                 <FaMicrochip className="me-2 text-info rotating-icon" /> Next-Gen Cloud System
@@ -549,7 +551,7 @@ const Login = () => {
                 <div className="login-box premium-box shadow-lg">
                     
                     <div className="login-header text-center mb-4">
-                        <h1 className='company-name-premium text-uppercase tracking-wider'>CodeBase Next-Gen</h1>
+                        <h1 className='company-name-premium text-uppercase tracking-wider text-gradient-premium'>CodeBase Next-Gen</h1>
                         <p className="form-subtitle-premium"> For Multi-Tenant Organizations</p>
                     </div>
 
