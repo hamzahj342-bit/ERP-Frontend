@@ -14,7 +14,7 @@ import html2canvas from 'html2canvas';
 
 const SalesReport = () => {
   const navigate = useNavigate();
-  const reportRef = useRef(); // PNG export ke liye
+  const reportRef = useRef(); // For PNG export
   const today = new Date().toISOString().split('T')[0];
   const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
@@ -35,9 +35,9 @@ const SalesReport = () => {
       });
       
       if (reportType === 'customer') {
-        setCustomerData(response.data);
+        setCustomerData(Array.isArray(response.data) ? response.data : []);
       } else {
-        setItemData(response.data);
+        setItemData(response.data || { finishedProducts: [], rawMaterials: [] });
       }
     } catch (err) {
       console.error("Error fetching report:", err);
@@ -51,24 +51,27 @@ const SalesReport = () => {
     fetchReport();
   }, [reportType]);
 
-  // Customer Filter
-  const filterCustomer = customerData.filter(c =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Safe Customer Filter (Fixes Uncaught TypeError)
+  const filterCustomer = customerData.filter(c => {
+    const customerName = c?.customerName || c?.name || '';
+    return customerName.toLowerCase().includes((searchTerm || '').toLowerCase());
+  });
 
-  // Item Filter
-  const filteredFP = itemData.finishedProducts.filter(item => 
-    item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const filteredRM = itemData.rawMaterials.filter(item => 
-    item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Safe Item Filters
+  const filteredFP = (itemData?.finishedProducts || []).filter(item => {
+    const itemName = item?.itemName || '';
+    return itemName.toLowerCase().includes((searchTerm || '').toLowerCase());
+  });
+
+  const filteredRM = (itemData?.rawMaterials || []).filter(item => {
+    const itemName = item?.itemName || '';
+    return itemName.toLowerCase().includes((searchTerm || '').toLowerCase());
+  });
 
   // --- EXPORT FUNCTIONS ---
 
   // --- 📗 PROFESSIONAL EXCEL EXPORT ---
   const exportToExcel = () => {
-    let data = [];
     const headerStyle = {
       fill: { fgColor: { rgb: "2196F3" } }, // Blue Background
       font: { color: { rgb: "FFFFFF" }, bold: true, sz: 12 },
@@ -100,19 +103,23 @@ const SalesReport = () => {
     let ws;
 
     if (reportType === 'customer') {
-      // Headers
+      // Headers for Customer Breakdown
       const headers = [
         { v: "CUSTOMER NAME", s: headerStyle },
-        { v: "TOTAL SALE (RS)", s: headerStyle }
+        { v: "FP SALE (RS)", s: headerStyle },
+        { v: "RM SALE (RS)", s: headerStyle },
+        { v: "NET TOTAL SALE (RS)", s: headerStyle }
       ];
       
       const rows = filterCustomer.map(c => [
-        { v: c.name, s: cellStyle },
-        { v: Number(c.total), s: amountStyle }
+        { v: c.customerName || c.name || 'Unknown', s: cellStyle },
+        { v: Number(c.fpAmount || 0), s: amountStyle },
+        { v: Number(c.rmAmount || 0), s: amountStyle },
+        { v: Number(c.netTotalAmount || c.total || 0), s: amountStyle }
       ]);
 
       ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      ws['!cols'] = [{ wch: 40 }, { wch: 25 }];
+      ws['!cols'] = [{ wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 25 }];
     } else {
       // Item Wise Logic (RM & FP)
       const dataRows = [
@@ -124,7 +131,7 @@ const SalesReport = () => {
           { v: f.qty, s: cellStyle },
           { v: Number(f.total), s: amountStyle }
         ]),
-        [], // Gap
+        [], // Blank Row Separator
         // RM Section
         [{ v: "RAW MATERIAL SALES", s: subHeaderStyle }, { v: "", s: subHeaderStyle }, { v: "", s: subHeaderStyle }],
         [{ v: "Material Name", s: headerStyle }, { v: "Qty", s: headerStyle }, { v: "Amount", s: headerStyle }],
@@ -159,20 +166,27 @@ const SalesReport = () => {
 
       if (reportType === 'customer') {
         const bodyData = filterCustomer.map(c => [
-          c.name, 
-          Number(c.total).toLocaleString()
+          c.customerName || c.name || 'Unknown', 
+          Number(c.fpAmount || 0).toLocaleString(),
+          Number(c.rmAmount || 0).toLocaleString(),
+          Number(c.netTotalAmount || c.total || 0).toLocaleString()
         ]);
 
-        // Add Grand Total row for Customer
-        const grandTotal = filterCustomer.reduce((sum, row) => sum + Number(row.total || 0), 0);
+        // Grand Totals calculation
+        const grandTotalFP = filterCustomer.reduce((sum, row) => sum + Number(row.fpAmount || 0), 0);
+        const grandTotalRM = filterCustomer.reduce((sum, row) => sum + Number(row.rmAmount || 0), 0);
+        const grandNetTotal = filterCustomer.reduce((sum, row) => sum + Number(row.netTotalAmount || row.total || 0), 0);
+
         bodyData.push([
           { content: 'GRAND TOTAL', styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
-          { content: grandTotal.toLocaleString(), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
+          { content: grandTotalFP.toLocaleString(), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+          { content: grandTotalRM.toLocaleString(), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } },
+          { content: grandNetTotal.toLocaleString(), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }
         ]);
 
         autoTable(doc, {
           startY: 35,
-          head: [['Customer Name', 'Total Sale (Rs)']],
+          head: [['Customer Name', 'FP Sale (Rs)', 'RM Sale (Rs)', 'Net Total (Rs)']],
           body: bodyData,
           headStyles: { fillColor: [33, 150, 243] }, // Blue Theme
           theme: 'grid'
@@ -185,7 +199,7 @@ const SalesReport = () => {
         doc.text("Finished Product Sales", 14, 35);
 
         const fpBody = filteredFP.map(f => [f.itemName, f.qty, Number(f.total).toLocaleString()]);
-        const fpTotalAmount = filteredFP.reduce((s, i) => s + Number(i.total), 0);
+        const fpTotalAmount = filteredFP.reduce((s, i) => s + Number(i.total || 0), 0);
         
         fpBody.push([
           { content: 'FP TOTAL', styles: { fontStyle: 'bold', fillColor: [255, 235, 238] } },
@@ -208,7 +222,7 @@ const SalesReport = () => {
         doc.text("Raw Material Sales", 14, finalY);
 
         const rmBody = filteredRM.map(r => [r.itemName, r.qty, Number(r.total).toLocaleString()]);
-        const rmTotalAmount = filteredRM.reduce((s, i) => s + Number(i.total), 0);
+        const rmTotalAmount = filteredRM.reduce((s, i) => s + Number(i.total || 0), 0);
 
         rmBody.push([
           { content: 'RM TOTAL', styles: { fontStyle: 'bold', fillColor: [232, 245, 233] } },
@@ -226,12 +240,12 @@ const SalesReport = () => {
       }
 
       doc.save(`Sales_Report_${today}.pdf`);
-      // toast.success("PDF Downloaded!"); // Agar toast library hai toh enable karein
     } catch (error) {
       console.error("PDF Export Error:", error);
-      alert("PDF generate nahi ho saki. Console check karein.");
+      alert("Failed to generate PDF. Check console logs.");
     }
   };
+
   const exportToPNG = async () => {
     if (reportRef.current) {
       const canvas = await html2canvas(reportRef.current, { scale: 2 });
@@ -272,7 +286,7 @@ const SalesReport = () => {
               <FaFilter /> Filter
             </button>
 
-            {/* Export Buttons - Style preserved */}
+            {/* Export Buttons */}
             <div style={{ display: 'flex', gap: '5px', borderLeft: '1px solid #eee', paddingLeft: '10px' }}>
                <button onClick={exportToExcel} title="Excel" style={{ padding: '8px 12px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaFileExcel /></button>
                <button onClick={exportToPDF} title="PDF" style={{ padding: '8px 12px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaFilePdf /></button>
@@ -305,20 +319,28 @@ const SalesReport = () => {
             
             {reportType === 'customer' && (
               <div style={{ background: '#fff', borderRadius: '10px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ marginBottom: '20px' }}>Total Sales by Customer</h3>
+                <h3 style={{ marginBottom: '20px' }}>Customer Wise Sales Summary (FP & RM Breakdown)</h3>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: '#f8f9fa', textAlign: 'left' }}>
                       <th style={{ padding: '15px', borderBottom: '2px solid #eee' }}>Customer Name</th>
-                      <th style={{ padding: '15px', borderBottom: '2px solid #eee', textAlign: 'right' }}>Total Combined Sale (Rs)</th>
+                      <th style={{ padding: '15px', borderBottom: '2px solid #eee', textAlign: 'right' }}>FP Sale (Rs)</th>
+                      <th style={{ padding: '15px', borderBottom: '2px solid #eee', textAlign: 'right' }}>RM Sale (Rs)</th>
+                      <th style={{ padding: '15px', borderBottom: '2px solid #eee', textAlign: 'right' }}>Net Combined Sale (Rs)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filterCustomer.map((row, index) => (
                       <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '15px' }}>{row.name}</td>
-                        <td style={{ padding: '15px', textAlign: 'right', fontWeight: '500', color: '#2c3e50' }}>
-                          {Number(row.total).toLocaleString()}
+                        <td style={{ padding: '15px' }}>{row.customerName || row.name || 'Unknown'}</td>
+                        <td style={{ padding: '15px', textAlign: 'right', fontWeight: '500' }}>
+                          {Number(row.fpAmount || 0).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '15px', textAlign: 'right', fontWeight: '500' }}>
+                          {Number(row.rmAmount || 0).toLocaleString()}
+                        </td>
+                        <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold', color: '#2c3e50' }}>
+                          {Number(row.netTotalAmount || row.total || 0).toLocaleString()}
                         </td>
                       </tr>
                     ))}
@@ -326,8 +348,14 @@ const SalesReport = () => {
                   <tfoot style={{ background: '#f1f8ff', fontWeight: 'bold' }}>
                     <tr>
                       <td style={{ padding: '15px', borderTop: '2px solid #2196f3' }}>Grand Total</td>
+                      <td style={{ padding: '15px', textAlign: 'right', borderTop: '2px solid #2196f3',  }}>
+                        {filterCustomer.reduce((sum, row) => sum + Number(row.fpAmount || 0), 0).toLocaleString()}
+                      </td>
+                      <td style={{ padding: '15px', textAlign: 'right', borderTop: '2px solid #2196f3', }}>
+                        {filterCustomer.reduce((sum, row) => sum + Number(row.rmAmount || 0), 0).toLocaleString()}
+                      </td>
                       <td style={{ padding: '15px', textAlign: 'right', borderTop: '2px solid #2196f3', color: '#1565c0', fontSize: '1.1rem' }}>
-                        {filterCustomer.reduce((sum, row) => sum + Number(row.total || 0), 0).toLocaleString()}
+                        {filterCustomer.reduce((sum, row) => sum + Number(row.netTotalAmount || row.total || 0), 0).toLocaleString()}
                       </td>
                     </tr>
                   </tfoot>
@@ -338,6 +366,7 @@ const SalesReport = () => {
             {reportType === 'item' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '25px' }}>
                 
+                {/* Finished Products Table */}
                 <div style={{ background: '#fff', borderRadius: '10px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ color: '#e53935', display: 'flex', alignItems: 'center', gap: '10px' }}> <FaFileInvoiceDollar /> Finished Product Sales</h3>
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
@@ -360,13 +389,14 @@ const SalesReport = () => {
                     <tfoot style={{ background: '#fff5f5', fontWeight: 'bold' }}>
                       <tr>
                         <td style={{ padding: '12px', borderTop: '2px solid #e53935' }}>Grand Total</td>
-                        <td style={{borderTop: '2px solid #e53935'}}>{filteredFP.reduce((s, i) => s + Number(i.qty), 0)}</td>
-                        <td style={{ textAlign: 'right', borderTop: '2px solid #e53935' }}>{filteredFP.reduce((s, i) => s + Number(i.total), 0).toLocaleString()}</td>
+                        <td style={{ borderTop: '2px solid #e53935' }}>{filteredFP.reduce((s, i) => s + Number(i.qty || 0), 0)}</td>
+                        <td style={{ textAlign: 'right', borderTop: '2px solid #e53935' }}>{filteredFP.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString()}</td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
 
+                {/* Raw Materials Table */}
                 <div style={{ background: '#fff', borderRadius: '10px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                   <h3 style={{ color: '#43a047', display: 'flex', alignItems: 'center', gap: '10px' }}> <MdScience /> Raw Material Sales</h3>
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
@@ -389,8 +419,8 @@ const SalesReport = () => {
                     <tfoot style={{ background: '#f1f8e9', fontWeight: 'bold', borderTop: '2px solid #43a047' }}>
                       <tr>
                         <td style={{ padding: '12px' }}>Grand Total</td>
-                        <td>{filteredRM.reduce((s, i) => s + Number(i.qty), 0)}</td>
-                        <td style={{ textAlign: 'right' }}>{filteredRM.reduce((s, i) => s + Number(i.total), 0).toLocaleString()}</td>
+                        <td>{filteredRM.reduce((s, i) => s + Number(i.qty || 0), 0)}</td>
+                        <td style={{ textAlign: 'right' }}>{filteredRM.reduce((s, i) => s + Number(i.total || 0), 0).toLocaleString()}</td>
                       </tr>
                     </tfoot>
                   </table>
