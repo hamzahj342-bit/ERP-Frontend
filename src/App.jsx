@@ -104,6 +104,10 @@ import RoleList from './Pages/UserManagement/RoleList';
 import RoleForm from './Pages/UserManagement/RoleForm';
 import CompanyList from './Pages/UserManagement/CompanyList';
 import CompanyForm from './Pages/UserManagement/CompanyForm';
+import PosProducts from './Pages/POS/PosProducts';
+import PosSaleScreen from './Pages/POS/PosSaleScreen';
+import PosReceipt from './Pages/POS/PosReceipt';
+import PosStock from './Pages/POS/PosStock';
 const App = () => {
   return (
     <Router>
@@ -172,6 +176,19 @@ const App = () => {
         <Route path="/wholesale/sale-form" element={<PermissionRoute permission="wholesale.transactions"> <RM_SaleForm channel="wholesale" /> </PermissionRoute>} />
         <Route path="/wholesale/sale-returns" element={<PermissionRoute permission="wholesale.transactions"> <RM_SaleReturn channel="wholesale" /> </PermissionRoute>} />
         <Route path="/wholesale/sale-return-form" element={<PermissionRoute permission="wholesale.transactions"> <RM_SaleReturnForm channel="wholesale" /> </PermissionRoute>} />
+
+        {/* POS module — products with barcode, instant counter sale, channel-tagged purchases/returns */}
+        <Route path="/pos/products" element={<PermissionRoute permission="pos.products"> <PosProducts /> </PermissionRoute>} />
+        <Route path="/pos/stock" element={<PermissionRoute permission="pos.products"> <PosStock /> </PermissionRoute>} />
+        <Route path="/pos/purchases" element={<PermissionRoute permission="pos.transactions"> <RM_Purchase channel="pos" /> </PermissionRoute>} />
+        <Route path="/pos/purchase-form" element={<PermissionRoute permission="pos.transactions"> <RM_PurchaseForm channel="pos" /> </PermissionRoute>} />
+        <Route path="/pos/purchase-returns" element={<PermissionRoute permission="pos.transactions"> <RM_Return channel="pos" /> </PermissionRoute>} />
+        <Route path="/pos/purchase-return-form" element={<PermissionRoute permission="pos.transactions"> <RM_ReturnForm channel="pos" /> </PermissionRoute>} />
+        <Route path="/pos/sale" element={<PermissionRoute permission="pos.transactions"> <PosSaleScreen /> </PermissionRoute>} />
+        <Route path="/pos/sales" element={<PermissionRoute permission="pos.transactions"> <RM_Sale channel="pos" /> </PermissionRoute>} />
+        <Route path="/pos/sale-returns" element={<PermissionRoute permission="pos.transactions"> <RM_SaleReturn channel="pos" /> </PermissionRoute>} />
+        <Route path="/pos/sale-return-form" element={<PermissionRoute permission="pos.transactions"> <RM_SaleReturnForm channel="pos" /> </PermissionRoute>} />
+        <Route path="/pos/receipt/:invoiceNo" element={<PermissionRoute permission="pos.transactions"> <PosReceipt /> </PermissionRoute>} />
         <Route path="/rm-invoice-detail" element={<PermissionRoute permission="invoice_details"> <RM_InvoiceDetail/> </PermissionRoute>} />
          <Route path="/rm-invoice/:invoiceNo" element={<PermissionRoute permission="invoice_details"> <RM_Invoice/> </PermissionRoute>} />
          <Route path='/rm-adjustment' element={<PermissionRoute permission="adjustments"> <RM_Adjustment /> </PermissionRoute>} />

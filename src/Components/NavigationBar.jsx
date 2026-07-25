@@ -4,7 +4,7 @@ import {
   FaBars, FaUserCircle, FaSignOutAlt, FaHome, FaTruck, FaUserTie,
   FaFileAlt, FaSeedling, FaCubes, FaMoneyBillAlt, FaTools, FaHistory,
   FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus, FaFileInvoice, FaBuilding,
-  FaStore, FaWarehouse, FaCashRegister, FaUndo, FaShoppingCart
+  FaStore, FaWarehouse, FaCashRegister, FaUndo, FaShoppingCart, FaBarcode
 } from "react-icons/fa";
 import { MdScience } from "react-icons/md";
 import { hasPermission, hasAnyPermission, REPORT_PERMISSION_KEYS } from "../permissions";
@@ -113,6 +113,18 @@ const getProfileImage = () => {
         { icon: <FaUndo />, label: "Wholesale Purchase Return", path: "/wholesale/purchase-returns", perm: "wholesale.transactions" },
         { icon: <FaCashRegister />, label: "Wholesale Sales", path: "/wholesale/sales", perm: "wholesale.transactions" },
         { icon: <FaUndo />, label: "Wholesale Sale Returns", path: "/wholesale/sale-returns", perm: "wholesale.transactions" },
+      ],
+    },
+    {
+      type: "heading", label: "POS", icon: <FaCashRegister />,
+      children: [
+        { icon: <FaBarcode />, label: "POS Products", path: "/pos/products", perm: "pos.products" },
+        { icon: <FaShoppingCart />, label: "POS Purchase", path: "/pos/purchases", perm: "pos.transactions" },
+        { icon: <FaUndo />, label: "POS Purchase Return", path: "/pos/purchase-returns", perm: "pos.transactions" },
+        { icon: <FaCashRegister />, label: "POS Sale (Counter)", path: "/pos/sale", perm: "pos.transactions" },
+        { icon: <FaExchangeAlt />, label: "POS Sales List", path: "/pos/sales", perm: "pos.transactions" },
+        { icon: <FaUndo />, label: "POS Sale Returns", path: "/pos/sale-returns", perm: "pos.transactions" },
+        { icon: <FaBoxes />, label: "POS Stock", path: "/pos/stock", perm: "pos.products" },
       ],
     },
     {

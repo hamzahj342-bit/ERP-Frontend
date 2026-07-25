@@ -46,6 +46,13 @@ export const PERMISSION_GROUPS = [
     ],
   },
   {
+    group: "POS",
+    permissions: [
+      { key: "pos.products", label: "POS Products" },
+      { key: "pos.transactions", label: "POS Purchases, Sales & Returns" },
+    ],
+  },
+  {
     group: "Chart of Account",
     permissions: [
       { key: "accounts.create", label: "Create Account" },

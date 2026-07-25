@@ -21,7 +21,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
     const isEditMode = !!editId;
 
     // Channel-aware navigation/labels (Retail & Wholesale tabs reuse this form)
-    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : channel === 'pos' ? 'POS' : null;
     const listPath = channel ? `/${channel}/sale-returns` : '/rm-sale-return';
 
     const [rows, setRows] = useState([{ ...EMPTY_RETURN_ROW }]);
@@ -86,7 +86,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
         const loadInitialData = async () => {
             try {
                 // Fetch Eligible Customers
-                const customersRes = await api.get("/rm-transactions/eligible-customers");
+                const customersRes = await api.get("/rm-transactions/eligible-customers", { params: channel ? { channel } : {} });
                 const customersData = Array.isArray(customersRes.data) ? customersRes.data : [];
                 setCustomers(customersData);
 
@@ -144,7 +144,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
                         // Explicitly fetch sold materials AFTER setting selectedCustomer
                         // This ensures materials dropdown is populated on edit
                         try {
-                            const matsRes = await api.get(`/rm-transactions/sold-materials/${master.entityid}`);
+                            const matsRes = await api.get(`/rm-transactions/sold-materials/${master.entityid}`, { params: channel ? { channel } : {} });
                             if (Array.isArray(matsRes.data)) {
                                 setMaterials(matsRes.data);
                             } else {
@@ -183,7 +183,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
         }
 
         // Fetch sold materials for selected customer (works in both create and edit modes)
-        api.get(`/rm-transactions/sold-materials/${selectedCustomer}`)
+        api.get(`/rm-transactions/sold-materials/${selectedCustomer}`, { params: channel ? { channel } : {} })
             .then(res => {
                 if (Array.isArray(res.data)) {
                     setMaterials(res.data);

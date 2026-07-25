@@ -100,6 +100,17 @@ const getLogoUrl = () => {
     if (loading) return <p className="p-5 text-center">Loading invoice...</p>;
     if (!invoice) return <p className="p-5 text-center text-danger">Invoice not found!</p>;
 
+    // Pack Qty only when at least one line on THIS invoice used a pack UOM
+    // (not base). Same rule for purchase / sale / returns.
+    const showPackQty = (invoice.RmDetails || []).some((item) => {
+        const packUom = (item.pack_uom_name || item.uom?.name || "").trim().toLowerCase();
+        const baseUom = (item.base_uom_name || "").trim().toLowerCase();
+        if (packUom && baseUom && packUom !== baseUom) return true;
+        const packQty = Math.abs(Number(item.entered_qty ?? item.quantity) || 0);
+        const baseQty = Math.abs(Number(item.quantity) || 0);
+        return Math.abs(packQty - baseQty) > 1e-9;
+    }) || Boolean(invoice.has_pack_sizes);
+
     return (
         <div className="invoice-container">
             <div id="invoice-detail" className="invoice-box shadow-lg">
@@ -161,8 +172,8 @@ const getLogoUrl = () => {
                             <thead>
                                 <tr>
                                     <th className="product-col">Material Description</th>
-                                    <th className="qty-col text-right">Pack Qty</th>
-                                    <th className="qty-col text-right">Base Qty</th>
+                                    {showPackQty && <th className="qty-col text-right">Pack Qty</th>}
+                                    <th className="qty-col text-right">{showPackQty ? 'Base Qty' : 'Qty'}</th>
                                     <th className="price-col text-right">Unit Price</th>
                                     <th className="amount-col text-right">Amount</th>
                                 </tr>
@@ -179,9 +190,11 @@ const getLogoUrl = () => {
                                     return (
                                     <tr key={i}>
                                         <td className="product-col">{item.rm_name}</td>
-                                        <td className="qty-col text-right">
-                                            {packQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {packUom}
-                                        </td>
+                                        {showPackQty && (
+                                            <td className="qty-col text-right">
+                                                {packQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {packUom}
+                                            </td>
+                                        )}
                                         <td className="qty-col text-right">
                                             {baseQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {baseUom}
                                         </td>

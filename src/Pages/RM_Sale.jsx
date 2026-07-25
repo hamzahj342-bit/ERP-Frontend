@@ -20,8 +20,10 @@ const RM_Sale = ({ channel = null }) => {
 
   // Channel-aware paths/labels: same screen serves the generic RM tab
   // (channel=null) and the Retail / Wholesale tabs.
-  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
-  const formPath = channel ? `/${channel}/sale-form` : '/rm-sale-form';
+  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : channel === 'pos' ? 'POS' : null;
+  const isPos = channel === 'pos';
+  // POS sales are made on the counter screen (instant approve), not the draft form
+  const formPath = isPos ? '/pos/sale' : channel ? `/${channel}/sale-form` : '/rm-sale-form';
   const backPath = channel ? '/dashboard' : '/rm-transactions';
   const pageTitle = channelLabel ? `${channelLabel} Sales` : 'Raw Material Sales';
 
@@ -141,8 +143,8 @@ const RM_Sale = ({ channel = null }) => {
         <div className="card">
           <div className="card-header">
             <h3>{pageTitle}</h3>
-            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
-              <FaPlus /> ADD NEW SALE
+            <button className="add-sale-btn" onClick={() => isPos ? navigate(formPath) : setIsInvoiceModalOpen(true)}>
+              <FaPlus /> {isPos ? 'NEW POS SALE' : 'ADD NEW SALE'}
             </button>
           </div>
 
@@ -192,6 +194,12 @@ const RM_Sale = ({ channel = null }) => {
                           <button onClick={() => navigate(`/rm-invoice/${s.invoice_no}`)} className="primary-btn">
                             <FaEye /> VIEW
                           </button>
+
+                          {isPos && (
+                            <button onClick={() => navigate(`/pos/receipt/${s.invoice_no}`)} className="edit-btn-action" title="Print thermal receipt">
+                              <FaFileInvoice /> RECEIPT
+                            </button>
+                          )}
 
                           {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
                           {s.status === 'Approved' ? (

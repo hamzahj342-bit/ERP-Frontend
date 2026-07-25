@@ -18,7 +18,7 @@ const RM_Return = ({ channel = null }) => {
 
   const navigate = useNavigate();
 
-  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : channel === 'pos' ? 'POS' : null;
   const formPath = channel ? `/${channel}/purchase-return-form` : '/rm-return-form';
   const backPath = channel ? '/dashboard' : '/rm-transactions';
   const pageTitle = channelLabel ? `${channelLabel} Purchase Returns` : 'Raw Material Returns';

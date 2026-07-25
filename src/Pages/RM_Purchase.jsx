@@ -18,7 +18,7 @@ const RM_Purchase = ({ channel = null }) => {
 
   const navigate = useNavigate();
 
-  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : channel === 'pos' ? 'POS' : null;
   const formPath = channel ? `/${channel}/purchase-form` : '/rm-purchase-form';
   const backPath = channel ? '/dashboard' : '/rm-transactions';
   const pageTitle = channelLabel ? `${channelLabel} Purchases` : 'Raw Material Purchase';

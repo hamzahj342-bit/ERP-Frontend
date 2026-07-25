@@ -37,7 +37,7 @@ const RM_ReturnForm = ({ channel = null }) => {
     const editId = queryParams.get('editId');
     const isEditMode = !!editId;
 
-    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : channel === 'pos' ? 'POS' : null;
     const listPath = channel ? `/${channel}/purchase-returns` : '/rm-return';
 
     const [rows, setRows] = useState([emptyRow()]);
@@ -57,10 +57,10 @@ const RM_ReturnForm = ({ channel = null }) => {
     const [grandTotal, setGrandTotal] = useState(0);
 
     useEffect(() => {
-        api.get("/rm-transactions/eligible-suppliers")
+        api.get("/rm-transactions/eligible-suppliers", { params: channel ? { channel } : {} })
             .then((res) => setSuppliers(res.data))
             .catch((err) => console.error("Error fetching eligible suppliers:", err));
-    }, []);
+    }, [channel]);
 
     useEffect(() => {
         if (!selectedSupplier) {
@@ -74,7 +74,7 @@ const RM_ReturnForm = ({ channel = null }) => {
             return;
         }
 
-        api.get(`/rm-transactions/materials/${selectedSupplier}`)
+        api.get(`/rm-transactions/materials/${selectedSupplier}`, { params: channel ? { channel } : {} })
             .then((res) => {
                 if (Array.isArray(res.data)) setMaterials(res.data);
                 else setMaterials([]);
