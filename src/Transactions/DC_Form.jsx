@@ -26,6 +26,8 @@ const DC_Form = () => {
     const [selectedCustomer, setSelectedCustomer] = useState("");
     const [selectedDriver, setSelectedDriver] = useState("");
     const [vehicleNo, setVehicleNo] = useState("");
+    const [goodsName, setGoodsName] = useState("");
+    const [biltiNo, setBiltiNo] = useState("");
     const [dcNo, setDcNo] = useState("");
     const [date, setDate] = useState("");
     
@@ -84,7 +86,9 @@ const DC_Form = () => {
                 setSelectedCustomer(custId ? String(custId) : "");
                 setSelectedDriver(drvId ? String(drvId) : "");
                 setVehicleNo(vNo);
-                
+                setGoodsName(targetData.goods_name || "");
+                setBiltiNo(targetData.bilti_no || "");
+
                 if (docDate) {
                     setDate(new Date(docDate).toISOString().split('T')[0]);
                 }
@@ -219,6 +223,8 @@ const DC_Form = () => {
         if (!selectedCustomer) return toast.error("Please select a customer.");
         if (!selectedDriver) return toast.error("Please select a driver.");
         if (!vehicleNo.trim()) return toast.error("Please provide a vehicle number.");
+        if (!goodsName.trim()) return toast.error("Please provide goods name.");
+        if (!biltiNo.trim()) return toast.error("Please provide bilti number.");
         if (!date) return toast.error("Please select a document date.");
 
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
@@ -240,6 +246,8 @@ const DC_Form = () => {
             type: "DC",
             driver_id: Number(selectedDriver),
             vehicle_no: vehicleNo,
+            goods_name: goodsName,
+            bilti_no: biltiNo,
             date,
             created_by: user?.id || null,
             updated_by: user?.id || null,
@@ -307,6 +315,14 @@ const DC_Form = () => {
                         <div className="info-item">
                             <label>Vehicle No</label>
                             <input type="text" className="rm-input-field" placeholder='e.g LET-6731' value={vehicleNo} onChange={(e) => setVehicleNo(e.target.value)} />
+                        </div>
+                        <div className="info-item">
+                            <label>Goods Name</label>
+                            <input type="text" className="rm-input-field" placeholder='Enter goods name' value={goodsName} onChange={(e) => setGoodsName(e.target.value)} />
+                        </div>
+                        <div className="info-item">
+                            <label>Bilti No</label>
+                            <input type="text" className="rm-input-field" placeholder='Enter bilti number' value={biltiNo} onChange={(e) => setBiltiNo(e.target.value)} />
                         </div>
                         <div className="info-item">
                             <label>Date</label>

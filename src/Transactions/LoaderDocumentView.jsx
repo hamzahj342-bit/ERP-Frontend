@@ -185,48 +185,58 @@ const LoaderDocumentView = ({ docType }) => {
                 <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
                   {currentCompanyName}
                 </p>
-                <h4 className="subtitle">{docHeading}</h4>
+                <h4 className="subtitle" style={{ margin: 0 }}>{docHeading}</h4>
               </div>
             </div>
             <div className="invoice-id">
-              <h1 className="id-number">#{master?.no || docNo}</h1>
+              <h1 className="id-number" style={{ margin: 0 }}>#{master?.no || docNo}</h1>
             </div>
           </header>
 
-          <section className="invoice-details-section">
-            <div className="details-row">
-              <div className="billed-to">
-                <p className="label">Party Details</p>
-                <h5 className="customer-name"><b>Name: </b>{master?.entity?.name || 'N/A'}</h5>
-                <p className="customer-detail"><b>Address: </b>{master?.entity?.address || 'N/A'}</p>
+          <section className="invoice-details-section my-4">
+            <div className="details-row d-flex justify-content-between flex-wrap gap-3">
+              <div className="billed-to" style={{ minWidth: '220px', flex: '1' }}>
+                <p className="label text-muted mb-1" style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '600' }}>Party Details</p>
+                <h5 className="customer-name mb-1"><b>Name: </b>{master?.entity?.name || 'N/A'}</h5>
+                <p className="customer-detail mb-1"><b>Address: </b>{master?.entity?.address || 'N/A'}</p>
+                <p className="customer-detail mb-0"><b>Contact: </b>{master?.entity?.contact || 'N/A'}</p>
               </div>
 
-              <div className="invoice-dates">
-                <div className="date-item">
-                  <p className="label">Date Issued</p>
-                  <p className="value">{formatDate(master?.date)}</p>
+              {/* Flexbox/Grid alignment fix for details */}
+              <div className="invoice-dates d-flex flex-wrap gap-3 text-end" style={{ flex: '2', justifyContent: 'flex-end' }}>
+                <div className="date-item" style={{ minWidth: '90px' }}>
+                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Date Issued</p>
+                  <p className="value fw-bold mb-0">{formatDate(master?.date)}</p>
                 </div>
-                <div className="date-item">
-                  <p className="label">Driver Name</p>
-                  <p className="value">{master?.driver?.driver_name || 'N/A'}</p>
+                <div className="date-item" style={{ minWidth: '90px' }}>
+                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Driver Name</p>
+                  <p className="value fw-bold mb-0">{master?.driver?.driver_name || 'N/A'}</p>
                 </div>
-                <div className="date-item">
-                  <p className="label">Vehicle No.</p>
-                  <p className="value">{master?.vehicle_no || 'N/A'}</p>
+                <div className="date-item" style={{ minWidth: '90px' }}>
+                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Vehicle No.</p>
+                  <p className="value fw-bold mb-0">{master?.vehicle_no || 'N/A'}</p>
+                </div>
+                <div className="date-item" style={{ minWidth: '90px' }}>
+                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Goods Name</p>
+                  <p className="value fw-bold mb-0">{master?.goods_name || 'N/A'}</p>
+                </div>
+                <div className="date-item" style={{ minWidth: '90px' }}>
+                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Bilti No.</p>
+                  <p className="value fw-bold mb-0">{master?.bilti_no || 'N/A'}</p>
                 </div>
               </div>
             </div>
           </section>
 
-          <section className="item-table-section">
-            <h5 className="section-title">Item Details</h5>
+          <section className="item-table-section mt-4">
+            <h5 className="section-title mb-3">Item Details</h5>
             <div className="table-responsive">
-              <table className="item-table">
+              <table className="item-table w-100" style={{ tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
                     <th style={{ width: '8%', textAlign: 'left' }}>SR</th>
-                    <th style={{ width: '17%', textAlign: 'left' }}>MODEL</th>
-                    <th style={{ width: '60%', textAlign: 'left' }}>DESCRIPTION</th>
+                    <th style={{ width: '22%', textAlign: 'left' }}>MODEL</th>
+                    <th style={{ width: '55%', textAlign: 'left' }}>DESCRIPTION</th>
                     <th style={{ width: '15%', textAlign: 'right' }}>QTY</th>
                   </tr>
                 </thead>
@@ -235,14 +245,13 @@ const LoaderDocumentView = ({ docType }) => {
                     <>
                       {detailRows.map((item, index) => (
                         <tr key={index}>
-                          <td style={{ width: '8%', textAlign: 'left' }}>{index + 1}</td>
-                          <td style={{ width: '17%', textAlign: 'left' }}>{cleanMaterialLabel(item.material_name || item.rm_name || item.name || "-")}</td>
-                          <td style={{ width: '60%', textAlign: 'left' }}>{item.description || 'N/A'}</td>
-                          <td style={{ width: '15%', textAlign: 'right' }}>{parseFloat(item.quantity || 0)}</td>
+                          <td style={{ textAlign: 'left' }}>{index + 1}</td>
+                          <td style={{ textAlign: 'left' }}>{cleanMaterialLabel(item.material_name || item.rm_name || item.name || "-")}</td>
+                          <td style={{ textAlign: 'left' }}>{item.description || 'N/A'}</td>
+                          <td style={{ textAlign: 'right' }}>{parseFloat(item.quantity || 0)}</td>
                         </tr>
                       ))}
                       
-                      {/* Fixed Total Quantity Row Matching the Provided Grid Layout */}
                       <tr style={{ fontWeight: 'bold', borderTop: '2px solid #444', backgroundColor: '#f9f9f9' }}>
                         <td colSpan="3" style={{ textAlign: 'right', paddingRight: '15px' }}>TOTAL QTY:</td>
                         <td style={{ textAlign: 'right' }}>{totalQuantity}</td>
@@ -258,23 +267,23 @@ const LoaderDocumentView = ({ docType }) => {
             </div>
           </section>
 
-          <footer className="invoice-footer">
+          <footer className="invoice-footer mt-5">
             <div className="note-section" style={{ width: '100%' }}>
               <p className="note" style={{ textAlign: 'center' }}>
                 Thank you. This is a computer-generated document.
               </p>
               
-              <div className="action-buttons-group no-print" style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => navigate(-1)} className="back-button" style={{ padding: '10px 20px', cursor: 'pointer' }}>
-                  <FaArrowLeft className="me-1" /> Back
+              <div className="action-buttons-group no-print d-flex justify-content-center align-items-center gap-2 mt-4">
+                <button type="button" onClick={() => navigate(-1)} className="btn btn-outline-secondary d-flex align-items-center gap-1">
+                  <FaArrowLeft /> Back
                 </button>
-                <button type="button" onClick={exportToExcel} className="download-button bg-excel" style={{ cursor: 'pointer' }}>
-                  <FaFileExcel /> 
+                <button type="button" onClick={exportToExcel} className="download-button bg-excel">
+                  <FaFileExcel />
                 </button>
-                <button type="button" onClick={exportToPNG} className="download-button bg-png" style={{ cursor: 'pointer' }}>
-                  <FaImage /> 
+                <button type="button" onClick={exportToPNG} className="download-button bg-png">
+                  <FaImage />
                 </button>
-                <button type="button" onClick={exportToPDF} className="download-button bg-pdf" style={{ cursor: 'pointer' }}>
+                <button type="button" onClick={exportToPDF} className="download-button bg-pdf">
                   <FaFilePdf />
                 </button>
               </div>
