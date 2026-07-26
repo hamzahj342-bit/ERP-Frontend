@@ -246,6 +246,7 @@ const App = () => {
         <Route path='/ledgers/linked-entities' element={<PermissionRoute permission="reports.entity_ledger"> <LinkedEntityLedgerReport /> </PermissionRoute>} />
         <Route path='/profit-loss' element={<PermissionRoute permission="reports.profit_loss"> <ProfitLoss /> </PermissionRoute>} />
         <Route path='/accounts-report' element={<PermissionRoute permission="reports.accounts"> <AccountLedger /> </PermissionRoute>} />
+        <Route path='/ledger/:accountId' element={<PermissionRoute permission="reports.accounts"> <AccountLedger /> </PermissionRoute>} />
         <Route path='/sales-report' element={<PermissionRoute permission="reports.sales"> <SalesReport /> </PermissionRoute>} />
         <Route path='/production-report' element={<PermissionRoute permission="reports.production"> <ProductionReport /> </PermissionRoute>} />
         <Route path='/stock-report' element={<PermissionRoute permission="reports.stock"> <StockReport /> </PermissionRoute>} /> 

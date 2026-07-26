@@ -220,23 +220,37 @@ const FP_SaleForm = () => {
 
             const mappedRows = details.map((detail) => {
                 const productId = Number(detail.material_id || detail.product_master_id || 0);
-                const supplierId = detail.supplier_id ? Number(detail.supplier_id) : null;
                 const existingRow = fallbackRows.find(r => Number(r.product_master_id) === productId) || {};
-                const matchingProduct = productsList.find(p => Number(p.product_master_id || p.id) === productId || Number(p.recipe_id) === Number(detail.supplier_id));
+                const targetRecipeId = Number(detail.recipe_id || detail.supplier_id || 0);
+                const matchingProduct = productsList.find((p) => {
+                    const candidateProductId = Number(p.product_master_id || p.id || 0);
+                    const candidateRecipeId = Number(p.recipe_id || 0);
+                    const productIdMatch = candidateProductId > 0 && candidateProductId === productId;
+                    const recipeIdMatch = targetRecipeId > 0 && candidateRecipeId > 0 && candidateRecipeId === targetRecipeId;
+                    return productIdMatch || recipeIdMatch;
+                });
+
+                const isStrictIdMatch = Boolean(matchingProduct && (
+                    (productId > 0 && Number(matchingProduct.product_master_id || matchingProduct.id || 0) === productId) ||
+                    (targetRecipeId > 0 && Number(matchingProduct.recipe_id || 0) === targetRecipeId)
+                ));
+                const latestUnitPrice = isStrictIdMatch ? Number(detail.unit_price ?? matchingProduct?.unit_price ?? 0) : 0;
 
                 // Compute original_source_quantity as: DC remaining (detail.quantity) + existing invoice qty (if present)
                 const existingQty = Number(existingRow.quantity || 0);
                 const dcRemaining = Number(detail.quantity || 0);
                 const originalSourceQty = dcRemaining + existingQty;
+                const quantityValue = existingRow.quantity ?? Number(detail.quantity || 0);
+                const calculatedTotal = (Number(quantityValue || 0) * latestUnitPrice).toFixed(2);
 
                 return {
                     ...existingRow,
                     product_master_id: productId,
                     product_name: matchingProduct?.product_name || detail.material_name || detail.product_name || "Product",
-                    recipe_id: detail.supplier_id || detail.recipe_id || matchingProduct?.recipe_id || "",
-                    quantity: existingRow.quantity ?? Number(detail.quantity || 0),
-                    unitPrice: existingRow.unitPrice ?? "",
-                    total: existingRow.total ?? "0.00",
+                    recipe_id: matchingProduct?.recipe_id || detail.recipe_id || detail.supplier_id || "",
+                    quantity: quantityValue,
+                    unitPrice: latestUnitPrice,
+                    total: calculatedTotal,
                     uom_id: matchingProduct?.uom_id || detail.uom_id || "",
                     uom_name: matchingProduct?.uom_name || detail.uom_name || "",
                     stock: Number(matchingProduct?.current_stock) || Number(detail.quantity || 0),
@@ -249,6 +263,7 @@ const FP_SaleForm = () => {
 
             const nextRows = mappedRows.length > 0 ? mappedRows : fallbackRows;
             setRows(nextRows);
+            calculateTotals(nextRows, globalDiscount, isTaxable, taxMode, taxRate);
             setOriginalSourceItems(mappedRows.map(item => ({
                 product_master_id: item.product_master_id,
                 original_source_quantity: Number(item.quantity || 0)
@@ -257,6 +272,12 @@ const FP_SaleForm = () => {
             console.error('Error loading DC-FP source document:', err);
             toast.error('Failed to load selected DC-FP document.');
         }
+    };
+
+    const calculateRowTotal = (row) => {
+        const qty = parseFloat(row.quantity) || 1;
+        const price = parseFloat(row.unitPrice) || 0;
+        return (qty * price).toFixed(2);
     };
 
     const handleChange = (index, field, value) => {
@@ -292,9 +313,7 @@ const FP_SaleForm = () => {
         updated[index][field] = value;
 
         if (field === "quantity" || field === "unitPrice") {
-            const qty = parseFloat(updated[index].quantity) || 0;
-            const price = parseFloat(updated[index].unitPrice) || 0;
-            updated[index].total = (qty * price).toFixed(2);
+            updated[index].total = calculateRowTotal(updated[index]);
         }
 
         setRows(updated);
@@ -452,21 +471,43 @@ const FP_SaleForm = () => {
                                         value={row.recipe_id}
                                         disabled={!!selectedSourceDoc}
                                         onChange={(e) => {
-                                            const selected = products.find(p => String(p.recipe_id) === String(e.target.value));
-                                            if (selected) {
-                                                handleChange(index, "product_master_id", selected.product_master_id);
-                                                handleChange(index, "recipe_id", selected.recipe_id);
-                                                handleChange(index, "product_name", selected.product_name);
-                                                handleChange(index, "uom_name", selected.uom_name);
-                                                handleChange(index, "uom_id", selected.uom_id);
-                                                handleChange(index, "stock", Number(selected.current_stock) || 0);
+                                            const selectedValue = e.target.value;
+                                            const selected = products.find(p => String(p.recipe_id) === String(selectedValue));
+                                            const updated = [...rows];
+
+                                            if (selected && String(selected.recipe_id) === String(selectedValue)) {
+                                                const validatedUnitPrice = Number(selected.unit_price ?? 0);
+                                                updated[index] = {
+                                                    ...updated[index],
+                                                    product_master_id: selected.product_master_id,
+                                                    product_name: selected.product_name,
+                                                    recipe_id: selected.recipe_id,
+                                                    uom_name: selected.uom_name,
+                                                    uom_id: selected.uom_id,
+                                                    stock: Number(selected.current_stock) || 0,
+                                                    unitPrice: validatedUnitPrice,
+                                                    total: calculateRowTotal({
+                                                        ...updated[index],
+                                                        unitPrice: validatedUnitPrice,
+                                                        quantity: updated[index].quantity || 1,
+                                                    })
+                                                };
+                                                setRows(updated);
+                                                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
                                             } else {
-                                                handleChange(index, "product_master_id", "");
-                                                handleChange(index, "recipe_id", "");
-                                                handleChange(index, "product_name", "");
-                                                handleChange(index, "uom_name", "");
-                                                handleChange(index, "uom_id", "");
-                                                handleChange(index, "stock", 0);
+                                                updated[index] = {
+                                                    ...updated[index],
+                                                    product_master_id: "",
+                                                    product_name: "",
+                                                    recipe_id: "",
+                                                    uom_name: "",
+                                                    uom_id: "",
+                                                    stock: 0,
+                                                    unitPrice: "",
+                                                    total: "0.00"
+                                                };
+                                                setRows(updated);
+                                                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
                                             }
                                         }}
                                         style={{ marginTop : "20px"}}

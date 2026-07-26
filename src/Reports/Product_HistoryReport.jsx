@@ -19,6 +19,7 @@ const Product_HistoryReport = () => {
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 
   const [activeTab, setActiveTab] = useState('RM');
+  const [txGroup, setTxGroup] = useState('ALL'); // ALL | PURCHASE | SALE
   const [fromDate, setFromDate] = useState(firstOfMonth);
   const [toDate, setToDate] = useState(today);
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,7 +69,8 @@ const Product_HistoryReport = () => {
           toDate,
           search: searchTerm,
           tab: activeTab,
-          itemId: selectedItem?.value
+          itemId: selectedItem?.value,
+          txGroup
         }
       });
       setReportData(response.data.data || []);
@@ -91,44 +93,39 @@ const Product_HistoryReport = () => {
 
   useEffect(() => {
     fetchHistoryReport();
-  }, [activeTab, fromDate, toDate, selectedItem]);
+  }, [activeTab, txGroup, fromDate, toDate, selectedItem]);
 
-  const handleSearch = () => {
-    fetchHistoryReport();
+  // --- Fixed Sale & Profit Calculations ---
+  const isSaleRow = (type = '') => {
+    const t = (type || '').toLowerCase();
+    return t.includes('sale') || t.includes('invoice') || t.includes('dispatch');
   };
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
+  const isReturnRow = (type = '') => {
+    const t = (type || '').toLowerCase();
+    return t.includes('return');
   };
 
-  // --- Dynamic Summary Aggregates ---
-  const rmSummary = {
-    totalPurchase: reportData
-      .filter((r) => r.transaction_type === 'Purchase')
-      .reduce((sum, r) => sum + Number(r.total_price || 0), 0),
-    totalPurchaseReturn: reportData
-      .filter((r) => r.transaction_type === 'Purchase Return')
-      .reduce((sum, r) => sum + Number(r.total_price || 0), 0),
-    totalSale: reportData
-      .filter((r) => r.transaction_type === 'Sale')
-      .reduce((sum, r) => sum + Number(r.total_price || 0), 0),
-    totalSaleReturn: reportData
-      .filter((r) => r.transaction_type === 'Sale Return')
-      .reduce((sum, r) => sum + Number(r.total_price || 0), 0),
+  const getSignedValueByQuantity = (row, fieldName) => {
+    const rawValue = Number(row?.[fieldName] || 0);
+    const qtySign = Math.sign(Number(row?.quantity || 0));
+    if (qtySign === 0) {
+      return isReturnRow(row?.transaction_type) ? -Math.abs(rawValue) : Math.abs(rawValue);
+    }
+    return Math.abs(rawValue) * qtySign;
   };
 
-  const fpSummary = {
-    totalProduction: reportData
-      .filter((r) => r.transaction_type === 'Production')
-      .reduce((sum, r) => sum + Number(r.total_price || 0), 0),
-    totalSale: reportData
-   
-      .filter((r) => r.transaction_type?.includes('Sale') && !r.transaction_type?.includes('Return'))
-      .reduce((sum, r) => sum + Number(r.total_price || 0), 0),
-    totalSaleReturn: reportData
-      .filter((r) => r.transaction_type?.includes('Sale') && r.transaction_type?.includes('Return'))
-      .reduce((sum, r) => sum + Number(r.total_price || 0), 0),
-  };
+  const saleRows = reportData.filter(r => isSaleRow(r.transaction_type));
+  const netSaleQty = saleRows.reduce((sum, r) => sum + Number(r.quantity || 0), 0);
+  const netSaleRevenue = saleRows.reduce((sum, r) => sum + getSignedValueByQuantity(r, 'total_price'), 0);
+
+  const totalSaleCost = saleRows.reduce((sum, r) => {
+    const signedQty = Number(r.quantity || 0);
+    return sum + signedQty * Number(r.unit_cost || 0);
+  }, 0);
+
+  const netProfit = netSaleRevenue - totalSaleCost;
+
   const totalQuantity = reportData.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
   const totalValue = reportData.reduce((sum, row) => sum + Number(row.total_price || 0), 0);
   const uniqueItemsCount = new Set(reportData.map((row) => row.item_id)).size;
@@ -141,7 +138,7 @@ const Product_HistoryReport = () => {
       return `/rm-invoice/${invoiceNo}`;
     }
     if (row.item_type === 'Finished Product') {
-      if (row.transaction_type?.includes('Sale') || row.transaction_type?.includes('Return')) {
+      if (isSaleRow(row.transaction_type)) {
         return `/fp-invoice-detail/${invoiceNo}`;
       }
       return null;
@@ -149,19 +146,38 @@ const Product_HistoryReport = () => {
     return null;
   };
 
-  const exportToExcel = () => {
-    if (!reportData.length) {
-      toast.error('No data available to export!');
-      return;
+  const formatCurrency = (amount) => {
+    const val = Number(amount || 0);
+    if (val < 0) {
+      return `-Rs. ${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
+    return `Rs. ${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const exportToExcel = () => {
+    if (!reportData.length) return toast.error('No data available to export!');
 
     const wb = XLSX.utils.book_new();
-    const headers = ['Date', 'Item Name', 'Type', 'Ref No.', 'Party', 'Qty', 'Price', 'Total'];
 
-    const headerRow = headers.map((h) => ({
-      v: h,
-      s: { fill: { fgColor: { rgb: '475569' } }, font: { color: { rgb: 'FFFFFF' }, bold: true }, alignment: { horizontal: 'center' } }
-    }));
+    // 1. Title & Meta Rows
+    const titleRow = [`${activeTab === 'RM' ? 'Raw Material' : 'Finished Product'} History & Profit Report`];
+    const dateRow = [`Date Range: ${fromDate} to ${toDate}`];
+    const emptyRow = [];
+
+    // 2. Table Headers
+    const headers = [
+      'Date',
+      'Item Name',
+      'Type',
+      'Ref No.',
+      'Party',
+      'Qty',
+      'Selling/Tx Price',
+      'Avg Cost Price',
+      'Total Value'
+    ];
+
+    // 3. Table Data
     const bodyRows = reportData.map((row) => [
       row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : '',
       row.item_name || '',
@@ -169,83 +185,119 @@ const Product_HistoryReport = () => {
       row.reference_no || '',
       row.entity_name || '',
       Number(row.quantity || 0),
-      Number(row.unit_price || 0).toFixed(2),
-      Number(row.total_price || 0).toFixed(2)
+      Number(row.unit_price || 0),
+      Number(row.unit_cost || 0),
+      Number(row.total_price || 0)
     ]);
 
-    const ws = XLSX.utils.aoa_to_sheet([headerRow, ...bodyRows]);
-    XLSX.utils.book_append_sheet(wb, ws, 'History Report');
-    XLSX.writeFile(wb, `History_Report_${today}.xlsx`);
-  };
+    // 4. Combined Sheet Data
+    const sheetData = [titleRow, dateRow, emptyRow, headers, ...bodyRows];
 
-  const exportToPDF = () => {
-    if (!reportData.length) {
-      toast.error('No data available to export!');
-      return;
+    // 5. Profitability Summary Rows (agar SALE/ALL filter active ho)
+    if (txGroup === 'SALE' || txGroup === 'ALL') {
+      sheetData.push(emptyRow);
+      sheetData.push(['PROFITABILITY ANALYSIS SUMMARY']);
+      sheetData.push(['NET SALE QTY (Sale - Return)', netSaleQty]);
+      sheetData.push(['NET REVENUE (Sale - Return)', netSaleRevenue]);
+      sheetData.push(['TOTAL COST OF GOODS SOLD', totalSaleCost]);
+      sheetData.push([netProfit >= 0 ? 'NET PROFIT' : 'NET LOSS', netProfit]);
     }
 
-    const doc = new jsPDF({ orientation: 'landscape' });
-    const title = `History Report - ${activeTab === 'RM' ? 'Raw Material' : 'Finished Product'}`;
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-    doc.setFontSize(14);
-    doc.text(title, 14, 15);
-    doc.setFontSize(9);
-    doc.text(`Date Range: ${fromDate} to ${toDate}`, 14, 21);
-    doc.text(`Generated: ${today}`, 14, 26);
+    // --- STYLING LOGIC ---
+    const borderStyle = {
+      top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+    };
 
-    const body = reportData.map((r) => [
-      r.transaction_date ? new Date(r.transaction_date).toISOString().split('T')[0] : '',
-      r.item_name || '',
-      r.transaction_type || '',
-      r.reference_no || '',
-      r.entity_name || '',
-      Number(r.quantity || 0).toLocaleString(),
-      Number(r.unit_price || 0).toFixed(2),
-      Number(r.total_price || 0).toFixed(2)
+    // Style Header Row (Row Index 3)
+    const headerRange = XLSX.utils.decode_range(ws['!ref']);
+    for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 3, c: C });
+      if (ws[cellAddress]) {
+        ws[cellAddress].s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+          fill: { fgColor: { rgb: '334155' } }, // Slate Dark Header
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: borderStyle
+        };
+      }
+    }
+
+    // Style Title (Row 0)
+    if (ws['A1']) {
+      ws['A1'].s = {
+        font: { bold: true, sz: 16, color: { rgb: '1E293B' } }
+      };
+    }
+
+    // Auto-fit Column Widths
+    const colWidths = [
+      { wch: 14 }, // Date
+      { wch: 25 }, // Item Name
+      { wch: 18 }, // Type
+      { wch: 16 }, // Ref No.
+      { wch: 22 }, // Party
+      { wch: 10 }, // Qty
+      { wch: 16 }, // Price
+      { wch: 16 }, // Cost
+      { wch: 16 }  // Total
+    ];
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'History Report');
+    XLSX.writeFile(wb, `${activeTab}_History_Report_${today}.xlsx`);
+  };
+  const exportToPDF = () => {
+    if (!reportData.length) return toast.error('No data available to export!');
+    const doc = new jsPDF('landscape');
+    
+    doc.setFontSize(16);
+    doc.text(`${activeTab === 'RM' ? 'Raw Material' : 'Finished Product'} History & Profit Report`, 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Date Range: ${fromDate} to ${toDate}`, 14, 22);
+
+    const tableHeaders = [['Date', 'Item Name', 'Type', 'Ref No.', 'Party', 'Qty', 'Unit Price', 'Cost Price', 'Total']];
+    const tableData = reportData.map(row => [
+      row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : '',
+      row.item_name || '',
+      row.transaction_type || '',
+      row.reference_no || '',
+      row.entity_name || '',
+      Number(row.quantity || 0).toLocaleString(),
+      `Rs. ${Number(row.unit_price || 0).toFixed(2)}`,
+      `Rs. ${Number(row.unit_cost || 0).toFixed(2)}`,
+      `Rs. ${Number(row.total_price || 0).toFixed(2)}`
     ]);
 
     autoTable(doc, {
-      startY: 32,
-      head: [['Date', 'Item Name', 'Type', 'Ref No.', 'Party', 'Qty', 'Price', 'Total']],
-      body,
-      headStyles: { fillColor: [71, 85, 105], halign: 'center' }, // Slate-600
+      head: tableHeaders,
+      body: tableData,
+      startY: 28,
       theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 3 },
-      columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 35 },
-        3: { cellWidth: 35 },
-        4: { cellWidth: 45 },
-        5: { cellWidth: 20 },
-        6: { cellWidth: 25 },
-        7: { cellWidth: 25 }
-      }
+      headStyles: { fillColor: [51, 65, 85] },
+      styles: { fontSize: 8 }
     });
 
-    doc.save(`History_Report_${today}.pdf`);
+    doc.save(`${activeTab}_History_Report_${today}.pdf`);
   };
 
-  const exportToPNG = async () => {
+  const exportToImage = async () => {
     if (!reportRef.current) return;
-    const canvas = await html2canvas(reportRef.current, { scale: 2 });
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = `History_Report_${today}.png`;
-    link.click();
-  };
-
-  // Custom Select Style for ERP consistency
-  const selectCustomStyles = {
-    control: (provided) => ({
-      ...provided,
-      borderColor: '#cbd5e1',
-      boxShadow: 'none',
-      '&:hover': {
-        borderColor: '#94a3b8'
-      }
-    }),
-    menu: (provided) => ({ ...provided, zIndex: 9999 })
+    try {
+      const canvas = await html2canvas(reportRef.current, { scale: 2 });
+      const image = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `${activeTab}_History_Report_${today}.png`;
+      link.click();
+    } catch (err) {
+      console.error('PNG Export Error:', err);
+      toast.error('Failed to generate PNG image.');
+    }
   };
 
   return (
@@ -253,183 +305,140 @@ const Product_HistoryReport = () => {
       <MainLayout />
       <div style={{ padding: '20px', width: '98%', margin: '0 auto' }}>
         {/* Header Section */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '25px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <button onClick={() => navigate(-1)} className='back-btn' >
-              <FaArrowLeft />
-            </button>
-            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#1e293b' }}>FP & RM History Report</h2>
+            <button onClick={() => navigate(-1)} className='back-btn'><FaArrowLeft /></button>
+            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#1e293b' }}>FP & RM History & Profit Report</h2>
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-            {/* Date Filters */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>From:</span>
-              <input type='date' value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px', color: '#334155' }} />
-            </div>
+            <input type='date' value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
+            <input type='date' value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
+            <input type='text' placeholder='Search...' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px' }} />
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>To:</span>
-              <input type='date' value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px', color: '#334155' }} />
-            </div>
-
-            <input
-              type='text'
-              placeholder='Search party, ref no...'
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '4px', minWidth: '180px', fontSize: '13px', color: '#334155' }}
-            />
+            <button onClick={fetchHistoryReport} style={{ padding: '7px 14px', background: '#475569', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}><FaSearch /> Search</button>
+            <button onClick={fetchHistoryReport} style={{ padding: '7px 14px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}><FaSync /> Refresh</button>
             
-            <button onClick={handleSearch} style={{ padding: '7px 14px', background: '#475569', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FaSearch size={12} /> Search
-            </button>
-            
-            <button onClick={() => fetchHistoryReport()} style={{ padding: '7px 14px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FaSync size={12} /> Refresh
-            </button>
-            
-            <div style={{ display: 'flex', gap: '8px', borderLeft: '1px solid #e2e8f0', paddingLeft: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', borderLeft: '1px solid #e2e8f0', paddingLeft: '8px' }}>
               <button className="download-button bg-excel" onClick={exportToExcel} title="Export Excel"><FaFileExcel size={14} /></button>
               <button className="download-button bg-pdf" onClick={exportToPDF} title="Export PDF"><FaFilePdf size={14} /></button>
-              <button className="download-button bg-png" onClick={exportToPNG} title="Export PNG"><FaImage size={14} /></button>
+              <button className="download-button bg-png" onClick={exportToImage} title="Export Image"><FaImage size={14} /></button>
             </div>
           </div>
         </div>
 
-        {/* Muted Tab Navigation */}
-        <div style={{ display: 'flex', gap: '5px', marginBottom: '20px', borderBottom: '1px solid #cbd5e1' }}>
-          <button
-            onClick={() => handleTabChange('RM')}
-            style={{ padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'RM' ? '3px solid #334155' : 'none', color: activeTab === 'RM' ? '#1e293b' : '#64748b', fontWeight: '600', fontSize: '14px' }}
-          >
-            Raw Material History
-          </button>
-          <button
-            onClick={() => handleTabChange('FP')}
-            style={{ padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'FP' ? '3px solid #334155' : 'none', color: activeTab === 'FP' ? '#1e293b' : '#64748b', fontWeight: '600', fontSize: '14px' }}
-          >
-            Finished Product History
-          </button>
+        {/* Tab & Transaction Type Filter Row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #cbd5e1', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '5px' }}>
+            <button onClick={() => setActiveTab('RM')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'RM' ? '3px solid #334155' : 'none', color: activeTab === 'RM' ? '#1e293b' : '#64748b', fontWeight: '600' }}>Raw Material</button>
+            <button onClick={() => setActiveTab('FP')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'FP' ? '3px solid #334155' : 'none', color: activeTab === 'FP' ? '#1e293b' : '#64748b', fontWeight: '600' }}>Finished Product</button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+            <button onClick={() => setTxGroup('ALL')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'ALL' ? '#334155' : 'transparent', color: txGroup === 'ALL' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>All Types</button>
+            <button onClick={() => setTxGroup('PURCHASE')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'PURCHASE' ? '#0284c7' : 'transparent', color: txGroup === 'PURCHASE' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>
+              {activeTab === 'FP' ? 'Production / Batch' : 'Purchase / Return'}
+            </button>
+            <button onClick={() => setTxGroup('SALE')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'SALE' ? '#16a34a' : 'transparent', color: txGroup === 'SALE' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>Sale / Return</button>
+          </div>
         </div>
 
         {/* Paper Container */}
         <div ref={reportRef} style={{ background: '#fff', borderRadius: '8px', padding: '20px', border: '1px solid #e2e8f0' }}>
           
-          {/* Dropdown & Dynamic Metric Widgets */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '15px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', marginBottom: '20px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '280px', flex: '1 1 280px' }}>
               <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Filter by Item</label>
-              <Select
-                options={itemOptions}
-                value={selectedItem}
-                onChange={setSelectedItem}
-                placeholder={activeTab === 'RM' ? 'Select Raw Material...' : 'Select Finished Product...'}
-                isClearable
-                isSearchable
-                styles={selectCustomStyles}
-              />
+              <Select options={itemOptions} value={selectedItem} onChange={setSelectedItem} placeholder='Select Item...' isClearable isSearchable />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Total Items</label>
-              <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', minWidth: '100px', fontWeight: '700', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px', color: '#1e293b' }}>{uniqueItemsCount}</div>
+            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px' }}>
+              <strong>Items:</strong> {uniqueItemsCount}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Total Qty</label>
-              <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', minWidth: '100px', fontWeight: '700', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px', color: '#1e293b' }}>{totalQuantity.toLocaleString()}</div>
+            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px' }}>
+              <strong>Total Qty:</strong> {totalQuantity.toLocaleString()}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Total Value</label>
-              <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', minWidth: '120px', fontWeight: '700', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px', color: '#1e293b' }}>{totalValue.toFixed(2)}</div>
+            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px' }}>
+              <strong>Total Value:</strong> {formatCurrency(totalValue)}
             </div>
           </div>
 
+          {/* Table */}
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b', fontSize: '14px' }}>Loading history report...</div>
-          ) : reportData.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b', fontWeight: '500', fontSize: '14px' }}>No Transactions Found</div>
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading report data...</div>
           ) : (
-            <>
-              {/* Data Table */}
-              <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '950px' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
-                      {['Date', 'Item Name', 'Type', 'Ref No.', 'Party', 'Qty', 'Price', 'Total'].map(header => (
-                        <th key={header} style={{ padding: '10px 12px', textAlign: 'left', color: '#334155', fontWeight: '600', fontSize: '13px' }}>{header}</th>
-                      ))}
+            <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                    {['Date', 'Item Name', 'Type', 'Ref No.', 'Party', 'Qty', 'Selling/Tx Price', 'Avg Cost Price', 'Total Value'].map(h => (
+                      <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '13px', color: '#334155' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No transactions found for the selected filters.</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {reportData.map((row, index) => {
+                  ) : (
+                    reportData.map((row, idx) => {
                       const refLink = getReferenceLink(row);
                       return (
-                        <tr key={index} style={{ borderBottom: '1px solid #f1f5f9', background: index % 2 === 0 ? '#fff' : '#f8fafc' }}>
-                          <td style={{ padding: '10px 12px', color: '#334155', fontSize: '13px' }}>{row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : ''}</td>
-                          <td style={{ padding: '10px 12px', color: '#0f172a', fontWeight: '500', fontSize: '13px' }}>{row.item_name || 'N/A'}</td>
-                          <td style={{ padding: '10px 12px', color: '#475569', fontSize: '13px' }}>{row.transaction_type || ''}</td>
-                          <td style={{ padding: '10px 12px', fontSize: '13px' }}>
-                            {refLink ? (
-                              <Link to={refLink} style={{ color: '#0284c7', textDecoration: 'none', borderBottom: '1px dashed #0284c7', fontWeight: '500' }}>
-                                {row.reference_no || 'N/A'}
-                              </Link>
-                            ) : (
-                              <span style={{ color: '#475569' }}>{row.reference_no || 'N/A'}</span>
-                            )}
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
+                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : ''}</td>
+                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '500' }}>{row.item_name}</td>
+                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.transaction_type}</td>
+                          <td style={{ padding: '10px', fontSize: '13px' }}>
+                            {refLink ? <Link to={refLink} style={{ color: '#0284c7' }}>{row.reference_no}</Link> : row.reference_no || 'N/A'}
                           </td>
-                          <td style={{ padding: '10px 12px', color: '#475569', fontSize: '13px' }}>{row.entity_name || ''}</td>
-                          <td style={{ padding: '10px 12px', color: '#334155', fontWeight: '600', fontSize: '13px' }}>{Number(row.quantity || 0).toLocaleString()}</td>
-                          <td style={{ padding: '10px 12px', color: '#334155', fontSize: '13px' }}>{Number(row.unit_price || 0).toFixed(2)}</td>
-                          <td style={{ padding: '10px 12px', color: '#1e293b', fontWeight: '600', fontSize: '13px' }}>{Number(row.total_price || 0).toFixed(2)}</td>
+                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.entity_name}</td>
+                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '600' }}>{Number(row.quantity || 0).toLocaleString()}</td>
+                          <td style={{ padding: '10px', fontSize: '13px' }}>{formatCurrency(row.unit_price)}</td>
+                          <td style={{ padding: '10px', fontSize: '13px', color: '#0284c7', fontWeight: '600' }}>{formatCurrency(row.unit_cost)}</td>
+                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '600' }}>{formatCurrency(row.total_price)}</td>
                         </tr>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Minimal / Gray Professional ERP Bottom Summary cards */}
-              <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '15px' }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Summary Totals</h4>
-                
-                {activeTab === 'RM' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-                    <div style={{ padding: '12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #64748b' }}>
-                      <span style={{ display: 'block', fontSize: '11px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>Total Purchase</span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Rs. {rmSummary.totalPurchase.toFixed(2)}</span>
-                    </div>
-                    <div style={{ padding: '12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #94a3b8' }}>
-                      <span style={{ display: 'block', fontSize: '11px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>Total Purchase Return</span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Rs. {rmSummary.totalPurchaseReturn.toFixed(2)}</span>
-                    </div>
-                    <div style={{ padding: '12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #475569' }}>
-                      <span style={{ display: 'block', fontSize: '11px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>Total Sale</span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Rs. {rmSummary.totalSale.toFixed(2)}</span>
-                    </div>
-                    <div style={{ padding: '12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #334155' }}>
-                      <span style={{ display: 'block', fontSize: '11px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>Total Sale Return</span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Rs. {rmSummary.totalSaleReturn.toFixed(2)}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-                    <div style={{ padding: '12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #64748b' }}>
-                      <span style={{ display: 'block', fontSize: '11px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>Total Production</span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Rs. {fpSummary.totalProduction.toFixed(2)}</span>
-                    </div>
-                    <div style={{ padding: '12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #475569' }}>
-                      <span style={{ display: 'block', fontSize: '11px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>Total Sale</span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Rs. {fpSummary.totalSale.toFixed(2)}</span>
-                    </div>
-                    <div style={{ padding: '12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #334155' }}>
-                      <span style={{ display: 'block', fontSize: '11px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>Total Sale Return</span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>Rs. {fpSummary.totalSaleReturn.toFixed(2)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
+
+          {/* Profitability Summary Section */}
+          {(txGroup === 'SALE' || txGroup === 'ALL') && (
+            <div style={{ borderTop: '2px solid #cbd5e1', paddingTop: '15px', background: '#f8fafc', padding: '15px', borderRadius: '6px' }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', fontWeight: '700' }}>PROFITABILITY ANALYSIS SUMMARY</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>NET SALE QTY (Sale - Return)</span>
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>{netSaleQty.toLocaleString()}</span>
+                </div>
+                <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>NET REVENUE (Sale - Return)</span>
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#0284c7' }}>{formatCurrency(netSaleRevenue)}</span>
+                </div>
+                <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>TOTAL COST OF GOODS SOLD</span>
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626' }}>{formatCurrency(totalSaleCost)}</span>
+                </div>
+                <div style={{ 
+                  padding: '10px', 
+                  background: netProfit >= 0 ? '#f0fdf4' : '#fef2f2', 
+                  border: `1px solid ${netProfit >= 0 ? '#16a34a' : '#dc2626'}`, 
+                  borderRadius: '4px' 
+                }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
+                    {netProfit >= 0 ? 'NET PROFIT / MARGIN' : 'NET LOSS / MARGIN'}
+                  </span>
+                  <span style={{ fontSize: '18px', fontWeight: '700', color: netProfit >= 0 ? '#16a34a' : '#dc2626' }}>
+                    {formatCurrency(netProfit)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

@@ -241,18 +241,23 @@ const RM_SaleForm = ({ channel = null }) => {
         const [rmId, supplierId] = value.split("-");
         const selected = materials.find(m => Number(m.rm_id) === Number(rmId) && Number(m.supplier_id) === Number(supplierId));
 
-        if (selected) {
-            updated[index].rm_id = Number(selected.rm_id);
-            updated[index].rm_name = selected.rm_name;
-            updated[index].uom_id = selected.uom_id;
-            updated[index].uom_name = selected.uom_name;
-            updated[index].supplier_id = String(selected.supplier_id);
-            updated[index].shop_name = selected.shop_name;
-            updated[index].current_stock = selected.current_stock;
-            updated[index].quantity = "";
-            updated[index].total = "0.00";
-            updated[index].pack_sizes = selected.pack_sizes || [];
-            updated[index].factor = 1;
+        if (selected && Number(selected.rm_id) === Number(rmId) && Number(selected.supplier_id) === Number(supplierId)) {
+            const latestUnitPrice = Number(selected.unit_price ?? 0);
+            updated[index] = {
+                ...updated[index],
+                rm_id: Number(selected.rm_id),
+                rm_name: selected.rm_name,
+                uom_id: selected.uom_id,
+                uom_name: selected.uom_name,
+                supplier_id: String(selected.supplier_id),
+                shop_name: selected.shop_name,
+                current_stock: selected.current_stock,
+                quantity: updated[index].quantity || "",
+                unitPrice: latestUnitPrice,
+                total: ((parseFloat(updated[index].quantity) || 1) * latestUnitPrice).toFixed(2),
+                pack_sizes: selected.pack_sizes || [],
+                factor: 1,
+            };
         }
 
         setRows(updated);
@@ -317,14 +322,18 @@ const RM_SaleForm = ({ channel = null }) => {
                 const meta = getMaterialMeta(matchingMaterial, detail);
                 const enteredQty = Number(detail.entered_qty ?? detail.quantity ?? 0);
                 const baseQty = Number(detail.quantity || 0);
+                const strictMatch = Boolean(matchingMaterial && Number(matchingMaterial.rm_id) === cleanRmId && Number(matchingMaterial.supplier_id) === cleanSupplierId);
+                const latestUnitPrice = strictMatch ? Number(matchingMaterial.unit_price ?? detail.unit_price ?? 0) : 0;
+                const quantityValue = existingRow.quantity ?? enteredQty;
+                const calculatedTotal = (Number(quantityValue || 0) * latestUnitPrice).toFixed(2);
 
                 return {
                     ...existingRow,
                     rm_id: cleanRmId,
                     rm_name: meta.rm_name,
-                    quantity: existingRow.quantity ?? enteredQty,
-                    unitPrice: existingRow.unitPrice ?? "",
-                    total: existingRow.total ?? "0.00",
+                    quantity: quantityValue,
+                    unitPrice: latestUnitPrice,
+                    total: calculatedTotal,
                     uom_id: meta.uom_id,
                     uom_name: meta.uom_name,
                     supplier_id: cleanSupplierId ? String(cleanSupplierId) : "",
@@ -341,6 +350,7 @@ const RM_SaleForm = ({ channel = null }) => {
 
             const nextRows = mappedRows.length > 0 ? mappedRows : fallbackRows;
             setRows(nextRows);
+            calculateTotals(nextRows, globalDiscount, isTaxable, taxMode, taxRate);
             setOriginalSourceItems(mappedRows.map((item) => ({
                 ...item,
                 quantity: Number(item.quantity || 0),

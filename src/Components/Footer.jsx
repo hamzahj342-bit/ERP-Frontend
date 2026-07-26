@@ -11,11 +11,10 @@ const Footer = () => {
   return (
     <footer className={`footer ${isDashboard ? 'footer-dashboard' : ''}`}>
       <div className="footer-content">
-        <p>&copy; {new Date().getFullYear()} Your Company Name. All rights reserved.</p>
-        
+        <p>&copy; 2025 - {new Date().getFullYear()} CodeBase Solutions. All Rights Reserved.</p>
         {/* Powered by section */}
         <p className="powered-by">
-          Powered by <span className="brand-name"><a href="https://www.codebasesln.com" target="_blank" rel="noopener noreferrer">CODEBASE SOLUTIONS</a></span>
+        NEXT-GEN — Powered by <span className="brand-name"><a href="https://www.codebasesln.com" target="_blank" rel="noopener noreferrer">CODEBASE SOLUTIONS</a></span>
         </p>
 
         <div className="footer-links">
