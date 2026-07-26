@@ -17,8 +17,11 @@ const RM_PurchaseForm = ({ channel = null }) => {
     const editId = queryParams.get('editId'); 
     const isEditMode = !!editId;
 
-    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+    const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : channel === 'pos' ? 'POS' : null;
     const listPath = channel ? `/${channel}/purchases` : '/rm-purchase';
+    const isPos = channel === 'pos';
+    // POS purchase rows carry a Sale Price column (updates the product's selling price)
+    const gridColumns = isPos ? '2.5fr 1fr 1fr 1fr 1fr 1fr 0.5fr' : undefined;
 
     const [rows, setRows] = useState([
         { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", pack_sizes: [], factor: 1 }
@@ -78,6 +81,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
             current_stock: Number(material?.current_stock ?? fallbackDetail?.current_stock ?? 0),
             pack_sizes: packSizes,
             factor: Number(selectedPack?.factor_to_base) || 1,
+            sale_price: material?.sale_price ?? "",
         };
     };
 
@@ -135,15 +139,16 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                // Parallel API Requests
+                // Parallel API Requests (POS purchase uses POS products, no GRN)
                 const [materialsRes, suppliersRes, uomsRes, sourceDocsRes] = await Promise.all([
-                    api.get("/add-materials"),
+                    isPos ? api.get("/pos/products", { params: { limit: 1000 } }) : api.get("/add-materials"),
                     api.get("/entities/transactions"),
                     api.get('/uoms'),
-                    api.get('/loader-documents/unposted', { params: { type: 'GRN' } })
+                    isPos ? Promise.resolve({ data: { data: [] } }) : api.get('/loader-documents/unposted', { params: { type: 'GRN' } })
                 ]);
 
-                setMaterials(materialsRes.data);
+                const materialsData = isPos ? (materialsRes.data?.data || []) : materialsRes.data;
+                setMaterials(materialsData);
                 setUoms(uomsRes.data);
                 setSourceDocuments(sourceDocsRes.data?.data || []);
 
@@ -190,7 +195,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                             // Entered values are in the selected UOM; quantity/unit_price are base
                             const qty = Math.abs(parseFloat(d.entered_qty ?? d.quantity) || 0);
                             const price = parseFloat(d.entered_unit_price ?? d.unit_price) || 0;
-                            const matchingMaterial = materialsRes.data.find(m => Number(m.rm_id) === Number(d.rm_id));
+                            const matchingMaterial = materialsData.find(m => Number(m.rm_id) === Number(d.rm_id));
 
                             const packSizes = normalizePackSizes(matchingMaterial);
                             const uomId = d.uom_id || matchingMaterial?.uom?.id || matchingMaterial?.uom_id || "";
@@ -205,7 +210,8 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                 uom_id: uomId,
                                 uom_name: selectedPack?.uom_name || d.uom_name || matchingMaterial?.uom?.name || matchingMaterial?.uom_name || "",
                                 pack_sizes: packSizes,
-                                factor: Number(selectedPack?.factor_to_base) || 1
+                                factor: Number(selectedPack?.factor_to_base) || 1,
+                                salePrice: matchingMaterial?.sale_price ?? ""
                             };
                         });
                         setRows(mappedRows);
@@ -217,7 +223,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                         if (sourceDocNo) {
                             setSourceDocuments(prev => prev.some(doc => String(doc.id) === String(sourceDocId)) ? prev : [{ id: Number(sourceDocId), no: sourceDocNo }, ...prev]);
                         }
-                        await handleSourceDocumentSelection(sourceDocId, mappedRows, materialsRes.data);
+                        await handleSourceDocumentSelection(sourceDocId, mappedRows, materialsData);
                     }
                 }
             } catch (err) {
@@ -395,6 +401,10 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                 uom_id: r.uom_id,
                 date,
                 entity_supplier_id: selectedSupplier,
+                // POS: update the product's selling price alongside the purchase
+                ...(isPos && r.salePrice !== "" && r.salePrice != null
+                    ? { new_sale_price: parseFloat(r.salePrice) }
+                    : {}),
             })),
             source_doc_id: selectedSourceDoc ? Number(selectedSourceDoc) : null,
             source_doc_type: selectedSourceDoc ? "GRN" : null,
@@ -495,6 +505,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                             <label>Purchase Date</label>
                             <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} readOnly={!!selectedSourceDoc} />
                         </div>
+                        {!isPos && (
                         <div className="info-item">
                             <label>Source GRN</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
@@ -507,20 +518,22 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                 <button type="button" className="quick-add-btn" onClick={() => navigate('/grn-form')}><FaPlus /></button>
                             </div>
                         </div>
+                        )}
                     </div>
 
                     <form onSubmit={handleSubmit}>
-                        <div className="items-table-header">
-                            <span>Material</span>
+                        <div className="items-table-header" style={gridColumns ? { gridTemplateColumns: gridColumns } : undefined}>
+                            <span>{isPos ? 'Product' : 'Material'}</span>
                             <span>UOM</span>
                             <span>Qty</span>
                             <span>Unit Price</span>
+                            {isPos && <span>Sale Price</span>}
                             <span>Total</span>
                             <span>Action</span>
                         </div>
 
                         {rows.map((row, index) => (
-                            <div className="item-row" key={index}>
+                            <div className="item-row" key={index} style={gridColumns ? { gridTemplateColumns: gridColumns } : undefined}>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <select
                                         className="rm-input-field"
@@ -535,12 +548,17 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                             handleChange(index, "uom_name", meta.uom_name);
                                             handleChange(index, "pack_sizes", meta.pack_sizes);
                                             handleChange(index, "factor", 1);
+                                            if (isPos) handleChange(index, "salePrice", meta.sale_price ?? "");
                                         }}
                                     >
-                                        <option value="">Select Material</option>
+                                        <option value="">{isPos ? 'Select Product' : 'Select Material'}</option>
                                         {materials.map(m => <option key={m.rm_id} value={m.rm_id}>{m.name}</option>)}
                                     </select>
-                                    <button type="button" className="quick-add-btn" onClick={() => setShowMaterialModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
+                                    {isPos ? (
+                                        <button type="button" className="quick-add-btn" title="Manage POS products" onClick={() => navigate('/pos/products')}><FaPlus /></button>
+                                    ) : (
+                                        <button type="button" className="quick-add-btn" onClick={() => setShowMaterialModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
+                                    )}
                                 </div>
 
                                 {Array.isArray(row.pack_sizes) && row.pack_sizes.length > 1 ? (
@@ -567,6 +585,16 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                     )}
                                 </div>
                                 <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
+                                {isPos && (
+                                    <input
+                                        type="number"
+                                        className="rm-input-field"
+                                        placeholder="Sale Price"
+                                        title="Selling price per base unit — updates the product"
+                                        value={row.salePrice ?? ""}
+                                        onChange={(e) => handleChange(index, "salePrice", e.target.value)}
+                                    />
+                                )}
                                 <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
 
                                 <div style={{ display: 'flex', gap: '5px' }}>

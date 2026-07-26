@@ -19,7 +19,7 @@ const RM_SaleReturn = ({ channel = null }) => {
 
   const navigate = useNavigate();
 
-  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : null;
+  const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : channel === 'pos' ? 'POS' : null;
   const formPath = channel ? `/${channel}/sale-return-form` : '/rm-sale-return-form';
   const backPath = channel ? '/dashboard' : '/rm-transactions';
   const pageTitle = channelLabel ? `${channelLabel} Sale Returns` : 'Raw Material Sale Returns';
