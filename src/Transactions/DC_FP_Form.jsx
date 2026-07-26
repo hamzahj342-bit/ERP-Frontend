@@ -98,12 +98,15 @@ const DC_FP_Form = () => {
         loadInitialData();
     }, [editId, isEditMode, fetchDCNo, navigate]);
 
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!selectedCustomer) return toast.error("Please select a customer.");
         if (!selectedDriver) return toast.error("Please select a driver.");
         if (!vehicleNo.trim()) return toast.error("Please provide a vehicle number.");
         if (!date) return toast.error("Please select a document date.");
+        if (rows.some(r => parseFloat(r.quantity) > parseFloat(r.current_stock))) return toast.error("Dispatched quantity cannot exceed available stock.");
 
         const validRows = rows.filter(r => r.rm_id && parseFloat(r.quantity) > 0);
         if (validRows.length === 0) return toast.error("Please add at least one valid material row.");

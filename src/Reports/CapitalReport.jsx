@@ -55,6 +55,12 @@ const CapitalReport = () => {
     fetchCapitalData();
   }, [fromDate, toDate]);
 
+  const handleAccountRowClick = (accountId) => {
+    if (accountId) {
+      navigate(`/ledger/${accountId}`);
+    }
+  };
+
   // --- 📊 EXPORT OPERATIONS ---
 
   const exportToExcel = () => {
@@ -342,7 +348,19 @@ const CapitalReport = () => {
                     <td colSpan="3" className="fw-bold text-primary font-monospace"><FaUniversity className="me-2" /> 1. ASSETS</td>
                   </tr>
                   {assets.length > 0 ? assets.map((row, index) => (
-                    <tr key={`asset-${index}`}>
+                    <tr
+                      key={`asset-${index}`}
+                      onClick={() => handleAccountRowClick(row.account_id || row.id)}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && (row.account_id || row.id)) {
+                          e.preventDefault();
+                          handleAccountRowClick(row.account_id || row.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <td className="text-muted font-monospace">{row.account_code}</td>
                       <td className="fw-medium">{row.account_name}</td>
                       <td className="text-end text-success fw-bold">
@@ -368,7 +386,19 @@ const CapitalReport = () => {
                     <td colSpan="3" className="fw-bold text-danger font-monospace"><FaUniversity className="me-2" /> 2. LIABILITIES</td>
                   </tr>
                   {liabilities.length > 0 ? liabilities.map((row, index) => (
-                    <tr key={`liab-${index}`}>
+                    <tr
+                      key={`liab-${index}`}
+                      onClick={() => handleAccountRowClick(row.account_id || row.id)}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && (row.account_id || row.id)) {
+                          e.preventDefault();
+                          handleAccountRowClick(row.account_id || row.id);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <td className="text-muted font-monospace">{row.account_code}</td>
                       <td className="fw-medium">{row.account_name}</td>
                       <td className="text-end text-danger fw-bold">

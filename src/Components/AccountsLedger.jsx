@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Select from "react-select";
 import * as XLSX from "xlsx-js-style";
@@ -13,12 +13,15 @@ import "../Profitloss.css";
 
 const AccountLedger = () => {
   const navigate = useNavigate();
+  const { accountId } = useParams();
   const reportRef = useRef(null);
+  const today = new Date().toISOString().split('T')[0];
+  const currentYearStart = `${new Date().getFullYear()}-01-01`;
 
   const [accounts, setAccounts] = useState([]);
-  const [selectedAccount, setSelectedAccount] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState(accountId || "");
+  const [fromDate, setFromDate] = useState(currentYearStart);
+  const [toDate, setToDate] = useState(today);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -37,16 +40,23 @@ const AccountLedger = () => {
     fetchAccounts();
   }, []);
 
+  useEffect(() => {
+    if (accountId) {
+      setSelectedAccount(accountId);
+      fetchLedger(accountId, currentYearStart, today);
+    }
+  }, [accountId]);
+
   // --- 2. Fetch Ledger Report ---
-  const fetchLedger = async () => {
-    if (!selectedAccount || !fromDate || !toDate) {
+  const fetchLedger = async (accountIdToUse = selectedAccount, fromDateValue = fromDate, toDateValue = toDate) => {
+    if (!accountIdToUse || !fromDateValue || !toDateValue) {
       toast.error("Please select account and date range");
       return;
     }
     setLoading(true);
     try {
       const res = await api.get("/reports/ledger", {
-        params: { accountId: selectedAccount, fromDate, toDate }
+        params: { accountId: accountIdToUse, fromDate: fromDateValue, toDate: toDateValue }
       });
       setReport(res.data);
       toast.success("Ledger loaded successfully");
@@ -87,11 +97,11 @@ const AccountLedger = () => {
     const numStyle = { alignment: { horizontal: "right" }, numFmt: "#,##0.00" };
 
     const rows = [
-      [{ v: `Account Ledger: ${report.accountName}`, s: { font: { bold: true, sz: 14 } } }, "", "", "", ""],
-      [{ v: `Period: ${fromDate} to ${toDate}`, s: { font: { italic: true } } }, "", "", "", ""],
+      [{ v: `Account Ledger: ${report.accountName}`, s: { font: { bold: true, sz: 14 } } }, "", "", "", "", ""],
+      [{ v: `Period: ${fromDate} to ${toDate}`, s: { font: { italic: true } } }, "", "", "", "", ""],
       [],
-      [{ v: "Opening Balance", s: subHeaderStyle }, "", "", "", { v: Number(report.openingBalance), s: { ...numStyle, font: { bold: true } } }],
-      [{ v: "DATE", s: headerStyle }, { v: "DESCRIPTION", s: headerStyle }, { v: "DEBIT", s: headerStyle }, { v: "CREDIT", s: headerStyle }, { v: "BALANCE", s: headerStyle }],
+      [{ v: "Opening Balance", s: subHeaderStyle }, "", "", "", "", { v: Number(report.openingBalance), s: { ...numStyle, font: { bold: true } } }],
+      [{ v: "DATE", s: headerStyle }, { v: "DESCRIPTION", s: headerStyle }, { v: "PARTY / ENTITY", s: headerStyle }, { v: "DEBIT", s: headerStyle }, { v: "CREDIT", s: headerStyle }, { v: "BALANCE", s: headerStyle }],
     ];
 
     report.ledger.forEach((t, index) => {
@@ -99,6 +109,7 @@ const AccountLedger = () => {
       rows.push([
         { v: t.date.split('T')[0] },
         { v: t.description || t.narration },
+        { v: t.entity_name || "-" },
         { v: Number(t.debit), s: numStyle },
         { v: Number(t.credit), s: numStyle },
         { v: Number(rb), s: { ...numStyle, font: { bold: true } } }
@@ -107,11 +118,11 @@ const AccountLedger = () => {
 
     rows.push(
       [],
-      [{ v: "Closing Balance", s: { ...subHeaderStyle, fill: { fgColor: { rgb: "E8F5E9" } } } }, "", "", "", { v: Number(report.closingBalance), s: { ...numStyle, font: { bold: true }, fill: { fgColor: { rgb: "E8F5E9" } } } }]
+      [{ v: "Closing Balance", s: { ...subHeaderStyle, fill: { fgColor: { rgb: "E8F5E9" } } } }, "", "", "", "", { v: Number(report.closingBalance), s: { ...numStyle, font: { bold: true }, fill: { fgColor: { rgb: "E8F5E9" } } } }]
     );
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{ wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 18 }];
+    ws['!cols'] = [{ wch: 15 }, { wch: 36 }, { wch: 24 }, { wch: 15 }, { wch: 15 }, { wch: 18 }];
     
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Ledger");
@@ -165,7 +176,7 @@ const AccountLedger = () => {
                 </div>
               <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              <button className="get-report-btn" onClick={fetchLedger}>{loading ? "..." : "Get Report"}</button>
+              <button className="get-report-btn" onClick={() => fetchLedger(selectedAccount, fromDate, toDate)}>{loading ? "..." : "Get Report"}</button>
               
               {report && (
                 <div className="export-btn-group">
@@ -178,7 +189,7 @@ const AccountLedger = () => {
           </div>
 
           {report && (
-            <div ref={reportRef} className="pl-table-container bg-white p-3">
+            <div ref={reportRef} className="pl-table-container bg-white p-3" style={{ overflowX: 'auto', backgroundColor: '#fff' }}>
               <h3 className="text-xl font-bold mb-1" style={{color: '#2c3e50'}}>{report.accountName}</h3>
               <p className="text-muted mb-2" style={{fontSize: '14px'}}>{report.categoryName} Account</p>
               
@@ -187,14 +198,15 @@ const AccountLedger = () => {
                 <span><strong>Period:</strong> {fromDate} to {toDate}</span>
               </div>
 
-              <table className="pl-table">
+              <table className="pl-table" style={{ width: '100%', tableLayout: 'auto', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr className="row-section-head">
-                    <th className="border p-2">Date</th>
-                    <th className="border p-2">Description</th>
-                    <th className="border p-2 text-right">Debit</th>
-                    <th className="border p-2 text-right">Credit</th>
-                    <th className="border p-2 text-right">Balance</th>
+                    <th className="border p-2" style={{ minWidth: '110px', textAlign: 'center' }}>Date</th>
+                    <th className="border p-2" style={{ minWidth: '200px', textAlign: 'left' }}>Description</th>
+                    <th className="border p-2" style={{ minWidth: '140px', textAlign: 'left' }}>Party / Entity</th>
+                    <th className="border p-2 text-right" style={{ minWidth: '100px', textAlign: 'right' }}>Debit</th>
+                    <th className="border p-2 text-right" style={{ minWidth: '100px', textAlign: 'right' }}>Credit</th>
+                    <th className="border p-2 text-right" style={{ minWidth: '110px', textAlign: 'right' }}>Balance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -202,11 +214,12 @@ const AccountLedger = () => {
                     const rb = calculateRunningBalance(index, report.ledger, report.openingBalance, report.categoryName);
                     return (
                       <tr key={index}>
-                        <td className="border p-2">{t.date.split('T')[0]}</td>
-                        <td className="border p-2">{t.description || t.narration}</td>
-                        <td className="border p-2 text-right">{t.debit > 0 ? Number(t.debit).toLocaleString() : '-'}</td>
-                        <td className="border p-2 text-right">{t.credit > 0 ? Number(t.credit).toLocaleString() : '-'}</td>
-                        <td className="border p-2 text-right font-bold">{Number(rb).toLocaleString()}</td>
+                        <td className="border p-2" style={{ textAlign: 'center', fontSize: '13px' }}>{t.date.split('T')[0]}</td>
+                        <td className="border p-2" style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }} title={t.description || t.narration}>{t.description || t.narration}</td>
+                        <td className="border p-2" style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={t.entity_name || '-'}>{t.entity_name || '-'}</td>
+                        <td className="border p-2 text-right" style={{ textAlign: 'right', fontSize: '13px' }}>{t.debit > 0 ? Number(t.debit).toLocaleString() : '-'}</td>
+                        <td className="border p-2 text-right" style={{ textAlign: 'right', fontSize: '13px' }}>{t.credit > 0 ? Number(t.credit).toLocaleString() : '-'}</td>
+                        <td className="border p-2 text-right font-bold" style={{ textAlign: 'right', fontSize: '13px' }}>{Number(rb).toLocaleString()}</td>
                       </tr>
                     );
                   })}

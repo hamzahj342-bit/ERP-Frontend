@@ -33,7 +33,7 @@ const PaymentTransactionInvoice = () => {
         ]);
 
         setCompanies(companyRes.data || []);
-        setInvoice(invoiceRes.data.invoice);
+        setInvoice(invoiceRes.data.invoice || invoiceRes.data);
         setRows(invoiceRes.data.rows || []);
       } catch (err) {
         console.error("Error fetching payment invoice:", err);
@@ -92,160 +92,120 @@ const PaymentTransactionInvoice = () => {
     });
   };
 
-  const totalDebit = rows.reduce((sum, item) => sum + Number(item.debit || 0), 0);
-  const totalCredit = rows.reduce((sum, item) => sum + Number(item.credit || 0), 0);
-  const paymentAmount = totalDebit || totalCredit;
-  const fromAccount = rows.find((row) => row.from_account_name)?.from_account_name || "-";
-  const toAccount = rows.find((row) => row.to_account_name)?.to_account_name || "-";
-
   if (loading) return <p className="p-5 text-center">Loading payment invoice...</p>;
-  if (!invoice) return <p className="p-5 text-center text-danger">Payment invoice not found.</p>
+  if (!invoice && rows.length === 0) return <p className="p-5 text-center text-danger">Payment invoice not found.</p>;
 
-  const entityName = invoice?.entity?.name || "N/A";
-  const entityContact = invoice?.entity?.contact || "N/A";
-  const entityAddress = invoice?.entity?.address || "N/A";
+  // Debit Row & Credit Row calculation
+  const debitRow = rows.find((r) => Number(r.debit) > 0);
+  const creditRow = rows.find((r) => Number(r.credit) > 0);
+  const totalAmount = debitRow?.debit || creditRow?.credit || 0;
+
+  const mainInvoiceNo = invoice?.invoice_no || invoiceNo;
+  const transactionDate = invoice?.transaction_date || rows[0]?.transaction_date;
+  const createdBy = invoice?.created_by || rows[0]?.created_by || "-";
+  const description = invoice?.description || rows[0]?.description || "-";
 
   return (
     <div className="invoice-container">
       <div id="payment-invoice-detail" className="invoice-box shadow-lg">
         <header className="invoice-header">
-          <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div className="company-info" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
             {user?.profile_image ? (
               <img
                 src={getLogoUrl()}
                 alt="Logo"
-                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }}
+                style={{ width: "80px", height: "80px", borderRadius: "8px", objectFit: "cover" }}
                 crossOrigin="anonymous"
               />
             ) : (
-              <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
+              <div style={{ width: "80px", height: "80px", background: "#eee", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#888", border: "1px solid #ddd" }}>
                 NO LOGO
               </div>
             )}
             <div>
-              <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
+              <p className="title text" style={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "1.2rem", margin: 0 }}>
                 {currentCompanyName}
               </p>
-              <h4 className="subtitle">PAYMENT TRANSACTION INVOICE</h4>
+              <h4 className="subtitle">PAYMENT TRANSACTION VOUCHER</h4>
             </div>
           </div>
 
           <div className="invoice-id">
-            <p className="title">INVOICE NO.</p>
-            <h1 className="id-number">#{invoice.invoice_no}</h1>
+            <p className="title">VOUCHER NO.</p>
+            <h1 className="id-number">#{mainInvoiceNo}</h1>
           </div>
         </header>
 
-{/* PAYMENT SUMMARY */}
-<section className="voucher-summary">
+        {/* SUMMARY SECTION: TOTAL AMOUNT, DATE & CREATED BY SIDE-BY-SIDE */}
+        <section className="voucher-summary" style={{ display: "flex", gap: "15px", flexWrap: "wrap", margin: "20px 0" }}>
+          <div className="voucher-card amount-card" style={{ flex: 1, minWidth: "200px" }}>
+            <span>Total Payment Amount</span>
+            <h2>Rs. {Number(totalAmount).toLocaleString()}</h2>
+          </div>
 
-  <div className="voucher-card amount-card">
-    <span>Total Payment Amount</span>
-    <h2>
-      Rs. {Number(paymentAmount).toLocaleString()}
-    </h2>
-  </div>
+          <div className="voucher-card" style={{ flex: 1, minWidth: "150px" }}>
+            <span>Transaction Date</span>
+            <p style={{ fontSize: "1.1rem", fontWeight: "bold", margin: "5px 0 0" }}>{formatDate(transactionDate)}</p>
+          </div>
 
-  <div className="voucher-card">
-    <span>Paid From</span>
-    <p>{fromAccount}</p>
-  </div>
+          <div className="voucher-card" style={{ flex: 1, minWidth: "150px" }}>
+            <span>Created By</span>
+            <p style={{ fontSize: "1.1rem", fontWeight: "bold", margin: "5px 0 0" }}>{createdBy}</p>
+          </div>
+        </section>
 
-  <div className="voucher-card">
-    <span>Paid To</span>
-    <p>{toAccount}</p>
-  </div>
+        {/* TRANSACTION BREAKDOWN TABLE */}
+        <section className="payment-detail-box">
+          <h5 className="section-title">Journal Entries Breakdown</h5>
 
-</section>
+          <table className="payment-table" style={{ width: "100%", marginBottom: "15px", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
+                <th style={{ padding: "10px", borderBottom: "2px solid #dee2e6" }}>Account & Party Name</th>
+                <th style={{ padding: "10px", borderBottom: "2px solid #dee2e6" }}>Description</th>
+                <th style={{ padding: "10px", borderBottom: "2px solid #dee2e6", textAlign: "right" }}>Debit</th>
+                <th style={{ padding: "10px", borderBottom: "2px solid #dee2e6", textAlign: "right" }}>Credit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => {
+                // Primary: Name, Fallback: Title or Cleaned ID Label
+                const accName = row.account_name || row.account?.name || row.account_title || `Account ID: ${row.account_id}`;
+                const partyName = row.entity_name || row.entity?.name || null;
 
-{/* BENEFICIARY */}
-<section className="invoice-details-section">
-  <div className="details-row">
-
-    <div className="billed-to">
-      <p className="label">Beneficiary Details</p>
-
-      <h5 className="customer-name">
-        {entityName}
-      </h5>
-
-      <p className="customer-detail">
-        {entityContact}
-      </p>
-
-      <p className="customer-detail">
-        {entityAddress}
-      </p>
-    </div>
-
-    <div className="invoice-dates">
-
-      <div className="date-item">
-        <p className="label">Transaction Date</p>
-        <p className="value">
-          {formatDate(invoice.transaction_date)}
-        </p>
-      </div>
-
-      <div className="date-item">
-        <p className="label">Created By</p>
-        <p className="value">
-          {invoice.created_by || "-"}
-        </p>
-      </div>
-
-    </div>
-
-  </div>
-</section>
-
-{/* PAYMENT DETAILS */}
-<section className="payment-detail-box">
-
-  <h5 className="section-title">
-    Payment Details
-  </h5>
-
-  <table className="payment-table">
-    <tbody>
-
-      <tr>
-        <td>Description</td>
-        <td>{invoice.description || "-"}</td>
-      </tr>
-
-      {/* <tr>
-        <td>Transaction Type</td>
-        <td>{invoice.type || "-"}</td>
-      </tr> */}
-
-      <tr>
-        <td>From Account</td>
-        <td>{fromAccount}</td>
-      </tr>
-
-      <tr>
-        <td>To Account</td>
-        <td>{toAccount}</td>
-      </tr>
-
-      <tr className="amount-row">
-        <td>Total Amount</td>
-        <td>
-          Rs. {Number(paymentAmount).toLocaleString()}
-        </td>
-      </tr>
-
-    </tbody>
-  </table>
-
-</section>
+                return (
+                  <tr key={index}>
+                    <td style={{ padding: "10px", borderBottom: "1px solid #eee" }}>
+                      <strong style={{ fontSize: "0.95rem", color: "#2c3e50" }}>{accName}</strong>
+                      {partyName && (
+                        <span style={{ color: "#666", fontSize: "0.85rem", display: "block", marginTop: "2px" }}>
+                          Party: {partyName}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: "10px", borderBottom: "1px solid #eee" }}>{row.description || description}</td>
+                    <td style={{ padding: "10px", borderBottom: "1px solid #eee", textAlign: "right" }}>
+                      {Number(row.debit) > 0 ? `${Number(row.debit).toLocaleString()}` : "-"}
+                    </td>
+                    <td style={{ padding: "10px", borderBottom: "1px solid #eee", textAlign: "right" }}>
+                      {Number(row.credit) > 0 ? `${Number(row.credit).toLocaleString()}` : "-"}
+                    </td>
+                  </tr>
+                );
+              })}
+              <tr className="amount-row" style={{ fontWeight: "bold", background: "#fafafa" }}>
+                <td colSpan="2" style={{ padding: "10px" }}>Total Amount</td>
+                <td colSpan="2" style={{ padding: "10px", textAlign: "right" }}>
+                  Rs. {Number(totalAmount).toLocaleString()}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
 
         <footer className="invoice-footer">
-         
-
           <div className="note-section">
-            <p className="note">Thank you. This invoice represents the payment transaction</p>
+            <p className="note">Thank you. This invoice represents the payment transaction entry.</p>
             <div className="action-buttons-group no-print" style={{ display: "flex", gap: "10px", marginTop: "20px", justifyContent: "center" }}>
               <button onClick={() => navigate(-1)} className="back-button" style={{ padding: "10px 20px", cursor: "pointer" }}>
                 ← Back
