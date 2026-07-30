@@ -143,8 +143,8 @@
 
 .row-total-income { background-color: #f0fdf4; font-weight: 600; }
 .row-total-expense { background-color: #fef2f2; font-weight: 600; }
-.row-gross-profit { background-color: #fffbeb; font-weight: 700; border-top: 2px solid #d97706 !important; }
-.row-net-profit { background-color: #eff6ff; font-weight: 800; font-size: 17px; border-bottom: 4px double #2563eb !important; }
+.row-gross-profit { background-color: #fffbeb; font-weight: 700; }
+.row-net-profit { background-color: #f0fdf4; font-weight: 800; font-size: 17px;  }
 
 .text-right { text-align: right; }
 
