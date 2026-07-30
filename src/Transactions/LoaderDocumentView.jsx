@@ -8,7 +8,7 @@ import { FaArrowLeft, FaFileExcel, FaFilePdf, FaImage } from "react-icons/fa";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import api from "../../api";
-import '../Invoice.css'; // Utilizing your custom invoice styles
+import '../Invoice.css';
 
 const LoaderDocumentView = ({ docType }) => {
   const { docNo } = useParams();
@@ -22,7 +22,6 @@ const LoaderDocumentView = ({ docType }) => {
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const docTitle = docType === "GRN" ? "Goods Receive Note" : "Delivery Challan";
   const docLabel = docType === "GRN" ? "Supplier" : "Customer";
   const docHeading = docType === "GRN"
     ? "GOODS RECEIVE NOTE"
@@ -161,83 +160,119 @@ const LoaderDocumentView = ({ docType }) => {
   const totalQuantity = detailRows.reduce((sum, item) => sum + parseFloat(item.quantity || 0), 0);
 
   return (
-    <div className="d-flex flex-column min-vh-100">
+    <div className="d-flex flex-column min-vh-100 bg-light">
       <NavigationBar />
       
-      <div className="invoice-container flex-grow-1" style={{ marginTop: '70px', marginBottom: '30px' }}>
-        <div className="invoice-box shadow-lg" id="invoice-content" ref={printRef}> 
+      <div className="invoice-container flex-grow-1" style={{ marginTop: '80px', marginBottom: '40px' }}>
+        <div 
+          className="invoice-box shadow-sm bg-white p-4 p-md-5 mx-auto border rounded" 
+          id="invoice-content" 
+          ref={printRef}
+          style={{ maxWidth: '850px' }}
+        > 
           
-          <header className="invoice-header">
-            <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {/* Header Section */}
+          <header className="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
+            <div className="d-flex align-items-center gap-3">
               {user?.profile_image ? (
                 <img 
                   src={getLogoUrl()} 
                   alt="Company Logo" 
-                  style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
+                  style={{ width: '70px', height: '70px', borderRadius: '8px', objectFit: 'cover' }} 
                   crossOrigin="anonymous" 
                 />
               ) : (
-                <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
+                <div style={{ width: '70px', height: '70px', background: '#f8f9fa', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#6c757d', border: '1px solid #dee2e6' }}>
                   NO LOGO
                 </div>
               )}
               <div>
-                <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
+                <h4 className="fw-bold mb-0 text-uppercase text-dark" style={{ letterSpacing: '0.5px' }}>
                   {currentCompanyName}
-                </p>
-                <h4 className="subtitle" style={{ margin: 0 }}>{docHeading}</h4>
+                </h4>
+                <p className="text-muted fw-semibold small mb-0">{docHeading}</p>
               </div>
             </div>
-            <div className="invoice-id">
-              <h1 className="id-number" style={{ margin: 0 }}>#{master?.no || docNo}</h1>
+
+            {/* Document ID & Date in Top Right */}
+            <div className="text-end">
+              <span className="badge bg-light text-primary border border-primary fs-6 px-3 py-2 fw-bold">
+                #{master?.no || docNo}
+              </span>
+              <div className="mt-2">
+                <span className="text-muted small d-block" style={{ fontSize: '11px', fontWeight: '600' }}>DATE ISSUED</span>
+                <span className="fw-bold text-dark">{formatDate(master?.date)}</span>
+              </div>
             </div>
           </header>
 
-          <section className="invoice-details-section my-4">
-            <div className="details-row d-flex justify-content-between flex-wrap gap-3">
-              <div className="billed-to" style={{ minWidth: '220px', flex: '1' }}>
-                <p className="label text-muted mb-1" style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '600' }}>Party Details</p>
-                <h5 className="customer-name mb-1"><b>Name: </b>{master?.entity?.name || 'N/A'}</h5>
-                <p className="customer-detail mb-1"><b>Address: </b>{master?.entity?.address || 'N/A'}</p>
-                <p className="customer-detail mb-0"><b>Contact: </b>{master?.entity?.contact || 'N/A'}</p>
-              </div>
+          {/* Details Section Side-by-Side Grid */}
+          {/* Details Section Side-by-Side Grid */}
+<section className="mb-4">
+  <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch' }}>
+    
+    {/* Customer / Supplier Details Box */}
+    <div style={{ flex: '1', width: '50%' }}>
+      <div className="p-3 bg-light rounded border h-100">
+        <h6 className="text-uppercase text-secondary fw-bold small mb-3" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>
+          {docLabel} Details
+        </h6>
+        <div className="d-flex flex-column gap-2 small">
+          <div>
+            <span className="text-muted d-block" style={{ fontSize: '11px' }}>Name:</span>
+            <strong className="text-dark fs-6">{master?.entity?.name || 'N/A'}</strong>
+          </div>
+          <div>
+            <span className="text-muted d-block" style={{ fontSize: '11px' }}>Address:</span>
+            <strong className="text-dark">{master?.entity?.address || 'N/A'}</strong>
+          </div>
+          <div>
+            <span className="text-muted d-block" style={{ fontSize: '11px' }}>Contact:</span>
+            <strong className="text-dark">{master?.entity?.contact || 'N/A'}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
 
-              {/* Flexbox/Grid alignment fix for details */}
-              <div className="invoice-dates d-flex flex-wrap gap-3 text-end" style={{ flex: '2', justifyContent: 'flex-end' }}>
-                <div className="date-item" style={{ minWidth: '90px' }}>
-                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Date Issued</p>
-                  <p className="value fw-bold mb-0">{formatDate(master?.date)}</p>
-                </div>
-                <div className="date-item" style={{ minWidth: '90px' }}>
-                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Driver Name</p>
-                  <p className="value fw-bold mb-0">{master?.driver?.driver_name || 'N/A'}</p>
-                </div>
-                <div className="date-item" style={{ minWidth: '90px' }}>
-                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Vehicle No.</p>
-                  <p className="value fw-bold mb-0">{master?.vehicle_no || 'N/A'}</p>
-                </div>
-                <div className="date-item" style={{ minWidth: '90px' }}>
-                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Goods Name</p>
-                  <p className="value fw-bold mb-0">{master?.goods_name || 'N/A'}</p>
-                </div>
-                <div className="date-item" style={{ minWidth: '90px' }}>
-                  <p className="label text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600' }}>Bilti No.</p>
-                  <p className="value fw-bold mb-0">{master?.bilti_no || 'N/A'}</p>
-                </div>
-              </div>
-            </div>
-          </section>
+    {/* Transport Details Box */}
+    <div style={{ flex: '1', width: '50%' }}>
+      <div className="p-3 bg-light rounded border h-100">
+        <h6 className="text-uppercase text-secondary fw-bold small mb-3" style={{ fontSize: '11px', letterSpacing: '0.5px' }}>
+          Transport Details
+        </h6>
+        <div className="row g-2 small">
+          <div className="col-6">
+            <span className="text-muted d-block" style={{ fontSize: '11px' }}>Driver Name:</span>
+            <strong className="text-dark">{master?.driver?.driver_name || 'N/A'}</strong>
+          </div>
+          <div className="col-6">
+            <span className="text-muted d-block" style={{ fontSize: '11px' }}>Vehicle No:</span>
+            <strong className="text-dark">{master?.vehicle_no || 'N/A'}</strong>
+          </div>
+          <div className="col-6 mt-2">
+            <span className="text-muted d-block" style={{ fontSize: '11px' }}>Goods Name:</span>
+            <strong className="text-dark">{master?.goods_name || 'N/A'}</strong>
+          </div>
+          <div className="col-6 mt-2">
+            <span className="text-muted d-block" style={{ fontSize: '11px' }}>Bilti No:</span>
+            <strong className="text-dark">{master?.bilti_no || 'N/A'}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
 
-          <section className="item-table-section mt-4">
-            <h5 className="section-title mb-3">Item Details</h5>
+  </div>
+</section>
+          {/* Table Section */}
+          <section className="mb-5">
             <div className="table-responsive">
-              <table className="item-table w-100" style={{ tableLayout: 'fixed' }}>
-                <thead>
+              <table className="table table-bordered align-middle mb-0" style={{ tableLayout: 'fixed' }}>
+                <thead className="table-dark">
                   <tr>
-                    <th style={{ width: '8%', textAlign: 'left' }}>SR</th>
-                    <th style={{ width: '22%', textAlign: 'left' }}>MODEL</th>
-                    <th style={{ width: '55%', textAlign: 'left' }}>DESCRIPTION</th>
-                    <th style={{ width: '15%', textAlign: 'right' }}>QTY</th>
+                    <th style={{ width: '8%', textAlign: 'center' }}>SR</th>
+                    <th style={{ width: '27%', textAlign: 'left' }}>MODEL</th>
+                    <th style={{ width: '48%', textAlign: 'left' }}>DESCRIPTION</th>
+                    <th style={{ width: '17%', textAlign: 'right' }}>QTY</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -245,16 +280,16 @@ const LoaderDocumentView = ({ docType }) => {
                     <>
                       {detailRows.map((item, index) => (
                         <tr key={index}>
-                          <td style={{ textAlign: 'left' }}>{index + 1}</td>
-                          <td style={{ textAlign: 'left' }}>{cleanMaterialLabel(item.material_name || item.rm_name || item.name || "-")}</td>
-                          <td style={{ textAlign: 'left' }}>{item.description || 'N/A'}</td>
-                          <td style={{ textAlign: 'right' }}>{parseFloat(item.quantity || 0)}</td>
+                          <td className="text-center">{index + 1}</td>
+                          <td className="fw-semibold">{cleanMaterialLabel(item.material_name || item.rm_name || item.name || "-")}</td>
+                          <td className="text-muted">{item.description || 'N/A'}</td>
+                          <td className="text-end fw-bold">{parseFloat(item.quantity || 0)}</td>
                         </tr>
                       ))}
                       
-                      <tr style={{ fontWeight: 'bold', borderTop: '2px solid #444', backgroundColor: '#f9f9f9' }}>
-                        <td colSpan="3" style={{ textAlign: 'right', paddingRight: '15px' }}>TOTAL QTY:</td>
-                        <td style={{ textAlign: 'right' }}>{totalQuantity}</td>
+                      <tr className="table-light fw-bold border-top border-2">
+                        <td colSpan="3" className="text-end pe-3">TOTAL QTY:</td>
+                        <td className="text-end text-primary fs-6">{totalQuantity}</td>
                       </tr>
                     </>
                   ) : (
@@ -267,9 +302,27 @@ const LoaderDocumentView = ({ docType }) => {
             </div>
           </section>
 
-          <footer className="invoice-footer mt-5">
-            <div className="note-section" style={{ width: '100%' }}>
-              <p className="note" style={{ textAlign: 'center' }}>
+          {/* Signature & Stamp Section (Only 2 items: Left & Right) */}
+          <section className="my-5 pt-4">
+            <div className="d-flex justify-content-between align-items-end px-3">
+              <div className="text-center" style={{ width: '220px' }}>
+                <div className="border-top border-dark pt-2">
+                  <p className="fw-semibold small text-muted mb-0">Prepared / Authorized Signature</p>
+                </div>
+              </div>
+
+              <div className="text-center" style={{ width: '220px' }}>
+                <div className="border-top border-dark pt-2">
+                  <p className="fw-semibold small text-muted mb-0">Receiver Stamp & Signature</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Footer & Action Buttons */}
+          <footer className="border-top pt-3 mt-4">
+            <div className="text-center">
+              <p className="text-muted small mb-0">
                 Thank you. This is a computer-generated document.
               </p>
               
@@ -281,7 +334,7 @@ const LoaderDocumentView = ({ docType }) => {
                   <FaFileExcel />
                 </button>
                 <button type="button" onClick={exportToPNG} className="download-button bg-png">
-                  <FaImage />
+                  <FaImage /> 
                 </button>
                 <button type="button" onClick={exportToPDF} className="download-button bg-pdf">
                   <FaFilePdf />
