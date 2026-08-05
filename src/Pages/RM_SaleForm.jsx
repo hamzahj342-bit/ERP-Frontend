@@ -18,7 +18,7 @@ const RM_SaleForm = () => {
     const isEditMode = !!editId;
 
     const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }
+        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0, description: "" }
     ]);
     const [materials, setMaterials] = useState([]);
     const [customers, setCustomers] = useState([]);
@@ -48,6 +48,7 @@ const RM_SaleForm = () => {
             rm_name: material?.rm_name || material?.name || fallbackDetail?.material_name || fallbackDetail?.rm_name || "Material",
             uom_id: material?.uom_id ?? fallbackDetail?.uom_id ?? uom?.id ?? "",
             uom_name: material?.uom_name || material?.uom?.name || fallbackDetail?.uom_name || uom?.name || "",
+            description: material?.description || fallbackDetail?.description || fallbackDetail?.material_description || "",
             supplier_id: material?.supplier_id ?? fallbackDetail?.supplier_id ?? "",
             shop_name: material?.shop_name || fallbackDetail?.shop_name || "",
             current_stock: Number(material?.current_stock ?? fallbackDetail?.current_stock ?? 0),
@@ -177,6 +178,7 @@ const RM_SaleForm = () => {
                                 total: (qty * price).toFixed(2),
                                 uom_id: finalUomId,
                                 uom_name: finalUomName,
+                                description: d.description || matchingMaterial?.description || "",
                                 supplier_id: String(cleanSupplierId),
                                 shop_name: finalShopName,
                                 current_stock: matchingMaterial ? Number(matchingMaterial.current_stock) : qty
@@ -207,7 +209,7 @@ const RM_SaleForm = () => {
     const handleMaterialSelection = (index, value) => {
         const updated = [...rows];
         if (!value) {
-            updated[index] = { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 };
+            updated[index] = { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0, description: "" };
             setRows(updated);
             calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
             return;
@@ -221,6 +223,7 @@ const RM_SaleForm = () => {
             updated[index].rm_name = selected.rm_name;
             updated[index].uom_id = selected.uom_id;
             updated[index].uom_name = selected.uom_name;
+            updated[index].description = selected.description || "";
             updated[index].supplier_id = String(selected.supplier_id);
             updated[index].shop_name = selected.shop_name;
             updated[index].current_stock = selected.current_stock;
@@ -235,7 +238,7 @@ const RM_SaleForm = () => {
     const handleSourceDocumentSelection = async (docId, existingRowsOverride = rows, materialsList = materials) => {
         setSelectedSourceDoc(docId || "");
         if (!docId) {
-            setRows(Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0 ? existingRowsOverride : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }]);
+            setRows(Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0 ? existingRowsOverride : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0, description: "" }]);
             setOriginalSourceItems([]);
             return;
         }
@@ -255,7 +258,7 @@ const RM_SaleForm = () => {
 
             const fallbackRows = Array.isArray(existingRowsOverride) && existingRowsOverride.length > 0
                 ? existingRowsOverride
-                : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }];
+                : [{ rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0, description: "" }];
 
             const mappedRows = details.map((detail) => {
                 const cleanRmId = Number(detail.material_id || detail.rm_id);
@@ -273,6 +276,7 @@ const RM_SaleForm = () => {
                     total: existingRow.total ?? "0.00",
                     uom_id: meta.uom_id,
                     uom_name: meta.uom_name,
+                    description: meta.description || detail.description || "",
                     supplier_id: cleanSupplierId ? String(cleanSupplierId) : "",
                     shop_name: meta.shop_name,
                     current_stock: meta.current_stock,
@@ -338,7 +342,7 @@ const RM_SaleForm = () => {
     };
 
     const addRow = () => {
-        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }]);
+        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0, description: "" }]);
     };
 
     const deleteRow = (index) => {
@@ -386,6 +390,7 @@ const RM_SaleForm = () => {
                 unit_price: parseFloat(r.unitPrice),
                 total_price: parseFloat(r.total),
                 uom_id: r.uom_id,
+                description: r.description || null,
                 entity_supplier_id: Number(r.supplier_id),
                 original_supplier_id: Number(r.supplier_id),
                 supplier_id: Number(r.supplier_id),
@@ -470,12 +475,13 @@ const RM_SaleForm = () => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
-                        <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '3.5fr 1.2fr 1.5fr 1.5fr 1.5fr 1fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
+                        <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '3.2fr 1.2fr 1.2fr 1.5fr 1.5fr 2.2fr 1fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
                             <span>Material</span>
                             <span>UOM</span>
                             <span>Qty</span>
                             <span>Unit Price</span>
                             <span>Total</span>
+                            <span>Description</span>
                             <span>Action</span>
                         </div>
 
@@ -484,7 +490,7 @@ const RM_SaleForm = () => {
                             const currentSelectionValue = row.rm_id && row.supplier_id ? `${Number(row.rm_id)}-${String(row.supplier_id).trim()}` : "";
 
                             return (
-                                <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '3.5fr 1.2fr 1.5fr 1.5fr 1.5fr 1fr', gap: '12px', alignItems: 'start', marginBottom: '12px' }}>
+                                <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '3.2fr 1.2fr 1.2fr 1.5fr 1.5fr 2.2fr 1fr', gap: '12px', alignItems: 'start', marginBottom: '12px' }}>
                                     
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <select
@@ -512,6 +518,7 @@ const RM_SaleForm = () => {
                                     <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
                                     <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
                                     <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
+                                    <input type="text" className="rm-input-field readonly-input" placeholder="Description" value={row.description || ""} readOnly/>
 
                                     <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
                                         <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow} disabled={!!selectedSourceDoc}><FaPlus /></button>

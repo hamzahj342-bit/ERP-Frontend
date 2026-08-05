@@ -13,41 +13,32 @@ const RM_InvoiceDetail = () => {
     const [loading, setLoading] = useState(true);
     const [companies, setCompanies] = useState([]);
 
-    // ✅ Backend Image Base URL
+    // Backend Image Base URL
     const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
     
-    // ✅ LocalStorage se User aur Company ID nikalna
+    // LocalStorage se User aur Company ID nikalna
     const user = JSON.parse(localStorage.getItem("user"));
 
-    // ✅ Smart Pathing for Logo (Cloudinary vs Local)
-const getLogoUrl = () => {
-    if (!user?.profile_image) return null;
-    console.log("Current Profile Image State:", user.profile_image);
+    // Smart Pathing for Logo (Cloudinary vs Local)
+    const getLogoUrl = () => {
+        if (!user?.profile_image) return null;
 
-    // Check if it's already a full URL (Cloudinary)
-    if (user.profile_image.startsWith("http")) {
-        return user.profile_image;
-    }
+        if (user.profile_image.startsWith("http")) {
+            return user.profile_image;
+        }
 
-    // Otherwise, join with Base URL (Local/Render)
-   // Taake agar database mein "uploads\file.png" hai toh sirf "file.png" bache
-    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+        const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+        const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
 
-    // 3. Final URL build karein (Windows backslash ko forward slash se badlein)
-    const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
-
-    console.log("Fixed URL:", finalUrl); 
-    return finalUrl;
-};
+        return finalUrl;
+    };
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                // 1. Fetch Companies (Company Name nikalne ke liye)
                 const compRes = await api.get('/companies');
                 setCompanies(compRes.data);
 
-                // 2. Fetch Invoice Details
                 if (invoiceNo) {
                     const invRes = await api.get(`/rm-invoice/${invoiceNo}`);
                     setInvoice(invRes.data);
@@ -61,7 +52,6 @@ const getLogoUrl = () => {
         fetchInitialData();
     }, [invoiceNo]);
 
-    // ✅ Current Company ka naam ID ke zariye dhoondna
     const currentCompanyName = companies.find(c => c.id === Number(user?.company_id))?.name || "CHEMICAL & DETERGENTS TRADER";
 
     const formatDate = (dateString) => {
@@ -69,33 +59,52 @@ const getLogoUrl = () => {
         return new Date(dateString).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
-    // 📄 PDF Download Handler
-    const handleDownloadPDF = () => {
+    // 📄 PDF Single-Page Fit Logic (Without changing design)
+    const handleDownloadPDF = async () => {
         const input = document.getElementById("invoice-detail"); 
-        html2canvas(input, { useCORS: true, scale: 2,
+        if (!input) return;
+
+        const canvas = await html2canvas(input, { 
+            useCORS: true, 
+            scale: 2,
             ignoreElements: (element) => element.classList.contains('no-print')
-         }).then((canvas) => {
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight); 
-            pdf.save(`Invoice-${invoice.invoice_no}.pdf`); 
         });
-    }
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth();   // 210mm (A4 Width)
+        const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm (A4 Height)
+
+        let renderedWidth = pdfWidth;
+        let renderedHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        // Agar 30-35 items hone ki waja se height A4 se zyada ho, to isko auto-scale down karke Single Page me fit karo
+        if (renderedHeight > pdfHeight) {
+            renderedHeight = pdfHeight;
+            renderedWidth = (canvas.width * pdfHeight) / canvas.height;
+        }
+
+        const xOffset = (pdfWidth - renderedWidth) / 2;
+
+        pdf.addImage(imgData, 'PNG', xOffset, 0, renderedWidth, renderedHeight); 
+        pdf.save(`Invoice-${invoice.invoice_no}.pdf`); 
+    };
 
     // 🖼️ PNG Image Download Handler
     const handleDownloadImage = () => {
         const input = document.getElementById("invoice-detail");
-        html2canvas(input, { useCORS: true, scale: 3,
+        html2canvas(input, { 
+            useCORS: true, 
+            scale: 3,
             ignoreElements: (element) => element.classList.contains('no-print')
-         }).then((canvas) => {
+        }).then((canvas) => {
             const link = document.createElement('a');
             link.download = `Invoice-${invoice.invoice_no}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         });
-    }
+    };
 
     if (loading) return <p className="p-5 text-center">Loading invoice...</p>;
     if (!invoice) return <p className="p-5 text-center text-danger">Invoice not found!</p>;
@@ -105,21 +114,19 @@ const getLogoUrl = () => {
             <div id="invoice-detail" className="invoice-box shadow-lg">
                 <header className="invoice-header">
                     <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        {/* ✅ Dynamic Logo */}
                         {user?.profile_image ? (
-            <img 
-                src={getLogoUrl()} 
-                alt="Logo" 
-                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
-                crossOrigin="anonymous" 
-            />
-        ) : (
-            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
-                NO LOGO
-            </div>
-        )}
+                            <img 
+                                src={getLogoUrl()} 
+                                alt="Logo" 
+                                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
+                                crossOrigin="anonymous" 
+                            />
+                        ) : (
+                            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
+                                NO LOGO
+                            </div>
+                        )}
                         <div>
-                            {/* ✅ Dynamic Company Name */}
                             <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
                                 {currentCompanyName}
                             </p>
@@ -160,9 +167,10 @@ const getLogoUrl = () => {
                         <table className="item-table">
                             <thead>
                                 <tr>
-                                    <th className="product-col">Material Description</th>
+                                    <th className="description-col">Model</th>
+                                    <th className="product-col">Description</th>
                                     <th className="qty-col text-right">Qty</th>
-                                    <th className="uom-col text-right">UOM</th>
+                                    {/* <th className="uom-col text-right">UOM</th> */}
                                     <th className="price-col text-right">Unit Price</th>
                                     <th className="amount-col text-right">Amount</th>
                                 </tr>
@@ -170,9 +178,10 @@ const getLogoUrl = () => {
                             <tbody>
                                 {invoice.RmDetails?.map((item, i) => (
                                     <tr key={i}>
-                                        <td className="product-col">{item.rm_name}</td>
+                                        <td className="description-col">{item.rm_name}</td>
+                                        <td className="product-col">{item.description || 'N/A'}</td>
                                         <td className="qty-col text-right">{item.quantity}</td>
-                                        <td className="uom-col text-right">{item.uom?.name}</td>
+                                        {/* <td className="uom-col text-right">{item.uom?.name}</td> */}
                                         <td className="price-col text-right">{Number(item.unit_price).toLocaleString()}</td>
                                         <td className="amount-col text-right">{Number(item.total_price).toLocaleString()}</td>
                                     </tr>
@@ -186,13 +195,12 @@ const getLogoUrl = () => {
                     <div className="total-area">
                         <div className="total-box shadow">
                             <div style={{ marginBottom: '10px' }}>
-                               
                                 {invoice.is_taxable ? (
                                     <>
-                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                    <span>Sub Total</span>
-                                    <span>Rs. {Number(invoice.subtotal || 0).toLocaleString()}</span>
-                                </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span>Sub Total</span>
+                                            <span>Rs. {Number(invoice.subtotal || 0).toLocaleString()}</span>
+                                        </div>
                                         {Number(invoice.discount) > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                                 <span>Discount</span>
@@ -227,7 +235,6 @@ const getLogoUrl = () => {
                     <div className="note-section">
                         <p className="note">Thank you for your business. This is a computer-generated invoice.</p>
                         
-                        {/* Action Buttons (no-print class hides them in PDF/Image) */}
                         <div className="action-buttons-group no-print" style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center' }}>
                             <button onClick={() => navigate(-1)} className="back-button" style={{ padding: '10px 20px', cursor: 'pointer' }}>
                                 ← Back

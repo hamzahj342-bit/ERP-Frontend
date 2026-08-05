@@ -140,16 +140,35 @@ const LoaderDocumentView = ({ docType }) => {
     link.click();
   };
 
-  const exportToPDF = () => {
+  // 🔥 Single Page Fit PDF Export Logic
+  const exportToPDF = async () => {
     if (!printRef.current) return;
-    html2canvas(printRef.current, { useCORS: true, scale: 2, ignoreElements: (element) => element.classList.contains("no-print") }).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${docType}-${documentData?.master?.no || docNo}.pdf`);
+    
+    const canvas = await html2canvas(printRef.current, { 
+      useCORS: true, 
+      scale: 2, 
+      ignoreElements: (element) => element.classList.contains("no-print") 
     });
+    
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    
+    const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
+    const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
+    
+    let renderedWidth = pdfWidth;
+    let renderedHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    // Direct Scaling down if total height exceeds single page limit (297mm)
+    if (renderedHeight > pdfHeight) {
+      renderedHeight = pdfHeight;
+      renderedWidth = (canvas.width * pdfHeight) / canvas.height;
+    }
+
+    const xOffset = (pdfWidth - renderedWidth) / 2; // Horizontally center align if scaled
+
+    pdf.addImage(imgData, "PNG", xOffset, 0, renderedWidth, renderedHeight);
+    pdf.save(`${docType}-${documentData?.master?.no || docNo}.pdf`);
   };
 
   if (loading) return <p className="p-4 text-center small">Loading document...</p>;
@@ -163,71 +182,78 @@ const LoaderDocumentView = ({ docType }) => {
     <div className="d-flex flex-column min-vh-100 bg-light">
       <NavigationBar />
       
-      <div className="invoice-container flex-grow-1" style={{ marginTop: '40px', marginBottom: '30px' }}>
+      <div className="invoice-container flex-grow-1" style={{ marginTop: '20px', marginBottom: '20px' }}>
         <div 
-          className="invoice-box shadow-sm bg-white p-3 p-md-4 mx-auto border rounded" 
+          className="invoice-box shadow-sm bg-white p-3 mx-auto border rounded" 
           id="invoice-content" 
           ref={printRef}
-          style={{ maxWidth: '350px', fontSize: '11px', color: '#2b2b2b' }}
+          style={{ 
+            width: '100%',
+            maxWidth: '680px', 
+            minHeight: '850px',
+            fontSize: '9px', 
+            color: '#2b2b2b',
+            boxSizing: 'border-box'
+          }}
         > 
           
           {/* Header Section */}
-          <header className="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+          <header className="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
             <div className="d-flex align-items-center gap-2">
               {user?.profile_image ? (
                 <img 
                   src={getLogoUrl()} 
                   alt="Company Logo" 
-                  style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} 
+                  style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover' }} 
                   crossOrigin="anonymous" 
                 />
               ) : (
-                <div style={{ width: '40px', height: '40px', background: '#f8f9fa', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', color: '#6c757d', border: '1px solid #dee2e6' }}>
+                <div style={{ width: '32px', height: '32px', background: '#f8f9fa', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '6px', color: '#6c757d', border: '1px solid #dee2e6' }}>
                   NO LOGO
                 </div>
               )}
               <div>
-                <h6 className="fw-bold mb-0 text-uppercase text-dark" style={{ letterSpacing: '0.3px', fontSize: '11px' }}>
+                <h6 className="fw-bold mb-0 text-uppercase text-dark" style={{ letterSpacing: '0.3px', fontSize: '11px', lineHeight: '1.1' }}>
                   {currentCompanyName}
                 </h6>
-                <p className="text-muted fw-semibold mb-0" style={{ fontSize: '7px', letterSpacing: '0.3px' }}>{docHeading}</p>
+                <p className="text-muted fw-semibold mb-0" style={{ fontSize: '8px', letterSpacing: '0.2px' }}>{docHeading}</p>
               </div>
             </div>
 
             {/* Document ID & Date in Top Right */}
             <div className="text-end">
-              <span className="badge bg-light text-primary border border-primary px-2 py-1 fw-bold" style={{ fontSize: '8px' }}>
+              <span className="badge bg-light text-primary border border-primary px-2 py-0 fw-bold" style={{ fontSize: '9px' }}>
                 #{master?.no || docNo}
               </span>
-              <div className="mt-1">
-                <span className="text-muted d-block" style={{ fontSize: '6px', fontWeight: '600' }}>DATE ISSUED</span>
+              <div className="mt-0">
+                <span className="text-muted" style={{ fontSize: '7px', fontWeight: '600' }}>DATE: </span>
                 <span className="fw-bold text-dark" style={{ fontSize: '8px' }}>{formatDate(master?.date)}</span>
               </div>
             </div>
           </header>
 
           {/* Details Section Side-by-Side Grid */}
-          <section className="mb-3">
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+          <section className="mb-2">
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
               
               {/* Customer / Supplier Details Box */}
               <div style={{ flex: '1', width: '50%' }}>
-                <div className="p-2 bg-light rounded border h-100">
-                  <h6 className="text-uppercase text-secondary fw-bold mb-2" style={{ fontSize: '5px', letterSpacing: '0.5px' }}>
+                <div className="p-1 px-2 bg-light rounded border h-100">
+                  <div className="text-uppercase text-secondary fw-bold mb-1" style={{ fontSize: '7px', borderBottom: '1px solid #e0e0e0', paddingBottom: '1px' }}>
                     {docLabel} Details
-                  </h6>
-                  <div className="d-flex flex-column gap-1">
-                    <div>
-                      <span className="text-muted d-block" style={{ fontSize: '7px',  }}>Name:</span>
-                      <strong className="text-dark" style={{ fontSize: '8px' }}>{master?.entity?.name || 'N/A'}</strong>
+                  </div>
+                  <div className="d-flex flex-column gap-0">
+                    <div className="d-flex gap-1 align-items-center">
+                      <span className="text-muted" style={{ fontSize: '8px', width: '45px' }}>Name:</span>
+                      <strong className="text-dark text-truncate" style={{ fontSize: '8px' }}>{master?.entity?.name || 'N/A'}</strong>
                     </div>
-                    <div>
-                      <span className="text-muted d-block" style={{ fontSize: '7px',  }}>Address:</span>
-                      <strong className="text-dark" style={{ fontSize: '8px' }}>{master?.entity?.address || 'N/A'}</strong>
+                    <div className="d-flex gap-1 align-items-center">
+                      <span className="text-muted" style={{ fontSize: '8px', width: '45px' }}>Address:</span>
+                      <span className="text-dark text-truncate" style={{ fontSize: '8px' }}>{master?.entity?.address || 'N/A'}</span>
                     </div>
-                    <div>
-                      <span className="text-muted d-block" style={{ fontSize: '7px', }}>Contact:</span>
-                      <strong className="text-dark" style={{ fontSize: '8px' }}>{master?.entity?.contact || 'N/A'}</strong>
+                    <div className="d-flex gap-1 align-items-center">
+                      <span className="text-muted" style={{ fontSize: '8px', width: '45px' }}>Contact:</span>
+                      <span className="text-dark text-truncate" style={{ fontSize: '8px' }}>{master?.entity?.contact || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -235,26 +261,26 @@ const LoaderDocumentView = ({ docType }) => {
 
               {/* Transport Details Box */}
               <div style={{ flex: '1', width: '50%' }}>
-                <div className="p-2 bg-light rounded border h-100">
-                  <h6 className="text-uppercase text-secondary fw-bold mb-2" style={{ fontSize: '5px', letterSpacing: '0.5px' }}>
+                <div className="p-1 px-2 bg-light rounded border h-100">
+                  <div className="text-uppercase text-secondary fw-bold mb-1" style={{ fontSize: '7px', borderBottom: '1px solid #e0e0e0', paddingBottom: '1px' }}>
                     Transport Details
-                  </h6>
-                  <div className="d-flex flex-column gap-1">
-                    <div className="col-6">
-                      <span className="text-muted d-block" style={{ fontSize: '7px',}}>Driver Name:</span>
-                      <strong className="text-dark" style={{ fontSize: '8px' }}>{master?.driver?.driver_name || 'N/A'}</strong>
+                  </div>
+                  <div className="row g-0">
+                    <div className="col-6 d-flex gap-1">
+                      <span className="text-muted" style={{ fontSize: '8px' }}>Driver:</span>
+                      <strong className="text-dark text-truncate" style={{ fontSize: '8px' }}>{master?.driver?.driver_name || 'N/A'}</strong>
                     </div>
-                    <div className="col-6">
-                      <span className="text-muted d-block" style={{ fontSize: '7px' }}>Vehicle No:</span>
-                      <strong className="text-dark" style={{ fontSize: '8px' }}>{master?.vehicle_no || 'N/A'}</strong>
+                    <div className="col-6 d-flex gap-1">
+                      <span className="text-muted" style={{ fontSize: '8px' }}>Vehicle:</span>
+                      <strong className="text-dark text-truncate" style={{ fontSize: '8px' }}>{master?.vehicle_no || 'N/A'}</strong>
                     </div>
-                    <div className="col-6 ">
-                      <span className="text-muted d-block" style={{ fontSize: '7px' }}>Goods Name:</span>
-                      <strong className="text-dark" style={{ fontSize: '8px' }}>{master?.goods_name || 'N/A'}</strong>
+                    <div className="col-6 d-flex gap-1 mt-0">
+                      <span className="text-muted" style={{ fontSize: '8px' }}>Goods:</span>
+                      <span className="text-dark text-truncate" style={{ fontSize: '8px' }}>{master?.goods_name || 'N/A'}</span>
                     </div>
-                    <div className="col-6 ">
-                      <span className="text-muted d-block" style={{ fontSize: '7px'}}>Bilti No:</span>
-                      <strong className="text-dark" style={{ fontSize: '8px' }}>{master?.bilti_no || 'N/A'}</strong>
+                    <div className="col-6 d-flex gap-1 mt-0">
+                      <span className="text-muted" style={{ fontSize: '8px' }}>Bilti:</span>
+                      <span className="text-dark text-truncate" style={{ fontSize: '8px' }}>{master?.bilti_no || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -264,37 +290,37 @@ const LoaderDocumentView = ({ docType }) => {
           </section>
 
           {/* Table Section */}
-          <section className="mb-3">
+          <section className="mb-2">
             <div className="table-responsive">
               <table className="table table-bordered align-middle mb-0" style={{ tableLayout: 'fixed', fontSize: '8px' }}>
                 <thead className="table-dark">
                   <tr>
-                    <th style={{ width: '8%', textAlign: 'center', padding: '4px' }}>SR</th>
-                    <th style={{ width: '27%', textAlign: 'left', padding: '4px' }}>MODEL</th>
-                    <th style={{ width: '48%', textAlign: 'left', padding: '4px' }}>DESCRIPTION</th>
-                    <th style={{ width: '17%', textAlign: 'right', padding: '4px' }}>QTY</th>
+                    <th style={{ width: '6%', textAlign: 'center', padding: '2px 4px' }}>SR</th>
+                    <th style={{ width: '28%', textAlign: 'left', padding: '2px 4px' }}>MODEL</th>
+                    <th style={{ width: '52%', textAlign: 'left', padding: '2px 4px' }}>DESCRIPTION</th>
+                    <th style={{ width: '14%', textAlign: 'right', padding: '2px 4px' }}>QTY</th>
                   </tr>
                 </thead>
                 <tbody>
                   {detailRows.length > 0 ? (
                     <>
                       {detailRows.map((item, index) => (
-                        <tr key={index}>
-                          <td className="text-center" style={{ padding: '4px' }}>{index + 1}</td>
-                          <td className="fw-semibold" style={{ padding: '4px' }}>{cleanMaterialLabel(item.material_name || item.rm_name || item.name || "-")}</td>
-                          <td className="text-muted" style={{ padding: '4px' }}>{item.description || 'N/A'}</td>
-                          <td className="text-end fw-bold" style={{ padding: '4px' }}>{parseFloat(item.quantity || 0)}</td>
+                        <tr key={index} style={{ height: '18px' }}>
+                          <td className="text-center" style={{ padding: '1px 4px' }}>{index + 1}</td>
+                          <td className="fw-semibold text-truncate" style={{ padding: '1px 4px' }}>{cleanMaterialLabel(item.material_name || item.rm_name || item.name || "-")}</td>
+                          <td className="text-muted text-truncate" style={{ padding: '1px 4px' }}>{item.description || 'N/A'}</td>
+                          <td className="text-end fw-bold" style={{ padding: '1px 4px' }}>{parseFloat(item.quantity || 0)}</td>
                         </tr>
                       ))}
                       
                       <tr className="table-light fw-bold border-top border-2">
-                        <td colSpan="3" className="text-end pe-2" style={{ padding: '4px' }}>TOTAL QTY:</td>
-                        <td className="text-end text-primary" style={{ padding: '4px', fontSize: '8px' }}>{totalQuantity}</td>
+                        <td colSpan="3" className="text-end pe-2" style={{ padding: '2px 4px' }}>TOTAL QTY:</td>
+                        <td className="text-end text-primary" style={{ padding: '2px 4px', fontSize: '9px' }}>{totalQuantity}</td>
                       </tr>
                     </>
                   ) : (
                     <tr>
-                      <td colSpan="4" className="text-center text-muted py-3">No details found.</td>
+                      <td colSpan="4" className="text-center text-muted py-2">No details found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -303,41 +329,41 @@ const LoaderDocumentView = ({ docType }) => {
           </section>
 
           {/* Signature & Stamp Section */}
-          <section className="mt-4 pt-2">
+          <section className="mt-3 pt-1" style={{ pageBreakInside: 'avoid' }}>
             <div className="d-flex justify-content-between align-items-end px-2">
               <div className="text-center" style={{ width: '130px' }}>
-                <div className="border-top border-dark pt-1">
-                  <p className="fw-semibold text-muted mb-0" style={{ fontSize: '7px' }}>Prepared / Authorized Signature</p>
+                <div className="border-top border-dark pt-0">
+                  <p className="fw-semibold text-muted mb-0" style={{ fontSize: '7px' }}>Prepared / Authorized Sign</p>
                 </div>
               </div>
 
               <div className="text-center" style={{ width: '130px' }}>
-                <div className="border-top border-dark pt-1">
-                  <p className="fw-semibold text-muted mb-0" style={{ fontSize: '7px' }}>Receiver Stamp & Signature</p>
+                <div className="border-top border-dark pt-0">
+                  <p className="fw-semibold text-muted mb-0" style={{ fontSize: '7px' }}>Receiver Stamp & Sign</p>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Footer & Action Buttons */}
-          <footer className="border-top pt-2 mt-3">
+          <footer className="border-top pt-1 mt-2" style={{ pageBreakInside: 'avoid' }}>
             <div className="text-center">
-              <p className="text-muted mb-0" style={{ fontSize: '8px' }}>
+              <p className="text-muted mb-0" style={{ fontSize: '7px' }}>
                 Thank you. This is a computer-generated document.
               </p>
               
-              <div className="action-buttons-group no-print d-flex justify-content-center align-items-center gap-2 mt-3">
-                <button type="button" onClick={() => navigate(-1)} className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" style={{ fontSize: '8px', padding: '2px 8px' }}>
+              <div className="action-buttons-group no-print d-flex justify-content-center align-items-center gap-2 mt-2">
+                <button type="button" onClick={() => navigate(-1)} className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" style={{ fontSize: '8px', padding: '2px 6px' }}>
                   <FaArrowLeft /> Back
                 </button>
                 <button type="button" onClick={exportToExcel} className="download-btn bg-excel">
-                  <FaFileExcel size={10} />
+                  <FaFileExcel size={9} />
                 </button>
                 <button type="button" onClick={exportToPNG} className="download-btn bg-png">
-                  <FaImage size={10} /> 
+                  <FaImage size={9} /> 
                 </button>
                 <button type="button" onClick={exportToPDF} className="download-btn bg-pdf">
-                  <FaFilePdf size={10} />
+                  <FaFilePdf size={9} />
                 </button>
               </div>
             </div>

@@ -18,7 +18,7 @@ const RM_PurchaseForm = () => {
     const isEditMode = !!editId;
 
     const [rows, setRows] = useState([
-        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }
+        { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", description: "" }
     ]);
     const [materials, setMaterials] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
@@ -52,6 +52,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
             rm_name: material?.name || material?.rm_name || fallbackDetail?.material_name || fallbackDetail?.rm_name || "Material",
             uom_id: material?.uom_id ?? fallbackDetail?.uom_id ?? uom?.id ?? "",
             uom_name: material?.uom_name || material?.uom?.name || fallbackDetail?.uom_name || uom?.name || "",
+            description: material?.description || fallbackDetail?.description || fallbackDetail?.material_description || "",
             supplier_id: material?.supplier_id ?? fallbackDetail?.supplier_id ?? "",
             shop_name: material?.shop_name || fallbackDetail?.shop_name || "",
             current_stock: Number(material?.current_stock ?? fallbackDetail?.current_stock ?? 0),
@@ -175,7 +176,8 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                 unitPrice: price,
                                 total: (qty * price).toFixed(2),
                                 uom_id: d.uom_id || matchingMaterial?.uom?.id || matchingMaterial?.uom_id || "",
-                                uom_name: d.uom_name || matchingMaterial?.uom?.name || matchingMaterial?.uom_name || ""
+                                uom_name: d.uom_name || matchingMaterial?.uom?.name || matchingMaterial?.uom_name || "",
+                                description: d.description || matchingMaterial?.description || ""
                             };
                         });
                         setRows(mappedRows);
@@ -240,6 +242,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                     total: existingRow.total ?? "0.00",
                     uom_id: meta.uom_id,
                     uom_name: meta.uom_name,
+                    description: meta.description || detail.description || "",
                     source_doc_id: sourceDoc.id,
                     source_doc_no: sourceDoc.no,
                     source_doc_type: sourceDoc.type,
@@ -291,7 +294,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
     };
 
     const addRow = () => {
-        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }]);
+        setRows([...rows, { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "", description: "" }]);
     };
 
     const deleteRow = (index) => {
@@ -335,6 +338,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                 unit_price: parseFloat(r.unitPrice),
                 total_price: parseFloat(r.total),
                 uom_id: r.uom_id,
+                description: r.description || null,
                 date,
                 entity_supplier_id: selectedSupplier,
             })),
@@ -452,17 +456,18 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                     </div>
 
                     <form onSubmit={handleSubmit}>
-                        <div className="items-table-header">
+                        <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '2.8fr 1fr 1fr 1.3fr 1.3fr 2.3fr 1fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
                             <span>Material</span>
                             <span>UOM</span>
                             <span>Qty</span>
                             <span>Unit Price</span>
                             <span>Total</span>
+                            <span>Description</span>
                             <span>Action</span>
                         </div>
 
                         {rows.map((row, index) => (
-                            <div className="item-row" key={index}>
+                            <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '2.8fr 1fr 1fr 1.3fr 1.3fr 2.3fr 1fr', gap: '12px', alignItems: 'start', marginBottom: '12px' }}>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <select
                                         className="rm-input-field"
@@ -475,6 +480,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                             handleChange(index, "rm_name", meta.rm_name);
                                             handleChange(index, "uom_id", meta.uom_id);
                                             handleChange(index, "uom_name", meta.uom_name);
+                                            handleChange(index, "description", meta.description || "");
                                         }}
                                     >
                                         <option value="">Select Material</option>
@@ -487,6 +493,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                 <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
                                 <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
                                 <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
+                                <input type="text" className="rm-input-field readonly-input" placeholder="Description" value={row.description || ""} readOnly />
 
                                 <div style={{ display: 'flex', gap: '5px' }}>
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow} disabled={!!selectedSourceDoc}><FaPlus /></button>
