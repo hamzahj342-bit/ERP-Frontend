@@ -131,7 +131,7 @@ const ProductionForm = () => {
     const newQty = e.target.value;
     
     if (isEditMode && parseFloat(newQty) < minAllowedQty) {
-      toast.warning(`Aap quantity ${minAllowedQty} se kam nahi kar sakte, kyunke itna maal pehle hi sale/consume ho chuka hai.`);
+      toast.warning(`Production Quantity cannot be less than ${minAllowedQty}, as that much Product has already been sold/consumed.`);
       return;
     }
 
@@ -250,7 +250,9 @@ const ProductionForm = () => {
                     value={formData.production_quantity} 
                     onChange={handleProductionQuantityChange} 
                     min={isEditMode ? minAllowedQty : "1"}
-                    required 
+                    required
+                    step="any"
+                    
                   />
                 </div>
               </div>
@@ -277,7 +279,7 @@ const ProductionForm = () => {
                         {mat.display_name}
                       </span>
                       
-                      {/* 🚀 FIX: Ab edit mode me live stock backend wala show hoga, N/A hardcoded nahi dikhega */}
+                
                       <span>
                         {mat.total_available_stock !== undefined && mat.total_available_stock !== null
                           ? parseFloat(mat.total_available_stock).toFixed(2)

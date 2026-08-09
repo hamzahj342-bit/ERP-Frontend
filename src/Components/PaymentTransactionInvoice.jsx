@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import "../Invoice.css";
 import api from "../../api";
+import { FaFilePdf, FaImage } from "react-icons/fa";
 
 const PaymentTransactionInvoice = () => {
   const { invoiceNo } = useParams();
@@ -210,11 +211,11 @@ const PaymentTransactionInvoice = () => {
               <button onClick={() => navigate(-1)} className="back-button" style={{ padding: "10px 20px", cursor: "pointer" }}>
                 ← Back
               </button>
-              <button onClick={handleDownloadImage} className="download-img-button" style={{ padding: "10px 20px", backgroundColor: "#27ae60", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
-                🖼️ Save as Image
+              <button onClick={handleDownloadImage} className="download-button bg-png">
+                <FaImage />
               </button>
-              <button onClick={handleDownloadPDF} className="download-pdf-button" style={{ padding: "10px 20px", backgroundColor: "#2980b9", color: "white", border: "none", borderRadius: "5px", cursor: "pointer" }}>
-                📄 Save as PDF
+              <button onClick={handleDownloadPDF} className="download-button bg-pdf">
+                <FaFilePdf />
               </button>
             </div>
           </div>

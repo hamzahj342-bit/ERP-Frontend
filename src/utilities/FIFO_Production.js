@@ -5,7 +5,6 @@
  * @returns {number} - The weighted average unit cost of the consumed quantity.
  */
 export const calculateDynamicFIFOCost = (batches, requiredQty) => {
-    // Required quantity ko number mein convert karein
     const qty = parseFloat(requiredQty);
 
     if (isNaN(qty) || qty <= 0) {
@@ -18,14 +17,13 @@ export const calculateDynamicFIFOCost = (batches, requiredQty) => {
 
     // Batches should already be sorted (createdat ASC) from the GET API
     for (const batch of batches) {
-        if (remainingQtyToConsume <= 0) break; // Zaroorat poori ho gayi
+        if (remainingQtyToConsume <= 0) break; 
 
         const availableQty = parseFloat(batch.current_stock);
         const avgCost = parseFloat(batch.avg_unit_cost);
 
         if (availableQty <= 0) continue;
 
-        // Kitni quantity is batch se use hogi?
         const consumptionQty = Math.min(availableQty, remainingQtyToConsume);
 
         // Cost calculation
@@ -34,7 +32,6 @@ export const calculateDynamicFIFOCost = (batches, requiredQty) => {
         remainingQtyToConsume -= consumptionQty;
     }
 
-    // Agar stock required quantity se kam hai, to sirf available stock ki cost calculate hogi.
 
     // Final Weighted Average Cost
     if (totalQtyActuallyConsumed === 0) return 0;

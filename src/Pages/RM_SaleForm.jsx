@@ -32,6 +32,7 @@ const RM_SaleForm = ({ channel = null }) => {
     const [date, setDate] = useState("");
     const [subTotal, setSubTotal] = useState(0);
     const [globalDiscount, setGlobalDiscount] = useState("");
+    const [deliveryCharges, setDeliveryCharges] = useState("");
     const [taxableAmount, setTaxableAmount] = useState(0);
     const [taxAmount, setTaxAmount] = useState(0);
     const [isTaxable, setIsTaxable] = useState(() => invoiceType !== 'nonTaxable');
@@ -85,30 +86,31 @@ const RM_SaleForm = ({ channel = null }) => {
         }
     }, [isEditMode]);
 
-    const calculateTotals = (currentRows, discountValue, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate) => {
+    const calculateTotals = (currentRows, discountValue, deliveryValue = deliveryCharges, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate) => {
         const currentSubTotal = currentRows.reduce((sum, row) => {
             const qty = parseFloat(row.quantity) || 0;
             const price = parseFloat(row.unitPrice) || 0;
             return sum + (qty * price);
         }, 0);
 
+        const delivery = parseFloat(deliveryValue) || 0;
         const discount = parseFloat(discountValue) || 0;
-        const netValue = Math.max(0, currentSubTotal - discount);
+        const taxableBase = Math.max(0, currentSubTotal - discount);
 
-        let calculatedTaxable = netValue;
+        let calculatedTaxable = taxableBase;
         let calculatedTaxAmount = 0;
-        let calculatedGrand = netValue;
+        let calculatedGrand = taxableBase + delivery;
 
         if (currentIsTaxable && (parseFloat(currentTaxRate) || 0) > 0) {
             const rate = parseFloat(currentTaxRate) / 100;
             if (currentTaxMode === 'inclusive') {
-                calculatedTaxable = netValue / (1 + rate);
-                calculatedTaxAmount = netValue - calculatedTaxable;
-                calculatedGrand = netValue;
+                calculatedTaxable = taxableBase / (1 + rate);
+                calculatedTaxAmount = taxableBase - calculatedTaxable;
+                calculatedGrand = taxableBase + delivery;
             } else {
-                calculatedTaxable = netValue;
+                calculatedTaxable = taxableBase;
                 calculatedTaxAmount = calculatedTaxable * rate;
-                calculatedGrand = calculatedTaxable + calculatedTaxAmount;
+                calculatedGrand = calculatedTaxable + calculatedTaxAmount + delivery;
             }
         }
 
@@ -117,6 +119,10 @@ const RM_SaleForm = ({ channel = null }) => {
         setTaxAmount(calculatedTaxAmount.toFixed(2));
         setGrandTotal(Math.max(0, calculatedGrand).toFixed(2));
     };
+
+    useEffect(() => {
+        calculateTotals(rows, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
+    }, [rows, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate]);
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -163,6 +169,7 @@ const RM_SaleForm = ({ channel = null }) => {
                     
                     setSubTotal(parseFloat(master.subtotal || master.sub_total || 0).toFixed(2));
                     setGlobalDiscount(master.discount || "");
+                    setDeliveryCharges(parseFloat(master.delivery_charges || 0).toFixed(2));
                     setIsTaxable(master.is_taxable);
                     setTaxMode(master.tax_mode || 'exclusive');
                     setTaxRate(Number(master.tax_rate) || 0);
@@ -234,7 +241,7 @@ const RM_SaleForm = ({ channel = null }) => {
         if (!value) {
             updated[index] = { ...EMPTY_ROW };
             setRows(updated);
-            calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+            calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
             return;
         }
 
@@ -261,7 +268,7 @@ const RM_SaleForm = ({ channel = null }) => {
         }
 
         setRows(updated);
-        calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+        calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
     };
 
     // UOM change on a line: qty/price are re-interpreted in the new UOM
@@ -286,7 +293,7 @@ const RM_SaleForm = ({ channel = null }) => {
         }
 
         setRows(updated);
-        calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+        calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
     };
 
     const handleSourceDocumentSelection = async (docId, existingRowsOverride = rows, materialsList = materials) => {
@@ -350,7 +357,7 @@ const RM_SaleForm = ({ channel = null }) => {
 
             const nextRows = mappedRows.length > 0 ? mappedRows : fallbackRows;
             setRows(nextRows);
-            calculateTotals(nextRows, globalDiscount, isTaxable, taxMode, taxRate);
+            calculateTotals(nextRows, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
             setOriginalSourceItems(mappedRows.map((item) => ({
                 ...item,
                 quantity: Number(item.quantity || 0),
@@ -380,7 +387,7 @@ const RM_SaleForm = ({ channel = null }) => {
                 updated[index].quantity = String(cappedEntered);
                 updated[index].total = "0.00";
                 setRows(updated);
-                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
                 return;
             }
 
@@ -392,7 +399,7 @@ const RM_SaleForm = ({ channel = null }) => {
                 updated[index][field] = "";
                 updated[index].total = "0.00";
                 setRows(updated);
-                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
                 return;
             }
         }
@@ -406,12 +413,16 @@ const RM_SaleForm = ({ channel = null }) => {
         }
 
         setRows(updated);
-        calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+        calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
     };
 
     const handleGlobalDiscountChange = (value) => {
         setGlobalDiscount(value);
-        calculateTotals(rows, value, isTaxable, taxMode, taxRate);
+        calculateTotals(rows, value, deliveryCharges, isTaxable, taxMode, taxRate);
+    };
+    const handleDeliveryChargesChange = (value) => {
+        setDeliveryCharges(value);
+        calculateTotals(rows, globalDiscount, value, isTaxable, taxMode, taxRate);
     };
 
     const addRow = () => {
@@ -421,7 +432,7 @@ const RM_SaleForm = ({ channel = null }) => {
     const deleteRow = (index) => {
         const updated = rows.filter((_, i) => i !== index);
         setRows(updated);
-        calculateTotals(updated, globalDiscount);
+        calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
     };
 
     const handleSubmit = async (e) => {
@@ -438,6 +449,7 @@ const RM_SaleForm = ({ channel = null }) => {
             grand_total: parseFloat(grandTotal),
             sub_total: parseFloat(subTotal),
             discount: parseFloat(globalDiscount) || 0,
+            delivery_charges: parseFloat(deliveryCharges),
             taxable_amount: parseFloat(taxableAmount),
             tax_amount: parseFloat(taxAmount),
             is_taxable: isTaxable,
@@ -644,6 +656,10 @@ const RM_SaleForm = ({ channel = null }) => {
                             <div className="summary-row">
                                 <label>Discount:</label>
                                 <input type="number" className="rm-input-field" style={{ width: '120px' }} value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />
+                            </div>
+                            <div className="summary-row">
+                                <label>Delivery Charges:</label>
+                                <input type="number" className="rm-input-field" style={{ width: '120px' }} value={deliveryCharges} onChange={(e) => handleDeliveryChargesChange(e.target.value)} />
                             </div>
                             <div className="summary-row grand-total-box">
                                 <b>Grand Total:</b>

@@ -7,6 +7,7 @@ import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
 import api from "../../api"; 
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
+import ApprovedInvoiceEditModal from '../Components/ApprovedInvoiceEditModal';
 import Swal from 'sweetalert2'; 
 import { formatRmDetailsList } from '../utils/rmQtyDisplay';
 
@@ -15,6 +16,8 @@ const RM_Return = ({ channel = null }) => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [approvedModalOpen, setApprovedModalOpen] = useState(false);
+  const [approvedInvoiceId, setApprovedInvoiceId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -191,9 +194,17 @@ const RM_Return = ({ channel = null }) => {
 
                           {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
                           {r.status === 'Approved' ? (
-                            <span className="approved-text-btn">
-                              <FaCheckCircle /> APPROVED
-                            </span>
+                            <>
+                              <button onClick={() => {
+                                setApprovedInvoiceId(r.master_id);
+                                setApprovedModalOpen(true);
+                              }} className="edit-btn-action">
+                                <FaEdit /> EDIT
+                              </button>
+                              <span className="approved-text-btn">
+                                <FaCheckCircle /> APPROVED
+                              </span>
+                            </>
                           ) : (
                             <>
                               <button onClick={() => handleEditInvoice(r.master_id)} className="edit-btn-action">
@@ -230,6 +241,17 @@ const RM_Return = ({ channel = null }) => {
           }}
           title={channelLabel ? `${channelLabel} Purchase Return Invoice Type` : "Return Invoice Type"}
         />
+
+      <ApprovedInvoiceEditModal
+        open={approvedModalOpen}
+        onClose={() => {
+          setApprovedModalOpen(false);
+          setApprovedInvoiceId(null);
+        }}
+        invoiceId={approvedInvoiceId}
+        invoiceCategory="rm"
+        onSaved={fetchReturns}
+      />
       </div>
       <Footer />
     </>

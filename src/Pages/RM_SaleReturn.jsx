@@ -7,6 +7,7 @@ import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
 import api from "../../api"; 
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
+import ApprovedInvoiceEditModal from '../Components/ApprovedInvoiceEditModal';
 import Swal from 'sweetalert2';
 import { formatRmDetailsList } from '../utils/rmQtyDisplay';
 
@@ -16,6 +17,8 @@ const RM_SaleReturn = ({ channel = null }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [approvedModalOpen, setApprovedModalOpen] = useState(false);
+  const [approvedInvoiceId, setApprovedInvoiceId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -166,7 +169,18 @@ const RM_SaleReturn = ({ channel = null }) => {
                             <FaEye /> VIEW
                           </button>
                           {s.status === 'Approved' ? (
-                            <span className="approved-text-btn"><FaCheckCircle /> APPROVED</span>
+                            <>
+                              <button
+                                onClick={() => {
+                                  setApprovedInvoiceId(s.master_id);
+                                  setApprovedModalOpen(true);
+                                }}
+                                className="edit-btn-action"
+                              >
+                                <FaEdit /> EDIT
+                              </button>
+                              <span className="approved-text-btn"><FaCheckCircle /> APPROVED</span>
+                            </>
                           ) : (
                             <>
                               <button onClick={() => handleEditInvoice(s.master_id)} className="edit-btn-action">
@@ -202,6 +216,17 @@ const RM_SaleReturn = ({ channel = null }) => {
           navigate(`${formPath}?invoiceType=${type}`);
         }}
         title={channelLabel ? `${channelLabel} Sale Return Invoice Type` : "Sale Return Invoice Type"}
+      />
+
+      <ApprovedInvoiceEditModal
+        open={approvedModalOpen}
+        onClose={() => {
+          setApprovedModalOpen(false);
+          setApprovedInvoiceId(null);
+        }}
+        invoiceId={approvedInvoiceId}
+        invoiceCategory="rm"
+        onSaved={fetchSaleReturns}
       />
       <Footer />
     </>
