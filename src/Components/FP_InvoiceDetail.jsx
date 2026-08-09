@@ -15,37 +15,37 @@ const FP_InvoiceDetail = () => {
 
     const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
     
-   
+    // Retrieve User and Company ID from LocalStorage
     const user = JSON.parse(localStorage.getItem("user"));
 
-   
-const getCompanyLogo = () => {
-    if (!user?.profile_image) return null;
-    console.log("Current Profile Image State:", user.profile_image);
+    // Smart Pathing for Logo (Cloudinary vs Local storage)
+    const getCompanyLogo = () => {
+        if (!user?.profile_image) return null;
+        console.log("Current Profile Image State:", user.profile_image);
 
-  
-    if (user.profile_image.startsWith("http")) {
-        return user.profile_image;
-    }
+        // Check if it's already a full URL (e.g., Cloudinary)
+        if (user.profile_image.startsWith("http")) {
+            return user.profile_image;
+        }
 
-  
-    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+        // Clean path to extract filename if DB contains backslashes or subdirectories
+        const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
 
-   
-    const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
+        // Build final URL (convert Windows backslashes to forward slashes)
+        const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
 
-    console.log("Fixed URL:", finalUrl); 
-    return finalUrl;
-};
+        console.log("Fixed URL:", finalUrl); 
+        return finalUrl;
+    };
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-             
+                // Fetch Companies to extract Company Name
                 const compRes = await api.get('/companies');
                 setCompanies(compRes.data);
 
-   
+                // Fetch Finished Product Invoice Details by Invoice Number
                 if (invoiceNo) {
                     const res = await api.get(`/fp-invoice/${invoiceNo}`);
                     setInvoice(res.data);
@@ -60,6 +60,7 @@ const getCompanyLogo = () => {
         fetchInitialData();
     }, [invoiceNo]);
 
+    // Find Current Company Name using company_id
     const currentCompanyName = companies.find(c => c.id === Number(user?.company_id))?.name || "CHEMICAL & DETERGENTS TRADER";
 
     const formatDate = (dateString) => {
@@ -106,21 +107,21 @@ const getCompanyLogo = () => {
                 
                 <header className="invoice-header">
                     <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        {/* ✅ Dynamic Logo */}
+                        {/* Dynamic Logo rendering */}
                         {user?.profile_image ? (
-            <img 
-                src={getCompanyLogo()} 
-                alt="Company Logo" 
-                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
-                crossOrigin="anonymous" 
-            />
-        ) : (
-            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
-                NO LOGO
-            </div>
-        )}
+                            <img 
+                                src={getCompanyLogo()} 
+                                alt="Company Logo" 
+                                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
+                                crossOrigin="anonymous" 
+                            />
+                        ) : (
+                            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
+                                NO LOGO
+                            </div>
+                        )}
                         <div>
-                            {/* ✅ Dynamic Company Name */}
+                            {/* Dynamic Company Name */}
                             <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
                                 {currentCompanyName}
                             </p>
@@ -197,14 +198,21 @@ const getCompanyLogo = () => {
                                 
                                 {invoice.is_taxable ? (
                                     <>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                    <span>Sub Total</span>
-                                    <span>Rs. {Number(invoice.subtotal || 0).toLocaleString()}</span>
-                                </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span>Sub Total</span>
+                                            <span>Rs. {Number(invoice.subtotal || 0).toLocaleString()}</span>
+                                        </div>
                                         {Number(invoice.discount) > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                                 <span>Discount</span>
                                                 <span>Rs. {Number(invoice.discount).toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        {/* Display Delivery Charges (If Taxable and charges exist) */}
+                                        {Number(invoice.delivery_charges) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span>Delivery Charges</span>
+                                                <span>Rs. {Number(invoice.delivery_charges).toLocaleString()}</span>
                                             </div>
                                         )}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -224,6 +232,13 @@ const getCompanyLogo = () => {
                                                 <span>Rs. {Number(invoice.discount).toLocaleString()}</span>
                                             </div>
                                         )}
+                                        {/* Display Delivery Charges (If Non-Taxable and charges exist) */}
+                                        {Number(invoice.delivery_charges) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span>Delivery Charges</span>
+                                                <span>Rs. {Number(invoice.delivery_charges).toLocaleString()}</span>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -235,15 +250,16 @@ const getCompanyLogo = () => {
                     <div className="note-section">
                         <p className="note">Thank you for your business. This is a computer-generated invoice.</p>
                         
+                        {/* Action Buttons (Hidden during PDF/Image capture via 'no-print' class) */}
                         <div className="action-buttons-group no-print" style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center' }}>
                             <button onClick={() => navigate(-1)} className="back-button" style={{ padding: '10px 20px', cursor: 'pointer' }}>
                                 ← Back
                             </button>
-                            {/* ✅ PNG Save Button */}
+                            {/* PNG Save Button */}
                             <button onClick={handleDownloadImage} className="download-img-button" style={{ padding: '10px 20px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
                                 🖼️ Save as Image
                             </button>
-                            {/* ✅ PDF Save Button */}
+                            {/* PDF Save Button */}
                             <button onClick={handleDownloadPDF} className="download-pdf-button" style={{ padding: '10px 20px', backgroundColor: '#2980b9', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
                                 📄 Save as PDF
                             </button>
