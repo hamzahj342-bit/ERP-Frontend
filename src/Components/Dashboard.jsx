@@ -30,7 +30,13 @@ const Dashboard = () => {
 
   // 🗓️ Date Logic for Filter
   const today = new Date().toISOString().split('T')[0];
-  const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const now = new Date();
+  const year = now.getFullYear();
+
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+
+  const firstDay = `${year}-${month}-01`;
+  console.log(firstDay);
 
   const [fromDate, setFromDate] = useState(firstDay);
   const [toDate, setToDate] = useState(today);

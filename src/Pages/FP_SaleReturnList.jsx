@@ -7,6 +7,7 @@ import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination'; 
 import api from "../../api"; 
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
+import ApprovedInvoiceEditModal from '../Components/ApprovedInvoiceEditModal';
 import Swal from 'sweetalert2'; // Confirmation alerts engine
 
 const FP_SaleReturnList = () => {
@@ -15,6 +16,8 @@ const FP_SaleReturnList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [approvedModalOpen, setApprovedModalOpen] = useState(false);
+  const [approvedInvoiceId, setApprovedInvoiceId] = useState(null);
 
   const limit = 50;
   const navigate = useNavigate();
@@ -215,9 +218,20 @@ const FP_SaleReturnList = () => {
 
                           {/* 🛑 CONDITIONAL RENDERING STATE SYSTEM */}
                           {sale.status === 'Approved' ? (
-                            <span className="approved-text-btn">
-                              <FaCheckCircle /> APPROVED
-                            </span>
+                            <>
+                              <button
+                                onClick={() => {
+                                  setApprovedInvoiceId(sale.id);
+                                  setApprovedModalOpen(true);
+                                }}
+                                className="edit-btn-action"
+                              >
+                                <FaEdit /> EDIT
+                              </button>
+                              <span className="approved-text-btn">
+                                <FaCheckCircle /> APPROVED
+                              </span>
+                            </>
                           ) : (
                             <>
                               <button 
@@ -262,6 +276,17 @@ const FP_SaleReturnList = () => {
           navigate(`/fp-salereturn-form?invoiceType=${type}`);
         }}
         title="FG Sale Return Invoice Type"
+      />
+
+      <ApprovedInvoiceEditModal
+        open={approvedModalOpen}
+        onClose={() => {
+          setApprovedModalOpen(false);
+          setApprovedInvoiceId(null);
+        }}
+        invoiceId={approvedInvoiceId}
+        invoiceCategory="fp"
+        onSaved={fetchSaleReturns}
       />
       <Footer />
     </>

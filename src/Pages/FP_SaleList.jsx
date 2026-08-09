@@ -6,6 +6,7 @@ import '../RMForm.css';
 import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
 import api from '../../api';
+import ApprovedInvoiceEditModal from '../Components/ApprovedInvoiceEditModal';
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
 import Swal from 'sweetalert2'; // Confirmation system confirmation dialogs
 
@@ -15,6 +16,8 @@ const FP_SaleList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [approvedModalOpen, setApprovedModalOpen] = useState(false);
+  const [approvedInvoiceId, setApprovedInvoiceId] = useState(null);
 
   const limit = 50;
   const navigate = useNavigate();
@@ -173,7 +176,7 @@ const FP_SaleList = () => {
                         <td>{sale.createdat ? new Date(sale.createdat).toLocaleDateString() : "-"}</td>
                         <td>{sale.date ? new Date(sale.date).toLocaleDateString() : "-"}</td>
                         <td><span className="supplier-tag">{sale.customer?.name || sale.entity_name || "N/A"}</span></td>
-                        <td className="total-cell" style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                        <td className="total-cell" style={{ fontWeight: '700', color: '#2b6cb0' }}> 
                           {parseFloat(sale.grand_total).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                         <td>
@@ -200,9 +203,20 @@ const FP_SaleList = () => {
 
                             {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
                             {sale.status === 'Approved' ? (
-                              <span className="approved-text-btn">
-                                <FaCheckCircle /> APPROVED
-                              </span>
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setApprovedInvoiceId(sale.id);
+                                    setApprovedModalOpen(true);
+                                  }}
+                                  className="edit-btn-action"
+                                >
+                                  <FaEdit /> EDIT
+                                </button>
+                                <span className="approved-text-btn">
+                                  <FaCheckCircle /> APPROVED
+                                </span>
+                              </>
                             ) : (
                               <>
                                 <button 
@@ -253,6 +267,17 @@ const FP_SaleList = () => {
           navigate(`/fp-sale-form?invoiceType=${type}`);
         }}
         title="FG Sale Invoice Type"
+      />
+
+      <ApprovedInvoiceEditModal
+        open={approvedModalOpen}
+        onClose={() => {
+          setApprovedModalOpen(false);
+          setApprovedInvoiceId(null);
+        }}
+        invoiceId={approvedInvoiceId}
+        invoiceCategory="fp"
+        onSaved={fetchSales}
       />
 
       <Footer />

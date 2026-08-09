@@ -35,6 +35,7 @@ const FP_SaleForm = () => {
     const [taxableAmount, setTaxableAmount] = useState(0);
     const [taxAmount, setTaxAmount] = useState(0);
     const [globalDiscount, setGlobalDiscount] = useState("");
+    const [deliveryCharges, setDeliveryCharges] = useState("");
     const [grandTotal, setGrandTotal] = useState(0);
     const [isTaxable, setIsTaxable] = useState(() => invoiceType !== 'nonTaxable');
     const [taxMode, setTaxMode] = useState('exclusive');
@@ -54,30 +55,31 @@ const FP_SaleForm = () => {
     // ---------------------------------------------------------
     // CALCULATION LOGIC MATRIX
     // ---------------------------------------------------------
-    const calculateTotals = (currentRows, discountValue, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate) => {
+    const calculateTotals = (currentRows, discountValue, deliveryValue = deliveryCharges, currentIsTaxable = isTaxable, currentTaxMode = taxMode, currentTaxRate = taxRate) => {
         const currentSubTotal = currentRows.reduce((sum, row) => {
             const qty = parseFloat(row.quantity) || 0;
             const price = parseFloat(row.unitPrice) || 0;
             return sum + (qty * price);
         }, 0);
 
+        const delivery = parseFloat(deliveryValue) || 0;
         const discount = parseFloat(discountValue) || 0;
-        const netValue = Math.max(0, currentSubTotal - discount);
+        const taxableBase = Math.max(0, currentSubTotal - discount);
 
-        let calculatedTaxable = netValue;
+        let calculatedTaxable = taxableBase;
         let calculatedTaxAmount = 0;
-        let calculatedGrand = netValue;
+        let calculatedGrand = taxableBase + delivery;
 
         if (currentIsTaxable && (parseFloat(currentTaxRate) || 0) > 0) {
             const rate = parseFloat(currentTaxRate) / 100;
             if (currentTaxMode === 'inclusive') {
-                calculatedTaxable = netValue / (1 + rate);
-                calculatedTaxAmount = netValue - calculatedTaxable;
-                calculatedGrand = netValue;
+                calculatedTaxable = taxableBase / (1 + rate);
+                calculatedTaxAmount = taxableBase - calculatedTaxable;
+                calculatedGrand = taxableBase + delivery;
             } else {
-                calculatedTaxable = netValue;
+                calculatedTaxable = taxableBase;
                 calculatedTaxAmount = calculatedTaxable * rate;
-                calculatedGrand = calculatedTaxable + calculatedTaxAmount;
+                calculatedGrand = calculatedTaxable + calculatedTaxAmount + delivery;
             }
         }
 
@@ -86,6 +88,10 @@ const FP_SaleForm = () => {
         setTaxAmount(calculatedTaxAmount.toFixed(2));
         setGrandTotal(Math.max(0, calculatedGrand).toFixed(2));
     };
+
+    useEffect(() => {
+        calculateTotals(rows, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
+    }, [rows, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate]);
 
   // ---------------------------------------------------------
     // 🔥 MASTER DATA & EDIT MODE AUTO-FILL (BUG-FREE WRAPPER MAPPING)
@@ -263,7 +269,7 @@ const FP_SaleForm = () => {
 
             const nextRows = mappedRows.length > 0 ? mappedRows : fallbackRows;
             setRows(nextRows);
-            calculateTotals(nextRows, globalDiscount, isTaxable, taxMode, taxRate);
+            calculateTotals(nextRows, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
             setOriginalSourceItems(mappedRows.map(item => ({
                 product_master_id: item.product_master_id,
                 original_source_quantity: Number(item.quantity || 0)
@@ -295,17 +301,11 @@ const FP_SaleForm = () => {
                 const price = parseFloat(updated[index].unitPrice) || 0;
                 updated[index].total = (maxAllowed * price).toFixed(2);
                 setRows(updated);
-                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
-                return;
-            }
-
-            const stock = parseFloat(updated[index].stock) || 0;
-            if (inputQty > stock) {
-                toast.error(`Only ${stock} units available!`);
+                calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
                 updated[index].quantity = "";
                 updated[index].total = "0.00";
                 setRows(updated);
-                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
                 return;
             }
         }
@@ -317,12 +317,16 @@ const FP_SaleForm = () => {
         }
 
         setRows(updated);
-        calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+        calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
     };
 
     const handleGlobalDiscountChange = (value) => {
         setGlobalDiscount(value);
-        calculateTotals(rows, value, isTaxable, taxMode, taxRate);
+        calculateTotals(rows, value, deliveryCharges, isTaxable, taxMode, taxRate);
+    };
+    const handleDeliveryChargesChange = (value) => {
+        setDeliveryCharges(value);
+        calculateTotals(rows, globalDiscount, value, isTaxable, taxMode, taxRate);
     };
 
     const addRow = () => {
@@ -332,7 +336,7 @@ const FP_SaleForm = () => {
     const deleteRow = (index) => {
         const updated = rows.filter((_, i) => i !== index);
         setRows(updated);
-        calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+        calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
     };
 
     const handleSubmit = async (e) => {
@@ -356,6 +360,7 @@ const FP_SaleForm = () => {
             grand_total: parseFloat(grandTotal),
             sub_total: parseFloat(subTotal),
             discount: disc,
+            delivery_charges: parseFloat(deliveryCharges) || 0,
             taxable_amount: parseFloat(taxableAmount),
             tax_amount: parseFloat(taxAmount),
             is_taxable: isTaxable,
@@ -493,7 +498,7 @@ const FP_SaleForm = () => {
                                                     })
                                                 };
                                                 setRows(updated);
-                                                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                                                calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
                                             } else {
                                                 updated[index] = {
                                                     ...updated[index],
@@ -507,7 +512,7 @@ const FP_SaleForm = () => {
                                                     total: "0.00"
                                                 };
                                                 setRows(updated);
-                                                calculateTotals(updated, globalDiscount, isTaxable, taxMode, taxRate);
+                                                calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
                                             }
                                         }}
                                         style={{ marginTop : "20px"}}
@@ -562,6 +567,10 @@ const FP_SaleForm = () => {
                             <div className="summary-row">
                                 <label>Discount:</label>
                                 <input type="number" className="rm-input-field" style={{ width: '120px' }} value={globalDiscount} onChange={(e) => handleGlobalDiscountChange(e.target.value)} />
+                            </div>
+                            <div className="summary-row">
+                                <label>Delivery Charges:</label>
+                                <input type="number" className="rm-input-field" style={{ width: '120px' }} value={deliveryCharges} onChange={(e) => handleDeliveryChargesChange(e.target.value)} />
                             </div>
                             <div className="summary-row grand-total-box">
                                 <b>Grand Total:</b>

@@ -7,6 +7,7 @@ import Footer from '../Components/Footer';
 import Pagination from '../Components/Pagination';
 import api from "../../api"; 
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
+import ApprovedInvoiceEditModal from '../Components/ApprovedInvoiceEditModal';
 import Swal from 'sweetalert2'; // Swal import kiya confirmation dialogs k liye
 import { formatRmDetailsList } from '../utils/rmQtyDisplay';
 
@@ -15,6 +16,8 @@ const RM_Purchase = ({ channel = null }) => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [approvedModalOpen, setApprovedModalOpen] = useState(false);
+  const [approvedInvoiceId, setApprovedInvoiceId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -194,10 +197,20 @@ const RM_Purchase = ({ channel = null }) => {
 
                           {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
                           {p.status === 'Approved' ? (
-                            // Button shape text display for Approved status
-                            <span className="approved-text-btn">
-                              <FaCheckCircle /> APPROVED
-                            </span>
+                            <>
+                              <button
+                                onClick={() => {
+                                  setApprovedInvoiceId(p.master_id);
+                                  setApprovedModalOpen(true);
+                                }}
+                                className="edit-btn-action"
+                              >
+                                <FaEdit /> EDIT
+                              </button>
+                              <span className="approved-text-btn">
+                                <FaCheckCircle /> APPROVED
+                              </span>
+                            </>
                           ) : (
                             // Show Edit and Approve buttons only when invoice is 'Draft'
                             <>
@@ -234,6 +247,17 @@ const RM_Purchase = ({ channel = null }) => {
             navigate(`${formPath}?invoiceType=${type}`);
           }}
           title={channelLabel ? `${channelLabel} Purchase Invoice Type` : "Purchase Invoice Type"}
+        />
+
+        <ApprovedInvoiceEditModal
+          open={approvedModalOpen}
+          onClose={() => {
+            setApprovedModalOpen(false);
+            setApprovedInvoiceId(null);
+          }}
+          invoiceId={approvedInvoiceId}
+          invoiceCategory="rm"
+          onSaved={fetchPurchases}
         />
       </div>
       <Footer />
