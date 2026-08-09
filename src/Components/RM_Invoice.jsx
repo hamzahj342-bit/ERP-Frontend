@@ -13,41 +13,38 @@ const RM_InvoiceDetail = () => {
     const [loading, setLoading] = useState(true);
     const [companies, setCompanies] = useState([]);
 
-    // ✅ Backend Image Base URL
+    // Backend Image Base URL
     const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
     
-    // ✅ LocalStorage se User aur Company ID nikalna
+    // Retrieve User and Company ID from LocalStorage
     const user = JSON.parse(localStorage.getItem("user"));
 
-    // ✅ Smart Pathing for Logo (Cloudinary vs Local)
-const getLogoUrl = () => {
-    if (!user?.profile_image) return null;
-    console.log("Current Profile Image State:", user.profile_image);
+    // Smart Pathing for Logo (Cloudinary vs Local storage)
+    const getLogoUrl = () => {
+        if (!user?.profile_image) return null;
 
-    // Check if it's already a full URL (Cloudinary)
-    if (user.profile_image.startsWith("http")) {
-        return user.profile_image;
-    }
+        // Check if it's already a full URL (e.g., Cloudinary)
+        if (user.profile_image.startsWith("http")) {
+            return user.profile_image;
+        }
 
-    // Otherwise, join with Base URL (Local/Render)
-   // Taake agar database mein "uploads\file.png" hai toh sirf "file.png" bache
-    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+        // Clean path to extract filename if DB contains backslashes or subdirectories
+        const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+        
+        // Build final URL (convert Windows backslashes to forward slashes)
+        const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
 
-    // 3. Final URL build karein (Windows backslash ko forward slash se badlein)
-    const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
-
-    console.log("Fixed URL:", finalUrl); 
-    return finalUrl;
-};
+        return finalUrl;
+    };
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                // 1. Fetch Companies (Company Name nikalne ke liye)
+                // 1. Fetch Companies to extract Company Name
                 const compRes = await api.get('/companies');
                 setCompanies(compRes.data);
 
-                // 2. Fetch Invoice Details
+                // 2. Fetch Invoice Details by Invoice Number
                 if (invoiceNo) {
                     const invRes = await api.get(`/rm-invoice/${invoiceNo}`);
                     setInvoice(invRes.data);
@@ -61,7 +58,7 @@ const getLogoUrl = () => {
         fetchInitialData();
     }, [invoiceNo]);
 
-    // ✅ Current Company ka naam ID ke zariye dhoondna
+    // Find Current Company Name using company_id
     const currentCompanyName = companies.find(c => c.id === Number(user?.company_id))?.name || "CHEMICAL & DETERGENTS TRADER";
 
     const formatDate = (dateString) => {
@@ -69,12 +66,14 @@ const getLogoUrl = () => {
         return new Date(dateString).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
-    // 📄 PDF Download Handler
+    // PDF Download Handler
     const handleDownloadPDF = () => {
         const input = document.getElementById("invoice-detail"); 
-        html2canvas(input, { useCORS: true, scale: 2,
+        html2canvas(input, { 
+            useCORS: true, 
+            scale: 2,
             ignoreElements: (element) => element.classList.contains('no-print')
-         }).then((canvas) => {
+        }).then((canvas) => {
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -82,26 +81,27 @@ const getLogoUrl = () => {
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight); 
             pdf.save(`Invoice-${invoice.invoice_no}.pdf`); 
         });
-    }
+    };
 
-    // 🖼️ PNG Image Download Handler
+    // PNG Image Download Handler
     const handleDownloadImage = () => {
         const input = document.getElementById("invoice-detail");
-        html2canvas(input, { useCORS: true, scale: 3,
+        html2canvas(input, { 
+            useCORS: true, 
+            scale: 3,
             ignoreElements: (element) => element.classList.contains('no-print')
-         }).then((canvas) => {
+        }).then((canvas) => {
             const link = document.createElement('a');
             link.download = `Invoice-${invoice.invoice_no}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         });
-    }
+    };
 
     if (loading) return <p className="p-5 text-center">Loading invoice...</p>;
     if (!invoice) return <p className="p-5 text-center text-danger">Invoice not found!</p>;
 
-    // Pack Qty only when at least one line on THIS invoice used a pack UOM
-    // (not base). Same rule for purchase / sale / returns.
+    // Show Pack Qty column if at least one item uses a pack UOM
     const showPackQty = (invoice.RmDetails || []).some((item) => {
         const packUom = (item.pack_uom_name || item.uom?.name || "").trim().toLowerCase();
         const baseUom = (item.base_uom_name || "").trim().toLowerCase();
@@ -116,21 +116,21 @@ const getLogoUrl = () => {
             <div id="invoice-detail" className="invoice-box shadow-lg">
                 <header className="invoice-header">
                     <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        {/* ✅ Dynamic Logo */}
+                        {/* Dynamic Logo rendering */}
                         {user?.profile_image ? (
-            <img 
-                src={getLogoUrl()} 
-                alt="Logo" 
-                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
-                crossOrigin="anonymous" 
-            />
-        ) : (
-            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
-                NO LOGO
-            </div>
-        )}
+                            <img 
+                                src={getLogoUrl()} 
+                                alt="Logo" 
+                                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
+                                crossOrigin="anonymous" 
+                            />
+                        ) : (
+                            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
+                                NO LOGO
+                            </div>
+                        )}
                         <div>
-                            {/* ✅ Dynamic Company Name */}
+                            {/* Dynamic Company Name */}
                             <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
                                 {currentCompanyName}
                             </p>
@@ -188,19 +188,19 @@ const getLogoUrl = () => {
                                         ? Number(item.entered_unit_price)
                                         : Number(item.unit_price);
                                     return (
-                                    <tr key={i}>
-                                        <td className="product-col">{item.rm_name}</td>
-                                        {showPackQty && (
+                                        <tr key={i}>
+                                            <td className="product-col">{item.rm_name}</td>
+                                            {showPackQty && (
+                                                <td className="qty-col text-right">
+                                                    {packQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {packUom}
+                                                </td>
+                                            )}
                                             <td className="qty-col text-right">
-                                                {packQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {packUom}
+                                                {baseQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {baseUom}
                                             </td>
-                                        )}
-                                        <td className="qty-col text-right">
-                                            {baseQty.toLocaleString(undefined, { maximumFractionDigits: 4 })} {baseUom}
-                                        </td>
-                                        <td className="price-col text-right">{unitPrice.toLocaleString()}</td>
-                                        <td className="amount-col text-right">{Number(item.total_price).toLocaleString()}</td>
-                                    </tr>
+                                            <td className="price-col text-right">{unitPrice.toLocaleString()}</td>
+                                            <td className="amount-col text-right">{Number(item.total_price).toLocaleString()}</td>
+                                        </tr>
                                     );
                                 })}
                             </tbody>
@@ -212,22 +212,28 @@ const getLogoUrl = () => {
                     <div className="total-area">
                         <div className="total-box shadow">
                             <div style={{ marginBottom: '10px' }}>
-                               
                                 {invoice.is_taxable ? (
                                     <>
-                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                    <span>Sub Total</span>
-                                    <span>Rs. {Number(invoice.subtotal || 0).toLocaleString()}</span>
-                                </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span>Sub Total</span>
+                                            <span>Rs. {Number(invoice.subtotal || 0).toLocaleString()}</span>
+                                        </div>
                                         {Number(invoice.discount) > 0 && (
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                                 <span>Discount</span>
                                                 <span>Rs. {Number(invoice.discount).toLocaleString()}</span>
                                             </div>
                                         )}
+                                        {/* Display Delivery Charges (If Taxable and charges exist) */}
+                                        {Number(invoice.delivery_charges) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span>Delivery Charges</span>
+                                                <span>Rs. {Number(invoice.delivery_charges).toLocaleString()}</span>
+                                            </div>
+                                        )}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                             <span>Taxable Amount</span>
-                                            <span>Rs. {Number(invoice.taxable_amount || (invoice.subtotal - (invoice.discount||0))).toLocaleString()}</span>
+                                            <span>Rs. {Number(invoice.taxable_amount || (invoice.subtotal - (invoice.discount || 0))).toLocaleString()}</span>
                                         </div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                             <span>Tax ({Number(invoice.tax_rate || 0).toFixed(2)}%)</span>
@@ -242,6 +248,13 @@ const getLogoUrl = () => {
                                                 <span>Rs. {Number(invoice.discount).toLocaleString()}</span>
                                             </div>
                                         )}
+                                        {/* Display Delivery Charges (If Non-Taxable and charges exist) */}
+                                        {Number(invoice.delivery_charges) > 0 && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                                <span>Delivery Charges</span>
+                                                <span>Rs. {Number(invoice.delivery_charges).toLocaleString()}</span>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -253,7 +266,7 @@ const getLogoUrl = () => {
                     <div className="note-section">
                         <p className="note">Thank you for your business. This is a computer-generated invoice.</p>
                         
-                        {/* Action Buttons (no-print class hides them in PDF/Image) */}
+                        {/* Action Buttons (Hidden during PDF/Image capture via 'no-print' class) */}
                         <div className="action-buttons-group no-print" style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center' }}>
                             <button onClick={() => navigate(-1)} className="back-button" style={{ padding: '10px 20px', cursor: 'pointer' }}>
                                 ← Back
