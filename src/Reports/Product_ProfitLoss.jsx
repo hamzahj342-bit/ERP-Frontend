@@ -360,14 +360,23 @@ const SegmentedProfitLossReport = () => {
                                     </tr>
 
                                     {/* CONSOLIDATED NET PROFIT */}
-                                    <tr className="table-secondary fw-bold" style={{ fontSize: '15px' }}>
-                                        <td className="ps-3 text-dark fw-bold text-uppercase">Consolidated Net Profit</td>
-                                        <td className="text-end text-muted">-</td>
-                                        <td className="text-end text-muted">-</td>
-                                        <td className="text-end text-success border-bottom border-double border-dark fw-bolder">
-                                            {formatCurr(report.totals.actual_net_profit)} Rs
-                                        </td>
-                                    </tr>
+                                   {(() => {
+    const netProfitVal = Number(report.totals.actual_net_profit || 0);
+    const isLoss = netProfitVal < 0;
+
+    return (
+        <tr className="table-secondary fw-bold" style={{ fontSize: '15px' }}>
+            <td className="ps-3 text-dark fw-bold text-uppercase">
+                {isLoss ? 'Net Loss' : 'Net Profit'}
+            </td>
+            <td className="text-end text-muted">-</td>
+            <td className="text-end text-muted">-</td>
+            <td className={`text-end border-bottom border-double border-dark fw-bolder ${isLoss ? 'text-danger' : 'text-success'}`}>
+               Rs {isLoss ? `(${formatCurr(Math.abs(netProfitVal))})` : `${formatCurr(netProfitVal)}`}
+            </td>
+        </tr>
+    );
+})()}
 
                                 </tbody>
                             </table>

@@ -155,7 +155,7 @@ const Reports = () => {
 
 <ReportCard 
    title="📈 Segmented Profit & Loss Report"
-   description="Analyze profitability by different segments, products, or regions. Identify top-performing areas and optimize resource allocation."
+   description="Analyze profitability by different segments Identify top-performing areas and optimize resource allocation."
    icon={<FaChartBar size={40} />}
    path="/segmented-profit-loss" 
    color="#ff9800" 
