@@ -94,6 +94,8 @@ import GRN_List from './Transactions/GRN_List';
 import DC_List from './Transactions/DC_List';
 import DC_FP_List from './Transactions/DC_FP_List';
 import LoaderDocumentView from './Transactions/LoaderDocumentView';
+import SalesRegister from './Reports/SalesRegister';
+import PurchaseRegister from './Reports/PurchaseRegister';
 import NavigationBar from './Components/NavigationBar';
 import { FaArrowLeft } from 'react-icons/fa';
 import PermissionRoute from './Components/PermissionRoute';
@@ -255,7 +257,8 @@ const App = () => {
         <Route path='/capital-report' element={<PermissionRoute permission="reports.capital"> <CapitalReport /> </PermissionRoute>} />
         <Route path='/trial-balance' element={<PermissionRoute permission="reports.trial_balance"> <TrialBalanceReport /> </PermissionRoute>} />
         <Route path='/segmented-profit-loss' element={<PermissionRoute permission="reports.segmented_pl"> <SegmentedProfitLossReport /> </PermissionRoute>} />
-
+        <Route path='/sales-register' element={<PermissionRoute permission="reports.sales_register"> <SalesRegister /> </PermissionRoute>} />
+        <Route path='/purchase-register' element={<PermissionRoute permission="reports.purchase_register"> <PurchaseRegister /> </PermissionRoute>} />
         {/* Administration — roles.manage (Full Access) or users.manage (Super Admin) */}
         <Route path='/user-management' element={<PermissionRoute anyPermission={['roles.manage', 'users.manage']}> <UserList /> </PermissionRoute>} />
         <Route path='/user-management/new' element={<PermissionRoute permission="users.manage"> <UserForm /> </PermissionRoute>} />
