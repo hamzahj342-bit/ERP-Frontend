@@ -73,6 +73,8 @@ export const PERMISSION_GROUPS = [
       { key: "reports.trial_balance", label: "Trial Balance" },
       { key: "reports.segmented_pl", label: "Segmented Profit & Loss" },
       { key: "reports.history", label: "Material & Product History" },
+      { key: "reports.sales_register", label: "Sales Register Report" },
+      { key: "reports.purchase_register", label: "Purchase Register Report" },
     ],
   },
   {
