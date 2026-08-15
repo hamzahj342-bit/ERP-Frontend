@@ -21,13 +21,13 @@ const SalesRegister = () => {
   const [activeTab, setActiveTab] = useState('RM');
   const [fromDate, setFromDate] = useState(firstOfMonth);
   const [toDate, setToDate] = useState(today);
-  const [taxableType, setTaxableType] = useState('ALL'); // 👈 'ALL' | 'TAXABLE' | 'NON_TAXABLE'
+  const [taxableType, setTaxableType] = useState('ALL'); // 'ALL' | 'TAXABLE' | 'NON_TAXABLE'
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   
   const [registerData, setRegisterData] = useState([]);
 
-  // Fetch Sales Register Data from Backend
+  // Fetch Sales Register Data from General Ledger Backend API
   const fetchSalesRegister = async () => {
     setLoading(true);
     try {
@@ -35,7 +35,7 @@ const SalesRegister = () => {
         params: { 
           fromDate, 
           toDate, 
-          taxable_type: taxableType // 👈 Passed filter parameter
+          taxable_type: taxableType
         }
       });
 
@@ -71,7 +71,7 @@ const SalesRegister = () => {
     );
   });
 
-  // Dynamic Totals based on filtered search results
+  // Dynamic Totals based on search/filter results
   const totals = filteredRegister.reduce((acc, row) => {
     acc.total_revenue += Number(row.revenue || 0);
     acc.total_cogs += Number(row.cogs || 0);
@@ -104,7 +104,7 @@ const SalesRegister = () => {
     const dateRow = [`Period: ${fromDate} to ${toDate}`];
     const emptyRow = [];
 
-    const headers = ['Date', 'Invoice No.', 'Customer Name', 'Taxable', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit'];
+    const headers = ['Date', 'Invoice No.', 'Customer Name', 'Taxable', 'Invoice Type', 'Revenue (GL)', 'COGS (GL)', 'Net Profit'];
 
     const bodyRows = filteredRegister.map((row) => [
       row.date ? new Date(row.date).toISOString().split('T')[0] : '',
@@ -117,7 +117,7 @@ const SalesRegister = () => {
       Number(row.net_profit || 0)
     ]);
 
-    const summaryHeader = ['SALES REGISTER FINANCIAL SUMMARY'];
+    const summaryHeader = ['FINANCIAL REGISTER SUMMARY'];
     const revRow = ['TOTAL REVENUE', totals.total_revenue];
     const cogsRow = ['TOTAL COGS', totals.total_cogs];
     const profitRow = [totals.net_profit >= 0 ? 'NET PROFIT' : 'NET LOSS', totals.net_profit];
@@ -202,7 +202,7 @@ const SalesRegister = () => {
             <input type='date' value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
             <input type='date' value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
             
-            {/* 👈 Taxable Type Filter Dropdown */}
+            {/* Taxable Type Filter */}
             <select 
               value={taxableType} 
               onChange={(e) => setTaxableType(e.target.value)}
@@ -278,9 +278,14 @@ const SalesRegister = () => {
             <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', fontSize: '13px' }}>
               <strong>Total COGS:</strong> {formatCurrency(totals.total_cogs)}
             </div>
+            <div style={{ padding: '8px 12px', borderRadius: '4px', background: totals.net_profit >= 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${totals.net_profit >= 0 ? '#bbf7d0' : '#fecaca'}`, fontSize: '13px' }}>
+              <strong style={{ color: totals.net_profit >= 0 ? '#16a34a' : '#dc2626' }}>
+                {totals.net_profit >= 0 ? 'Net Profit:' : 'Net Loss:'} {formatCurrency(totals.net_profit)}
+              </strong>
+            </div>
           </div>
 
-          {/* Table */}
+          {/* Data Table */}
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading Sales Register...</div>
           ) : (
