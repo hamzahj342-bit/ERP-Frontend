@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import MainLayout from '../Layout/MainLayout';
 import api from '../../api';
-import { FaArrowLeft, FaSearch, FaFileExcel, FaFilePdf, FaImage, FaSync } from 'react-icons/fa';
+import { FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaSync } from 'react-icons/fa';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx-js-style';
@@ -21,6 +21,7 @@ const SalesRegister = () => {
   const [activeTab, setActiveTab] = useState('RM');
   const [fromDate, setFromDate] = useState(firstOfMonth);
   const [toDate, setToDate] = useState(today);
+  const [taxableType, setTaxableType] = useState('ALL'); // 👈 'ALL' | 'TAXABLE' | 'NON_TAXABLE'
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -31,7 +32,11 @@ const SalesRegister = () => {
     setLoading(true);
     try {
       const response = await api.get('/reports/sales-register', {
-        params: { fromDate, toDate }
+        params: { 
+          fromDate, 
+          toDate, 
+          taxable_type: taxableType // 👈 Passed filter parameter
+        }
       });
 
       const fullRegister = response.data?.register || [];
@@ -51,22 +56,22 @@ const SalesRegister = () => {
 
   useEffect(() => {
     fetchSalesRegister();
-  }, [fromDate, toDate, activeTab]);
+  }, [fromDate, toDate, taxableType, activeTab]);
 
-  // 💥 FIXED: Client-side search filtering (Added customer_name check)
+  // Client-side search filtering
   const filteredRegister = registerData.filter(row => {
     if (!searchTerm.trim()) return true;
     const term = searchTerm.toLowerCase().trim();
     
     return (
       (row.invoice_no && row.invoice_no.toLowerCase().includes(term)) ||
-      (row.customer_name && row.customer_name.toLowerCase().includes(term)) || // 👈 Fixed Customer Name Search
+      (row.customer_name && row.customer_name.toLowerCase().includes(term)) ||
       (row.customer_id && String(row.customer_id).toLowerCase().includes(term)) ||
       (row.invoice_type && row.invoice_type.toLowerCase().includes(term))
     );
   });
 
-  // 💥 Dynamic Totals based on filtered search results
+  // Dynamic Totals based on filtered search results
   const totals = filteredRegister.reduce((acc, row) => {
     acc.total_revenue += Number(row.revenue || 0);
     acc.total_cogs += Number(row.cogs || 0);
@@ -95,16 +100,17 @@ const SalesRegister = () => {
     if (!filteredRegister.length) return toast.error('No data available to export!');
 
     const wb = XLSX.utils.book_new();
-    const titleRow = [`${activeTab === 'RM' ? 'Raw Material' : 'Finished Goods'} Sales Register Report`];
+    const titleRow = [`${activeTab === 'RM' ? 'Raw Material' : 'Finished Goods'} Sales Register Report (${taxableType})`];
     const dateRow = [`Period: ${fromDate} to ${toDate}`];
     const emptyRow = [];
 
-    const headers = ['Date', 'Invoice No.', 'Customer Name', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit'];
+    const headers = ['Date', 'Invoice No.', 'Customer Name', 'Taxable', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit'];
 
     const bodyRows = filteredRegister.map((row) => [
       row.date ? new Date(row.date).toISOString().split('T')[0] : '',
       row.invoice_no || '',
-      row.customer_name || 'N/A', // 👈 Fixed
+      row.customer_name || 'N/A',
+      row.is_taxable ? 'Taxable' : 'Non-Taxable',
       row.invoice_type || '',
       Number(row.revenue || 0),
       Number(row.cogs || 0),
@@ -120,8 +126,8 @@ const SalesRegister = () => {
     const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
     ws['!cols'] = [
-      { wch: 14 }, { wch: 18 }, { wch: 25 }, { wch: 16 },
-      { wch: 16 }, { wch: 16 }, { wch: 16 }
+      { wch: 14 }, { wch: 18 }, { wch: 25 }, { wch: 14 },
+      { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, 'Sales Register');
@@ -134,15 +140,16 @@ const SalesRegister = () => {
     const doc = new jsPDF('landscape');
     
     doc.setFontSize(16);
-    doc.text(`${activeTab === 'RM' ? 'Raw Material' : 'Finished Goods'} Sales Register`, 14, 15);
+    doc.text(`${activeTab === 'RM' ? 'Raw Material' : 'Finished Goods'} Sales Register (${taxableType})`, 14, 15);
     doc.setFontSize(10);
     doc.text(`Period: ${fromDate} to ${toDate}`, 14, 22);
 
-    const tableHeaders = [['Date', 'Invoice No.', 'Customer Name', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit']];
+    const tableHeaders = [['Date', 'Invoice No.', 'Customer Name', 'Taxable', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit']];
     const tableData = filteredRegister.map(row => [
       row.date ? new Date(row.date).toISOString().split('T')[0] : '',
       row.invoice_no || '',
-      row.customer_name || 'N/A', // 👈 Fixed
+      row.customer_name || 'N/A',
+      row.is_taxable ? 'Yes' : 'No',
       row.invoice_type || '',
       `Rs. ${Number(row.revenue || 0).toFixed(2)}`,
       `Rs. ${Number(row.cogs || 0).toFixed(2)}`,
@@ -195,6 +202,17 @@ const SalesRegister = () => {
             <input type='date' value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
             <input type='date' value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
             
+            {/* 👈 Taxable Type Filter Dropdown */}
+            <select 
+              value={taxableType} 
+              onChange={(e) => setTaxableType(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#fff', cursor: 'pointer', fontWeight: '500' }}
+            >
+              <option value="ALL">All Invoices</option>
+              <option value="NON_TAXABLE">Non-Taxable Only</option>
+              <option value="TAXABLE">Taxable Only</option>
+            </select>
+
             {/* Search Input Box */}
             <input 
               type='text' 
@@ -270,7 +288,7 @@ const SalesRegister = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
-                    {['Date', 'Invoice No.', 'Customer Name', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit'].map(h => (
+                    {['Date', 'Invoice No.', 'Customer Name', 'Tax Status', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit'].map(h => (
                       <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '13px', color: '#334155' }}>{h}</th>
                     ))}
                   </tr>
@@ -278,7 +296,7 @@ const SalesRegister = () => {
                 <tbody>
                   {filteredRegister.length === 0 ? (
                     <tr>
-                      <td colSpan="7" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
                         No matching sales register entries found.
                       </td>
                     </tr>
@@ -292,6 +310,18 @@ const SalesRegister = () => {
                             {link ? <Link to={link} style={{ color: '#0284c7' }}>{row.invoice_no}</Link> : row.invoice_no || 'N/A'}
                           </td>
                           <td style={{ padding: '10px', fontSize: '13px' }}>{row.customer_name || 'N/A'}</td>
+                          <td style={{ padding: '10px', fontSize: '12px' }}>
+                            <span style={{ 
+                              padding: '2px 8px', 
+                              borderRadius: '12px', 
+                              fontSize: '11px', 
+                              fontWeight: '600',
+                              backgroundColor: row.is_taxable ? '#e0f2fe' : '#f1f5f9',
+                              color: row.is_taxable ? '#0369a1' : '#475569'
+                            }}>
+                              {row.is_taxable ? 'Taxable' : 'Non-Taxable'}
+                            </span>
+                          </td>
                           <td style={{ padding: '10px', fontSize: '13px' }}>{row.invoice_type}</td>
                           <td style={{ padding: '10px', fontSize: '13px', fontWeight: '600', color: row.revenue < 0 ? '#dc2626' : '#1e293b' }}>
                             {formatCurrency(row.revenue)}
