@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import NavigationBar from '../Components/NavigationBar';
-import { FaArrowLeft, FaEye, FaPlus, FaFileInvoice, FaUserAlt, FaCalendarAlt, FaEdit, FaCheckCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaEye, FaPlus, FaFileInvoice, FaCalendarAlt, FaEdit, FaCheckCircle, FaMoneyBillWave } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../RMForm.css';
 import Footer from '../Components/Footer';
@@ -8,7 +8,7 @@ import Pagination from '../Components/Pagination';
 import api from "../../api"; 
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
 import ApprovedInvoiceEditModal from '../Components/ApprovedInvoiceEditModal';
-import Swal from 'sweetalert2'; // Swal import kiya confirmation dialogs k liye
+import Swal from 'sweetalert2'; 
 import { formatRmDetailsList } from '../utils/rmQtyDisplay';
 
 const RM_Sale = ({ channel = null }) => {
@@ -21,11 +21,8 @@ const RM_Sale = ({ channel = null }) => {
 
   const navigate = useNavigate();
 
-  // Channel-aware paths/labels: same screen serves the generic RM tab
-  // (channel=null) and the Retail / Wholesale tabs.
   const channelLabel = channel === 'retail' ? 'Retail' : channel === 'wholesale' ? 'Wholesale' : channel === 'pos' ? 'POS' : null;
   const isPos = channel === 'pos';
-  // POS sales are made on the counter screen (instant approve), not the draft form
   const formPath = isPos ? '/pos/sale' : channel ? `/${channel}/sale-form` : '/rm-sale-form';
   const backPath = channel ? '/dashboard' : '/rm-transactions';
   const pageTitle = channelLabel ? `${channelLabel} Sales` : 'Raw Material Sales';
@@ -43,7 +40,6 @@ const RM_Sale = ({ channel = null }) => {
       });
 
       const data = res.data;
-      console.log("RM Sale API Response:", data);
 
       if (Array.isArray(data.data)) {
         setSales(data.data);
@@ -59,10 +55,73 @@ const RM_Sale = ({ channel = null }) => {
 
   useEffect(() => {
     fetchSales();
-  }, [page, channel]); // Runs whenever the page or channel changes
+  }, [page, channel]);
 
   // ---------------------------------------------------------
-  // 1️⃣ Approve Handler with SweetAlert2 (Yes/No Confirmation)
+  // 💳 Payment Status Change Handler with SweetAlert2 Dropdown
+  // ---------------------------------------------------------
+  const handlePaymentStatusChange = async (masterId, currentStatus, invoiceNo) => {
+    const { value: newStatus } = await Swal.fire({
+      title: `Update Payment Status`,
+      text: `Invoice No: ${invoiceNo}`,
+      input: 'select',
+      inputOptions: {
+        'Unpaid': 'Unpaid',
+        'Partial': 'Partial',
+        'Paid': 'Paid'
+      },
+      inputValue: currentStatus,
+      showCancelButton: true,
+      confirmButtonText: 'Update Status',
+      confirmButtonColor: '#2b6cb0',
+      cancelButtonColor: '#64748b',
+      inputValidator: (value) => {
+        if (!value) {
+          return 'You need to select a status!';
+        }
+      }
+    });
+
+    if (newStatus && newStatus !== currentStatus) {
+      try {
+        Swal.fire({
+          title: 'Updating...',
+          text: 'Updating payment status',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        // Backend API call to update payment status
+        const res = await api.patch(`/rm-transactions/${masterId}/payment-status`, {
+          payment_status: newStatus
+        });
+
+        if (res.status === 200 || res.status === 201) {
+          Swal.fire({
+            title: 'Updated!',
+            text: `Payment status updated to ${newStatus}`,
+            icon: 'success',
+            timer: 1800,
+            showConfirmButton: false
+          });
+          fetchSales(); // Refresh list to reflect updated badge
+        }
+      } catch (err) {
+        console.error("Error updating payment status:", err);
+        Swal.fire({
+          title: 'Error!',
+          text: err.response?.data?.message || 'Failed to update payment status.',
+          icon: 'error',
+          confirmButtonColor: '#2b6cb0'
+        });
+      }
+    }
+  };
+
+  // ---------------------------------------------------------
+  // 1️⃣ Approve Handler
   // ---------------------------------------------------------
   const handleApproveInvoice = async (masterId, invoiceNo) => {
     const result = await Swal.fire({
@@ -77,7 +136,6 @@ const RM_Sale = ({ channel = null }) => {
     });
 
     if (result.isConfirmed) {
-      // Loading screen lagana taake backend processing k dauran user double-click na kare
       Swal.fire({
         title: 'Processing...',
         text: 'Posting ledger accounts and updating inventory stock.',
@@ -88,7 +146,6 @@ const RM_Sale = ({ channel = null }) => {
       });
 
       try {
-        // Controller route template match: /:id/approve
         const res = await api.put(`/rm-transactions/${masterId}/approve`);
         
         if (res.status === 200 || res.status === 201) {
@@ -98,7 +155,7 @@ const RM_Sale = ({ channel = null }) => {
             icon: 'success',
             confirmButtonColor: '#2b6cb0'
           });
-          fetchSales(); // Table refresh taake dynamic button change ho jaye
+          fetchSales();
         }
       } catch (err) {
         console.error("Error approving invoice:", err);
@@ -113,7 +170,7 @@ const RM_Sale = ({ channel = null }) => {
   };
 
   // ---------------------------------------------------------
-  // 2️⃣ Edit Handler with SweetAlert2 Confirmation
+  // 2️⃣ Edit Handler
   // ---------------------------------------------------------
   const handleEditInvoice = async (masterId) => {
     const result = await Swal.fire({
@@ -128,7 +185,6 @@ const RM_Sale = ({ channel = null }) => {
     });
 
     if (result.isConfirmed) {
-      // Edit form screen par navigate karega query parameter pass kar ke
       navigate(`${formPath}?editId=${masterId}`);
     }
   };
@@ -137,7 +193,7 @@ const RM_Sale = ({ channel = null }) => {
     <>
       <NavigationBar />
       <div className="rm-page">
-        <div className="top-nav-container" style={{marginTop: '30px'}}>
+        <div className="top-nav-container" style={{ marginTop: '30px' }}>
           <button className="back-btn" onClick={() => navigate(backPath)}>
             <FaArrowLeft />
           </button>
@@ -157,84 +213,87 @@ const RM_Sale = ({ channel = null }) => {
                 <tr>
                   <th>ID</th>
                   <th><FaFileInvoice /> INVOICE NO</th>
-                  {/* <th>CREATED AT</th> */}
                   <th><FaCalendarAlt /> DATE</th>
-                  {/* <th><FaUserAlt /> CREATED BY</th> */}
                   <th>CUSTOMER</th>
                   <th>ITEM NAME</th>
                   <th>GRAND TOTAL</th>
-                  {/* <th>INVOICE STATUS</th> */}
+                  <th>PAYMENT STATUS</th> {/* 👈 Payment Status Header */}
                   <th style={{ textAlign: 'center' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
                 {sales.length > 0 ? (
-                  sales.map((s) => (
-                    <tr key={s.master_id}>
-                      <td style={{ color: '#94a3b8' }}>#{s.master_id}</td>
-                      <td style={{ fontWeight: '700' }}>{s.invoice_no}</td>
-                      {/* <td>{s.createdat ? new Date(s.createdat).toLocaleDateString() : "-"}</td> */}
-                      <td>{s.date ? new Date(s.date).toLocaleDateString() : "-"}</td>
-                      {/* <td><span className="user-tag">{s.createdby}</span></td> */}
-                      <td><span className="supplier-tag">{s.entity_name}</span></td>
-                      <td><span className="user-tag">{formatRmDetailsList(s.details)}</span></td>
-                      <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
-                        {parseFloat(s.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
-                      </td>
-                      {/* <td>   
-                        <span className={`status-badge ${
-  s.status === 'Approved' 
-    ? 'status-approved' 
-    : (s.status === 'Draft' || !s.status) 
-      ? 'status-draft' // Red color wali class yahan lagegi
-      : 'status-draft'
-}`}>
-  {s.status === 'Draft' || !s.status ? 'Unapproved' : s.status}
-</span>
-                      </td> */}
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                          <button onClick={() => navigate(`/rm-invoice/${s.invoice_no}`)} className="primary-btn">
-                            <FaEye /> VIEW
+                  sales.map((s) => {
+                    // Payment Status Dynamic CSS Class Setup
+                    const payStatus = s.payment_status || 'Unpaid';
+                    const badgeClass = 
+                      payStatus === 'Paid' ? 'status-paid' : 
+                      payStatus === 'Partial' ? 'status-partial' : 'status-unpaid';
+
+                    return (
+                      <tr key={s.master_id}>
+                        <td style={{ color: '#94a3b8' }}>#{s.master_id}</td>
+                        <td style={{ fontWeight: '700' }}>{s.invoice_no}</td>
+                        <td>{s.date ? new Date(s.date).toLocaleDateString() : "-"}</td>
+                        <td><span className="supplier-tag">{s.entity_name}</span></td>
+                        <td><span className="user-tag">{formatRmDetailsList(s.details)}</span></td>
+                        <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                          {parseFloat(s.grand_total).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+
+                        {/* 👈 Dynamic Interactive Payment Status Button */}
+                        <td>
+                          <button
+                            onClick={() => handlePaymentStatusChange(s.master_id, payStatus, s.invoice_no)}
+                            className={`payment-status-btn ${badgeClass}`}
+                            title="Click to update payment status"
+                          >
+                            <FaMoneyBillWave /> {payStatus}
                           </button>
+                        </td>
 
-                          {isPos && (
-                            <button onClick={() => navigate(`/pos/receipt/${s.invoice_no}`)} className="edit-btn-action" title="Print thermal receipt">
-                              <FaFileInvoice /> RECEIPT
+                        <td style={{ textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                            <button onClick={() => navigate(`/rm-invoice/${s.invoice_no}`)} className="primary-btn">
+                              <FaEye /> VIEW
                             </button>
-                          )}
 
-                          {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
-                          {s.status === 'Approved' ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setApprovedInvoiceId(s.master_id);
-                                  setApprovedModalOpen(true);
-                                }}
-                                className="edit-btn-action"
-                              >
-                                <FaEdit /> EDIT
+                            {isPos && (
+                              <button onClick={() => navigate(`/pos/receipt/${s.invoice_no}`)} className="edit-btn-action" title="Print thermal receipt">
+                                <FaFileInvoice /> RECEIPT
                               </button>
-                              <span className="approved-text-btn">
-                                <FaCheckCircle /> APPROVED
-                              </span>
-                            </>
-                          ) : (
-                            // Show Edit and Approve buttons only when invoice is 'Draft'
-                            <>
-                              <button onClick={() => handleEditInvoice(s.master_id)} className="edit-btn-action">
-                                <FaEdit /> EDIT
-                              </button>
-                              <button onClick={() => handleApproveInvoice(s.master_id, s.invoice_no)} className="approve-btn-action">
-                                <FaCheckCircle /> APPROVE
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                            )}
+
+                            {s.status === 'Approved' ? (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setApprovedInvoiceId(s.master_id);
+                                    setApprovedModalOpen(true);
+                                  }}
+                                  className="edit-btn-action"
+                                >
+                                  <FaEdit /> EDIT
+                                </button>
+                                <span className="approved-text-btn">
+                                  <FaCheckCircle /> APPROVED
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <button onClick={() => handleEditInvoice(s.master_id)} className="edit-btn-action">
+                                  <FaEdit /> EDIT
+                                </button>
+                                <button onClick={() => handleApproveInvoice(s.master_id, s.invoice_no)} className="approve-btn-action">
+                                  <FaCheckCircle /> APPROVE
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan="10" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>No Transactions Found</td>
@@ -248,6 +307,7 @@ const RM_Sale = ({ channel = null }) => {
             <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
           </div>
         </div>
+        
         <InvoiceTypeModal
           open={isInvoiceModalOpen}
           onClose={() => setIsInvoiceModalOpen(false)}

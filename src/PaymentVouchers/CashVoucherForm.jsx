@@ -183,72 +183,73 @@ const CashVoucherForm = () => {
 
     const totalAmount = voucherRows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (isSubmitting) return;
-        if (!transactionDate || !selectedCashAccount) return toast.error("Please fill required header fields.");
+   const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    
+    if (!transactionDate || !selectedCashAccount) {
+        return toast.error("Please fill required header fields.");
+    }
 
-        const finalItems = [];
-        for (let i = 0; i < voucherRows.length; i++) {
-            const row = voucherRows[i];
-            if (!row.account_id || !row.amount || parseFloat(row.amount) <= 0) {
-                return toast.error(`Invalid data at Row ${i + 1}`);
-            }
-            const { list } = getEntityListAndLabel(row.account_id);
-            if (list.length > 0 && !row.entity_id) return toast.error(`Please select Subsidiary at Row ${i + 1}`);
-
-            finalItems.push({
-                account_id: row.account_id,
-                type: voucherType === "CPV" ? "debit" : "credit",
-                amount: parseFloat(row.amount),
-                entity_id: row.entity_id || null,
-                remarks: row.description || null
-            });
+    const finalItems = [];
+    for (let i = 0; i < voucherRows.length; i++) {
+        const row = voucherRows[i];
+        if (!row.account_id || !row.amount || parseFloat(row.amount) <= 0) {
+            return toast.error(`Invalid data at Row ${i + 1}`);
+        }
+        const { list } = getEntityListAndLabel(row.account_id);
+        if (list.length > 0 && !row.entity_id) {
+            return toast.error(`Please select Subsidiary at Row ${i + 1}`);
         }
 
-        // Auto balanced Cash Control side
         finalItems.push({
-            account_id: selectedCashAccount,
-            type: voucherType === "CPV" ? "credit" : "debit",
-            amount: totalAmount,
-            entity_id: null,
-            remarks: `Auto-balanced cash side for ${voucherType}`
+            account_id: row.account_id,
+            type: voucherType === "CPV" ? "debit" : "credit",
+            amount: parseFloat(row.amount),
+            entity_id: row.entity_id || null,
+            remarks: row.description || null
         });
+    }
 
-        setIsSubmitting(true);
-        try {
-            let res;
-            if (isEditMode) {
-                res = await api.put(`/payment-transactions/invoice/${invoiceNo}`, {
-                    transaction_date: transactionDate,
-                    description: `${voucherType} Entry - Cash Transaction`,
-                    voucher_prefix: voucherType,
-                    items: finalItems
-                });
-            } else {
-                res = await api.post("/payment-transactions", {
-                    transaction_date: transactionDate,
-                    description: `${voucherType} Entry - Cash Transaction`,
-                    voucher_prefix: voucherType,
-                    items: finalItems
-                });
-            }
-            setIsSubmitting(false);
-            Swal.fire({ title: isEditMode ? "Voucher updated successfully!" : "Success", text: `Voucher No: ${res.data.invoice_no}`, icon: "success" })
-                .then(() => {
-                    if (!isEditMode) {
-                        setTransactionDate(""); setSelectedCashAccount("");
-                        setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
-                        fetchInvoiceNo();
-                    } else {
-                        navigate('/cash-vouchers-list');
-                    }
-                });
-        } catch (err) {
-            setIsSubmitting(false);
-            toast.error(err.response?.data?.error || "Transaction Failed!");
-        }
+    // Prepare Payload with top-level cash_account_id & account_id
+    const payload = {
+        transaction_date: transactionDate,
+        description: `${voucherType} Entry - Cash Transaction`,
+        voucher_prefix: voucherType,
+        cash_account_id: selectedCashAccount, // Top-level cash account ID
+        account_id: selectedCashAccount,      // Fallback top-level key
+        items: finalItems                     // Grid items ONLY (no manual auto-balance row)
     };
+
+    setIsSubmitting(true);
+    try {
+        let res;
+        if (isEditMode) {
+            res = await api.put(`/payment-transactions/invoice/${invoiceNo}`, payload);
+        } else {
+            res = await api.post("/payment-transactions", payload);
+        }
+        
+        setIsSubmitting(false);
+        Swal.fire({ 
+            title: isEditMode ? "Voucher updated successfully!" : "Success", 
+            text: `Voucher No: ${res.data.invoice_no}`, 
+            icon: "success" 
+        }).then(() => {
+            if (!isEditMode) {
+                setTransactionDate(""); 
+                setSelectedCashAccount("");
+                setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
+                fetchInvoiceNo();
+            } else {
+                navigate('/cash-vouchers-list');
+            }
+        });
+    } catch (err) {
+        setIsSubmitting(false);
+        toast.error(err.response?.data?.error || "Transaction Failed!");
+    }
+};
 
     if (isEditMode && isLoadingVoucher) {
         return (

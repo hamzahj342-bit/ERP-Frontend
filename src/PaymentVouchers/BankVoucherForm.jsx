@@ -169,86 +169,81 @@ const BankVoucherForm = () => {
     const totalAmount = voucherRows.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
 
     // --- Transaction Post Submission Handler ---
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (isSubmitting) return;
-        
-        if (!transactionDate || !selectedBankAccount) {
-            return toast.error("Please fill Transaction Date and Select Bank Account.");
+   // --- Transaction Post Submission Handler ---
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    
+    if (!transactionDate || !selectedBankAccount) {
+        return toast.error("Please fill Transaction Date and Select Bank Account.");
+    }
+
+    const finalItems = [];
+    for (let i = 0; i < voucherRows.length; i++) {
+        const row = voucherRows[i];
+        if (!row.account_id || !row.amount || parseFloat(row.amount) <= 0) {
+            return toast.error(`Invalid ledger amount parameter at Row ${i + 1}`);
+        }
+        const { list } = getEntityListAndLabel(row.account_id);
+        if (list.length > 0 && !row.entity_id) {
+            return toast.error(`Please select corresponding Subsidiary Entity at Row ${i + 1}`);
         }
 
-        const finalItems = [];
-        for (let i = 0; i < voucherRows.length; i++) {
-            const row = voucherRows[i];
-            if (!row.account_id || !row.amount || parseFloat(row.amount) <= 0) {
-                return toast.error(`Invalid ledger amount parameter at Row ${i + 1}`);
-            }
-            const { list } = getEntityListAndLabel(row.account_id);
-            if (list.length > 0 && !row.entity_id) {
-                return toast.error(`Please select corresponding Subsidiary Entity at Row ${i + 1}`);
-            }
-
-            // 🌟 FIXED: BPV me baaki accounts Debit hotay hain aur BRV me baaki accounts Credit hotay hain
-            finalItems.push({
-                account_id: row.account_id,
-                type: voucherType === "BPV" ? "debit" : "credit",
-                amount: parseFloat(row.amount),
-                entity_id: row.entity_id || null,
-                remarks: row.description || null
-            });
-        }
-
-        // Automatic Offset/Balanced Balancing Double Entry Generation
-        // 🌟 FIXED: BPV me Corporate Bank account Credit hoga, aur BRV me Corporate Bank account Debit hoga
         finalItems.push({
-            account_id: selectedBankAccount,
-            type: voucherType === "BPV" ? "credit" : "debit",
-            amount: totalAmount,
-            entity_id: null,
-            remarks: `Auto-balanced bank ledger control side for ${voucherType} via ${paymentMode}`
+            account_id: row.account_id,
+            type: voucherType === "BPV" ? "debit" : "credit",
+            amount: parseFloat(row.amount),
+            entity_id: row.entity_id || null,
+            remarks: row.description || null
         });
+    }
 
-        setIsSubmitting(true);
-        try {
-            let res;
-            if (isEditMode) {
-                res = await api.put(`/payment-transactions/invoice/${invoiceNo}`, {
-                    transaction_date: transactionDate,
-                    description: `${voucherType} Entry [Mode: ${paymentMode}] ${chequeNo ? `- Ref/Chq:${chequeNo}` : ''}`,
-                    voucher_prefix: voucherType,
-                    cheque_no: chequeNo || null,
-                    cheque_date: chequeDate || null,
-                    deposit_slip_no: depositSlipNo || null,
-                    items: finalItems
-                });
-            } else {
-                res = await api.post("/payment-transactions", {
-                    transaction_date: transactionDate,
-                    description: `${voucherType} Entry [Mode: ${paymentMode}] ${chequeNo ? `- Ref/Chq:${chequeNo}` : ''}`,
-                    voucher_prefix: voucherType,
-                    cheque_no: chequeNo || null,
-                    cheque_date: chequeDate || null,
-                    deposit_slip_no: depositSlipNo || null,
-                    items: finalItems
-                });
-            }
-            
-            setIsSubmitting(false);
-            Swal.fire({ title: isEditMode ? "Voucher updated successfully!" : "Voucher Posted Successfully!", text: `Voucher Ref: ${res.data.invoice_no}`, icon: "success" })
-                .then(() => {
-                    if (!isEditMode) {
-                        setTransactionDate(""); setChequeNo(""); setChequeDate(""); setDepositSlipNo(""); setSelectedBankAccount(""); setPaymentMode("Cheque");
-                        setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
-                        fetchInvoiceNo();
-                    } else {
-                        navigate('/bank-vouchers-list');
-                    }
-                });
-        } catch (err) {
-            setIsSubmitting(false);
-            toast.error(err.response?.data?.error || "Transaction Pipeline Broken!");
-        }
+    // Prepare Payload with top-level bank_account_id / account_id
+    const payload = {
+        transaction_date: transactionDate,
+        description: `${voucherType} Entry [Mode: ${paymentMode}] ${chequeNo ? `- Ref/Chq:${chequeNo}` : ''}`,
+        voucher_prefix: voucherType,
+        bank_account_id: selectedBankAccount, // Sent as top-level field
+        account_id: selectedBankAccount,      // Fallback top-level key
+        cheque_no: chequeNo || null,
+        cheque_date: chequeDate || null,
+        deposit_slip_no: depositSlipNo || null,
+        items: finalItems                     // Contains ONLY grid items
     };
+
+    setIsSubmitting(true);
+    try {
+        let res;
+        if (isEditMode) {
+            res = await api.put(`/payment-transactions/invoice/${invoiceNo}`, payload);
+        } else {
+            res = await api.post("/payment-transactions", payload);
+        }
+        
+        setIsSubmitting(false);
+        Swal.fire({ 
+            title: isEditMode ? "Voucher updated successfully!" : "Voucher Posted Successfully!", 
+            text: `Voucher Ref: ${res.data.invoice_no}`, 
+            icon: "success" 
+        }).then(() => {
+            if (!isEditMode) {
+                setTransactionDate(""); 
+                setChequeNo(""); 
+                setChequeDate(""); 
+                setDepositSlipNo(""); 
+                setSelectedBankAccount(""); 
+                setPaymentMode("Cheque");
+                setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
+                fetchInvoiceNo();
+            } else {
+                navigate('/bank-vouchers-list');
+            }
+        });
+    } catch (err) {
+        setIsSubmitting(false);
+        toast.error(err.response?.data?.error || "Transaction Pipeline Broken!");
+    }
+};
 
     if (isEditMode && isLoadingVoucher) {
         return (

@@ -8,7 +8,7 @@ import Pagination from '../Components/Pagination';
 import api from '../../api';
 import ApprovedInvoiceEditModal from '../Components/ApprovedInvoiceEditModal';
 import InvoiceTypeModal from '../Components/InvoiceTypeModal';
-import Swal from 'sweetalert2'; // Confirmation system confirmation dialogs
+import Swal from 'sweetalert2';
 
 const FP_SaleList = () => {
   const [sales, setSales] = useState([]);
@@ -22,13 +22,13 @@ const FP_SaleList = () => {
   const limit = 50;
   const navigate = useNavigate();
 
-  // Fetch paginated data - Strictly using your original "/fp-sale" endpoint
+  // Fetch paginated sales list
   const fetchSales = async () => {
     setLoading(true);
     try {
       const res = await api.get("/fp-sale", {
         params: {
-          type: "Sale", // Keeping your exact configuration
+          type: "Sale",
           page: page,
           limit: limit
         }
@@ -54,7 +54,55 @@ const FP_SaleList = () => {
   }, [page]);
 
   // ---------------------------------------------------------
-  // 1️⃣ Approve Handler: Using your strict route pattern "/fp-sale/:id/approve"
+  // 1️⃣ Update Payment Status Handler: Calls route PATCH /fp-sale/:id/payment-status
+  // ---------------------------------------------------------
+  const handlePaymentStatusChange = async (masterId, currentStatus) => {
+    const { value: newStatus } = await Swal.fire({
+      title: 'Update Payment Status',
+      input: 'select',
+      inputOptions: {
+        Unpaid: 'Unpaid',
+        Partial: 'Partial',
+        Paid: 'Paid'
+      },
+      inputValue: currentStatus || 'Unpaid',
+      showCancelButton: true,
+      confirmButtonText: 'Update Status',
+      confirmButtonColor: '#2b6cb0',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (newStatus && newStatus !== currentStatus) {
+      try {
+        Swal.showLoading();
+        const res = await api.patch(`/fp-sale/${masterId}/payment-status`, {
+          payment_status: newStatus
+        });
+
+        if (res.status === 200 || res.status === 201) {
+          Swal.fire({
+            title: 'Updated!',
+            text: `Payment status has been updated to "${newStatus}".`,
+            icon: 'success',
+            timer: 1800,
+            showConfirmButton: false
+          });
+          fetchSales(); // Matrix Table Refresh
+        }
+      } catch (err) {
+        console.error("Error updating payment status:", err);
+        Swal.fire({
+          title: 'Error!',
+          text: err.response?.data?.message || 'Failed to update payment status.',
+          icon: 'error',
+          confirmButtonColor: '#2b6cb0'
+        });
+      }
+    }
+  };
+
+  // ---------------------------------------------------------
+  // 2️⃣ Approve Invoice Handler
   // ---------------------------------------------------------
   const handleApproveInvoice = async (masterId, invoiceNo) => {
     const result = await Swal.fire({
@@ -79,9 +127,7 @@ const FP_SaleList = () => {
       });
 
       try {
-        // Exact route match according to your parameters: /fp-sale/:id/approve
         const res = await api.put(`/fp-sale/${masterId}/approve`);
-        
         if (res.status === 200 || res.status === 201) {
           Swal.fire({
             title: 'Approved!',
@@ -89,7 +135,7 @@ const FP_SaleList = () => {
             icon: 'success',
             confirmButtonColor: '#2b6cb0'
           });
-          fetchSales(); // Refresh matrix layout
+          fetchSales();
         }
       } catch (err) {
         console.error("Error approving invoice:", err);
@@ -104,7 +150,7 @@ const FP_SaleList = () => {
   };
 
   // ---------------------------------------------------------
-  // 2️⃣ Edit Handler: Navigates to the form with query parameter editId
+  // 3️⃣ Edit Invoice Handler
   // ---------------------------------------------------------
   const handleEditInvoice = async (masterId) => {
     const result = await Swal.fire({
@@ -126,13 +172,25 @@ const FP_SaleList = () => {
   const handleViewDetails = (invoiceNo) => {
     navigate(`/fp-invoice-detail/${invoiceNo}`);
   };
-  
+
+  // Helper for Payment Status Badging Styles
+  const getPaymentStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return 'status-approved'; // Green styling
+      case 'partial':
+        return 'status-partial';  // Orange / Yellow styling
+      case 'unpaid':
+      default:
+        return 'status-draft';    // Red / Neutral styling
+    }
+  };
+
   return (
     <>
       <NavigationBar />
 
       <div className="rm-page">
-        {/* Top Header Section */}
         <div className="top-nav-container" style={{ marginTop: '30px' }}>
           <button className="back-btn" onClick={() => navigate('/fp-transactions')}>
             <FaArrowLeft />
@@ -140,7 +198,6 @@ const FP_SaleList = () => {
         </div>
 
         <div className="card">
-          {/* Header with Title and Add Button */}
           <div className="card-header">
             <h3>Finished Goods Sales List</h3>
             <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
@@ -161,7 +218,7 @@ const FP_SaleList = () => {
                     <th><FaCalendarAlt /> DATE</th>
                     <th>CUSTOMER</th>
                     <th>GRAND TOTAL</th>
-                    <th>INVOICE STATUS</th>
+                    <th>PAYMENT STATUS</th>
                     <th><FaUserAlt /> CREATED BY</th>
                     <th style={{ textAlign: 'center' }}>ACTION</th>
                   </tr>
@@ -169,74 +226,78 @@ const FP_SaleList = () => {
 
                 <tbody>
                   {sales.length > 0 ? (
-                    sales.map((sale) => (
-                      <tr key={sale.id}>
-                        <td className="id-cell" style={{ color: '#94a3b8' }}>#{sale.id}</td>
-                        <td className="invoice-cell" style={{ fontWeight: '700' }}>{sale.invoice_no}</td>
-                        <td>{sale.createdat ? new Date(sale.createdat).toLocaleDateString() : "-"}</td>
-                        <td>{sale.date ? new Date(sale.date).toLocaleDateString() : "-"}</td>
-                        <td><span className="supplier-tag">{sale.customer?.name || sale.entity_name || "N/A"}</span></td>
-                        <td className="total-cell" style={{ fontWeight: '700', color: '#2b6cb0' }}> 
-                          {parseFloat(sale.grand_total).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-                        <td>
-                          {/* Dynamic Status Text Badge */}
-                          <span className={`status-badge ${
-  sale.status === 'Approved' 
-    ? 'status-approved' 
-    : (sale.status === 'Draft' || !sale.status) 
-      ? 'status-draft' // Red color wali class yahan lagegi
-      : 'status-draft'
-}`}>
-  {sale.status === 'Draft' || !sale.status ? 'Unapproved' : sale.status}
-</span>
-                        </td>
-                        <td><span className="user-tag">{sale.createdby || "—"}</span></td>
-                        <td className="action-cell" style={{ textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                            <button 
-                              onClick={() => handleViewDetails(sale.invoice_no)} 
-                              className="primary-btn"
-                            >
-                              <FaEye /> VIEW
-                            </button>
+                    sales.map((sale) => {
+                      const currentPaymentStatus = sale.payment_status || "Unpaid";
 
-                            {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
-                            {sale.status === 'Approved' ? (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    setApprovedInvoiceId(sale.id);
-                                    setApprovedModalOpen(true);
-                                  }}
-                                  className="edit-btn-action"
-                                >
-                                  <FaEdit /> EDIT
-                                </button>
-                                <span className="approved-text-btn">
-                                  <FaCheckCircle /> APPROVED
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <button 
-                                  onClick={() => handleEditInvoice(sale.id)} 
-                                  className="edit-btn-action"
-                                >
-                                  <FaEdit /> EDIT
-                                </button>
-                                <button 
-                                  onClick={() => handleApproveInvoice(sale.id, sale.invoice_no)} 
-                                  className="approve-btn-action"
-                                >
-                                  <FaCheckCircle /> APPROVE
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                      return (
+                        <tr key={sale.id}>
+                          <td className="id-cell" style={{ color: '#94a3b8' }}>#{sale.id}</td>
+                          <td className="invoice-cell" style={{ fontWeight: '700' }}>{sale.invoice_no}</td>
+                          <td>{sale.createdat ? new Date(sale.createdat).toLocaleDateString() : "-"}</td>
+                          <td>{sale.date ? new Date(sale.date).toLocaleDateString() : "-"}</td>
+                          <td><span className="supplier-tag">{sale.customer?.name || sale.entity_name || "N/A"}</span></td>
+                          <td className="total-cell" style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                            {parseFloat(sale.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </td>
+                          
+                          {/* 💳 Payment Status Badge (Clickable for Status Updates) */}
+                          <td>
+                            <span 
+                              className={`status-badge ${getPaymentStatusBadgeClass(currentPaymentStatus)}`}
+                              onClick={() => handlePaymentStatusChange(sale.id, currentPaymentStatus)}
+                              style={{ cursor: 'pointer' }}
+                              title="Click to update payment status"
+                            >
+                              {currentPaymentStatus}
+                            </span>
+                          </td>
+
+                          <td><span className="user-tag">{sale.createdby || "—"}</span></td>
+                          <td className="action-cell" style={{ textAlign: 'center' }}>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                              <button 
+                                onClick={() => handleViewDetails(sale.invoice_no)} 
+                                className="primary-btn"
+                              >
+                                <FaEye /> VIEW
+                              </button>
+
+                              {sale.status === 'Approved' ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setApprovedInvoiceId(sale.id);
+                                      setApprovedModalOpen(true);
+                                    }}
+                                    className="edit-btn-action"
+                                  >
+                                    <FaEdit /> EDIT
+                                  </button>
+                                  <span className="approved-text-btn">
+                                    <FaCheckCircle /> APPROVED
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <button 
+                                    onClick={() => handleEditInvoice(sale.id)} 
+                                    className="edit-btn-action"
+                                  >
+                                    <FaEdit /> EDIT
+                                  </button>
+                                  <button 
+                                    onClick={() => handleApproveInvoice(sale.id, sale.invoice_no)} 
+                                    className="approve-btn-action"
+                                  >
+                                    <FaCheckCircle /> APPROVE
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan="9" className="no-data" style={{ textAlign: 'center', padding: '50px', color: '#94a3b8' }}>
