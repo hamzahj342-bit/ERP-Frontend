@@ -87,7 +87,7 @@ import RM_OpeningStockList from './Pages/RM_OpeningStockList';
 import RM_OpeningStockForm from './Pages/RM_OpeningStockForm';
 import './primary-btn.css'
 import './downloads-btn.css' 
-import './Payment-status-btn.css'
+import './Payment-Status-btn.css'
 import GRN_Form from './Transactions/GRN_Form';
 import DC_Form from './Transactions/DC_Form';
 import DC_FP_Form from './Transactions/DC_FP_Form';
