@@ -13,12 +13,13 @@ const AccountForm = () => {
   const [formData, setFormData] = useState({
     account_name: "",
     category_id: "",
-    account_code: ""
+    account_code: "",
+    type: "General" // Default set to General
   });
 
   const [categories, setCategories] = useState([]);
 
-  // 1. Fetch categories (GET using api.js)
+  // 1. Fetch categories
   const fetchCategories = async () => {
     try {
       const res = await api.get("/account-categories");
@@ -32,11 +33,10 @@ const AccountForm = () => {
     fetchCategories();
   }, []);
 
-  // 2. Fetch next account code (GET with params)
+  // 2. Fetch next account code
   const fetchNextCode = async (category_id) => {
     if (!category_id) return;
     try {
-      // Axios mein query params 'params' object se bheje jate hain
       const res = await api.get("/accounts/next-code", {
         params: { category_id }
       });
@@ -59,25 +59,25 @@ const AccountForm = () => {
 
   const userId = localStorage.getItem("user_id");
 
-  // 3. Handle Submit (POST using api.js)
+  // 3. Handle Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.account_name || !formData.category_id) {
-      toast.error("Please enter account name and select a category!");
+    if (!formData.account_name || !formData.category_id || !formData.type) {
+      toast.error("Please fill all required fields!");
       return;
     }
 
     try {
-      // Headers (token) automatic interceptor se handle honge
       const res = await api.post("/accounts", {
         account_name: formData.account_name,
         category_id: formData.category_id,
+        type: formData.type, // Added type field
         created_by: userId
       });
 
       toast.success("Account created successfully!");
-      setFormData({ account_name: "", category_id: "", account_code: "" });
+      setFormData({ account_name: "", category_id: "", account_code: "", type: "General" });
       navigate("/accounts");
     } catch (err) {
       console.error("Submit Error:", err);
@@ -106,26 +106,41 @@ const AccountForm = () => {
               required
             />
 
-            {/* ✅ Category dropdown */}
-          <div className="row">
+            {/* Category dropdown */}
+            <div className="row">
+              <select
+                name="category_id"
+                value={formData.category_id}
+                onChange={handleChange}
+                required
+                className="col select-customer"
+              >
+                <option value="">Select Category</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.category_name}</option>
+                ))}
+              </select>
+
+              <button type="button" className="col add-btn" onClick={() => navigate("/create-category")}>
+                Add Category
+              </button>
+            </div>
+
+            {/* Account Type Dropdown */}
             <select
-              name="category_id"
-              value={formData.category_id}
+              name="type"
+              value={formData.type}
               onChange={handleChange}
               required
-              className="col select-customer"
             >
-              <option value="">Select Category</option>
-              {categories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.category_name}</option>
-              ))}
+              <option value="General">General</option>
+              <option value="Payable">Payable</option>
+              <option value="Receivable">Receivable</option>
+              <option value="Bank">Bank</option>
+              <option value="Cash">Cash</option>
+              <option value="Expense">Expense</option>
+              <option value="Income">Income</option>
             </select>
-
-            {/*Action button*/}
-            <button type="button" className="col add-btn" onClick={() => navigate("/create-category")}>
-              Add Category
-            </button>
-          </div>
 
             <input
               type="text"

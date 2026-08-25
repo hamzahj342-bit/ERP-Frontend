@@ -177,14 +177,22 @@ const Reports = () => {
    color="#2196f3" 
    perm="reports.sales_register"
 />
-{/* <ReportCard 
+<ReportCard 
    title="🧾 Purchase Register Report"
    description="Comprehensive record of all purchase transactions, including invoices, returns, and adjustments. Monitor supplier activity and procurement trends over time."
    icon={<FaFileInvoiceDollar size={40} />}
    path="/purchase-register" 
    color="#9c27b0" 
    perm="reports.purchase_register"
-/> */}
+/>
+<ReportCard 
+   title="🧾 Receivable Register Report"
+   description="Detailed record of all receivable transactions, including invoices, payments, and adjustments. Monitor customer credit and collection activities over time."
+   icon={<FaFileInvoiceDollar size={40} />}
+   path="/receivable-register" 
+   color="#ff5722" 
+   perm="reports.receivable_register"
+/>
 
                 </div>
             </div>

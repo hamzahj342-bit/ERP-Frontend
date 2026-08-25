@@ -1,22 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaPlus, FaEdit, FaTrashAlt, FaBook, FaSearch } from "react-icons/fa"; // 🔎 Added FaSearch
+import { FaArrowLeft, FaPlus, FaEdit, FaTrashAlt, FaBook, FaSearch } from "react-icons/fa";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import api from "../../api"; 
-import "../css/Accounts/AccountList.css"; // CSS Link
+import "../css/Accounts/AccountList.css";
 
 const AccountList = () => {
   const [accounts, setAccounts] = useState([]);
-  const [filteredAccounts, setFilteredAccounts] = useState([]); // 🎯 State for holding search results
-  const [searchQuery, setSearchQuery] = useState(""); // 🎯 State for search string
+  const [filteredAccounts, setFilteredAccounts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [onUpdate, setOnUpdate] = useState(null);
+  
+  // ✅ Form State updated with type
   const [formData, setFormData] = useState({
     account_name: "",
-    account_code: ""
+    account_code: "",
+    type: "General"
   });
 
   const navigate = useNavigate();
@@ -27,7 +30,7 @@ const AccountList = () => {
     try {
       const res = await api.get("/accounts");
       setAccounts(res.data);
-      setFilteredAccounts(res.data); // Initial loading sync
+      setFilteredAccounts(res.data);
     } catch (err) {
       console.error("Error fetching accounts:", err);
       toast.error("Failed to load accounts list.");
@@ -40,7 +43,7 @@ const AccountList = () => {
     fetchAccounts();
   }, []);
 
-  // 🎯 Real-time dynamic search filter handler
+  // Search Filter Handler
   useEffect(() => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) {
@@ -48,10 +51,10 @@ const AccountList = () => {
     } else {
       const filtered = accounts.filter(acc => {
         const nameMatch = acc.account_name ? acc.account_name.toLowerCase().includes(query) : false;
-        // matching explicitly with category_code column field from database structure
         const categoryMatch = acc.category_code ? acc.category_code.toLowerCase().includes(query) : false;
+        const typeMatch = acc.type ? acc.type.toLowerCase().includes(query) : false;
         
-        return nameMatch || categoryMatch;
+        return nameMatch || categoryMatch || typeMatch;
       });
       setFilteredAccounts(filtered);
     }
@@ -65,7 +68,8 @@ const AccountList = () => {
     setOnUpdate(acc);
     setFormData({
       account_name: acc.account_name,
-      account_code: acc.account_code
+      account_code: acc.account_code,
+      type: acc.type || "General" //  Pre-fill current type
     });
   };
 
@@ -75,13 +79,16 @@ const AccountList = () => {
       await api.put(`/accounts/${onUpdate.id}`, {
         account_name: formData.account_name,
         account_code: formData.account_code,
+        type: formData.type, //  Pass updated type to backend
         updated_by: userId
       });
       setOnUpdate(null);
       fetchAccounts();
       toast.success("Account updated successfully");
     } catch (err) {
-      toast.error("Update failed");
+      //  Captures backend restriction error if transactions exist
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || "Update failed";
+      toast.error(errorMsg);
     }
   };
 
@@ -101,7 +108,7 @@ const AccountList = () => {
           fetchAccounts();
           Swal.fire('Deleted!', 'Account has been removed.', 'success');
         } catch (err) {
-          Swal.fire('Error!', 'Something went wrong.', 'error');
+          Swal.fire('Error!', err.response?.data?.error || 'Something went wrong.', 'error');
         }
       }
     });
@@ -125,18 +132,17 @@ const AccountList = () => {
           </div>
 
           <div className="acc-card">
-            {/* 🎯 Updated Title Section to hold both Title & Search Box inline */}
+            {/* Title & Search Box */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
               <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <FaBook style={{ color: '#3b82f6' }} /> Chart of Accounts
               </h2>
               
-              {/* 🔎 Live Search Bar Input Component */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <FaSearch style={{ position: 'absolute', left: '12px', color: '#94a3b8', pointerEvents: 'none' }} />
                 <input 
                   type="text"
-                  placeholder="Search by name or category code..."
+                  placeholder="Search by name, type or code..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{
@@ -171,6 +177,27 @@ const AccountList = () => {
                       />
                     </div>
 
+                    {/*  Account Type Dropdown inside Edit Modal */}
+                    <div>
+                      <label style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px', display: 'block' }}>Account Type</label>
+                      <select
+                        name="type"
+                        value={formData.type}
+                        onChange={handleChange}
+                        required
+                        className="input"
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                      >
+                        <option value="General">General</option>
+                        <option value="Payable">Payable</option>
+                        <option value="Receivable">Receivable</option>
+                        <option value="Bank">Bank</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Expense">Expense</option>
+                        <option value="Income">Income</option>
+                      </select>
+                    </div>
+
                     <div>
                       <label style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '5px', display: 'block' }}>Account Code</label>
                       <input
@@ -180,6 +207,7 @@ const AccountList = () => {
                         onChange={handleChange}
                         placeholder="e.g. 1001"
                         required
+                        readOnly
                       />
                     </div>
 
@@ -208,7 +236,8 @@ const AccountList = () => {
                       <th style={{ width: '60px' }}>#</th>
                       <th>Code</th>
                       <th>Account Name</th>
-                      <th>Category Code</th> {/* Added display column for testing visualization */}
+                      <th>Type</th> 
+                      <th>Category Code</th>
                       <th style={{ textAlign: 'center' }}>Actions</th>
                     </tr>
                   </thead>
@@ -218,6 +247,21 @@ const AccountList = () => {
                         <td>{index + 1}</td>
                         <td><span className="acc-code-pill">{acc.account_code}</span></td>
                         <td style={{ fontWeight: '500', color: '#1e293b' }}>{acc.account_name}</td>
+                        
+                        {/*  Account Type Badge Column */}
+                        <td>
+                          {/* <span className={`badge ${
+                            acc.type === 'Bank' || acc.type === 'Cash' ? 'bg-info text-dark' :
+                            acc.type === 'Payable' ? 'bg-warning text-dark' :
+                            acc.type === 'Receivable' ? 'bg-success text-white' : 'bg-light text-secondary'
+                          } border px-2 py-1`} style={{ fontSize: '0.8rem', borderRadius: '4px' }}>
+                            {acc.type || 'General'}
+                          </span> */}
+                          <span className="badge bg-light text-secondary border px-2 py-1" style={{ fontSize: '0.8rem', borderRadius: '4px' }}>
+                             {acc.type || 'General'}
+                          </span>
+                        </td>
+
                         <td>
                           <span className="badge bg-light text-secondary border px-2 py-1" style={{ fontSize: '0.8rem', borderRadius: '4px' }}>
                             {acc.category_code || 'N/A'}
@@ -237,7 +281,7 @@ const AccountList = () => {
                     ))}
                     {filteredAccounts.length === 0 && (
                       <tr>
-                        <td colSpan="5" style={{ textAlign: "center", padding: "40px", color: '#94a3b8' }}>
+                        <td colSpan="6" style={{ textAlign: "center", padding: "40px", color: '#94a3b8' }}>
                           No accounts match your search criteria.
                         </td>
                       </tr>

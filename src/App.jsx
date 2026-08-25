@@ -87,6 +87,7 @@ import RM_OpeningStockList from './Pages/RM_OpeningStockList';
 import RM_OpeningStockForm from './Pages/RM_OpeningStockForm';
 import './primary-btn.css'
 import './downloads-btn.css' 
+import './Payment-Status-btn.css'
 import GRN_Form from './Transactions/GRN_Form';
 import DC_Form from './Transactions/DC_Form';
 import DC_FP_Form from './Transactions/DC_FP_Form';
@@ -96,6 +97,7 @@ import DC_FP_List from './Transactions/DC_FP_List';
 import LoaderDocumentView from './Transactions/LoaderDocumentView';
 import SalesRegister from './Reports/SalesRegister';
 import PurchaseRegister from './Reports/PurchaseRegister';
+import ReceivableRegister from './Reports/ReceivableRegister';
 import NavigationBar from './Components/NavigationBar';
 import { FaArrowLeft } from 'react-icons/fa';
 import PermissionRoute from './Components/PermissionRoute';
@@ -259,6 +261,7 @@ const App = () => {
         <Route path='/segmented-profit-loss' element={<PermissionRoute permission="reports.segmented_pl"> <SegmentedProfitLossReport /> </PermissionRoute>} />
         <Route path='/sales-register' element={<PermissionRoute permission="reports.sales_register"> <SalesRegister /> </PermissionRoute>} />
         <Route path='/purchase-register' element={<PermissionRoute permission="reports.purchase_register"> <PurchaseRegister /> </PermissionRoute>} />
+        <Route path='/receivable-register' element={<PermissionRoute permission="reports.receivable_register"> <ReceivableRegister /> </PermissionRoute>} />
         {/* Administration — roles.manage (Full Access) or users.manage (Super Admin) */}
         <Route path='/user-management' element={<PermissionRoute anyPermission={['roles.manage', 'users.manage']}> <UserList /> </PermissionRoute>} />
         <Route path='/user-management/new' element={<PermissionRoute permission="users.manage"> <UserForm /> </PermissionRoute>} />

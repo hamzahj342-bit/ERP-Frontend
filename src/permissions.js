@@ -75,6 +75,7 @@ export const PERMISSION_GROUPS = [
       { key: "reports.history", label: "Material & Product History" },
       { key: "reports.sales_register", label: "Sales Register Report" },
       { key: "reports.purchase_register", label: "Purchase Register Report" },
+      { key: "reports.receivable_register", label: "Receivable Register Report" },
     ],
   },
   {
