@@ -4,7 +4,7 @@ import {
     FaListAlt, // Icon for Category/List
     FaUserPlus, // Icon for Creating a new Account (Entity/Ledger)
     FaArrowRight, 
-    FaArrowLeft, 
+    FaArrowLeft,   
 } from 'react-icons/fa';
 import '../FP_Production.css'; // Assuming you use the same Card.css for consistent styling
 import Footer from '../Components/Footer';
