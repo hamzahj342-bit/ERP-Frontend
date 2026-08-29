@@ -96,10 +96,12 @@ const PaymentTransactionInvoice = () => {
   if (loading) return <p className="p-5 text-center">Loading payment invoice...</p>;
   if (!invoice && rows.length === 0) return <p className="p-5 text-center text-danger">Payment invoice not found.</p>;
 
-  // Debit Row & Credit Row calculation
-  const debitRow = rows.find((r) => Number(r.debit) > 0);
-  const creditRow = rows.find((r) => Number(r.credit) > 0);
-  const totalAmount = debitRow?.debit || creditRow?.credit || 0;
+  // ✅ FIX: Aggregate total debit and total credit sums across all transaction rows
+  const totalDebit = rows.reduce((acc, row) => acc + (parseFloat(row.debit) || 0), 0);
+  const totalCredit = rows.reduce((acc, row) => acc + (parseFloat(row.credit) || 0), 0);
+  
+  // Single side balanced total amount (Double Entry Ledger Rule: Sum(Debit) === Sum(Credit))
+  const totalAmount = totalDebit > 0 ? totalDebit : totalCredit;
 
   const mainInvoiceNo = invoice?.invoice_no || invoiceNo;
   const transactionDate = invoice?.transaction_date || rows[0]?.transaction_date;
@@ -141,7 +143,7 @@ const PaymentTransactionInvoice = () => {
         <section className="voucher-summary" style={{ display: "flex", gap: "15px", flexWrap: "wrap", margin: "20px 0" }}>
           <div className="voucher-card amount-card" style={{ flex: 1, minWidth: "200px" }}>
             <span>Total Payment Amount</span>
-            <h2>Rs. {Number(totalAmount).toLocaleString()}</h2>
+            <h2>Rs. {Number(totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
           </div>
 
           <div className="voucher-card" style={{ flex: 1, minWidth: "150px" }}>
@@ -170,7 +172,6 @@ const PaymentTransactionInvoice = () => {
             </thead>
             <tbody>
               {rows.map((row, index) => {
-                // Primary: Name, Fallback: Title or Cleaned ID Label
                 const accName = row.account_name || row.account?.name || row.account_title || `Account ID: ${row.account_id}`;
                 const partyName = row.entity_name || row.entity?.name || null;
 
@@ -196,8 +197,11 @@ const PaymentTransactionInvoice = () => {
               })}
               <tr className="amount-row" style={{ fontWeight: "bold", background: "#fafafa" }}>
                 <td colSpan="2" style={{ padding: "10px" }}>Total Amount</td>
-                <td colSpan="2" style={{ padding: "10px", textAlign: "right" }}>
-                  Rs. {Number(totalAmount).toLocaleString()}
+                <td style={{ padding: "10px", textAlign: "right" }}>
+                  Rs. {Number(totalDebit).toLocaleString()}
+                </td>
+                <td style={{ padding: "10px", textAlign: "right" }}>
+                  Rs. {Number(totalCredit).toLocaleString()}
                 </td>
               </tr>
             </tbody>
