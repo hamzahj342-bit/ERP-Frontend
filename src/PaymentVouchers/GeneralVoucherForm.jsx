@@ -7,7 +7,30 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import api from "../../api";
-import "../Transactions.css"; 
+import "../Transactions.css";
+import "./PaymentVoucherForm.css";
+
+const entitySelectProps = {
+  classNamePrefix: "react-select",
+  isClearable: true,
+  menuPortalTarget: typeof document !== "undefined" ? document.body : null,
+  menuPosition: "fixed",
+  maxMenuHeight: 280,
+  styles: {
+    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+    menu: (base) => ({ ...base, zIndex: 9999 }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: 280,
+      paddingTop: 4,
+      paddingBottom: 4,
+    }),
+  },
+  classNames: {
+    menu: () => "voucher-select-menu",
+    menuList: () => "voucher-select-menu-list",
+  },
+};
 
 const GeneralVoucherForm = () => {
     const navigate = useNavigate();
@@ -173,6 +196,12 @@ const GeneralVoucherForm = () => {
         if (field === "account_id") {
             updatedGroups[groupIndex][rowType]["entity_id"] = "";
         }
+
+        // Credit amount drives debit amount (pair always balanced)
+        if (rowType === "credit" && field === "amount") {
+            updatedGroups[groupIndex].debit.amount = value;
+        }
+
         setVoucherGroups(updatedGroups);
     };
 
@@ -297,22 +326,21 @@ const GeneralVoucherForm = () => {
     };
 
     return (
-        <div className="rm-page-wrapper">
+        <div className="rm-page-wrapper voucher-form-page">
             <NavigationBar />
 
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate(-1)}>
+                    <button className="back-btn erp-back-btn" type="button" onClick={() => navigate(-1)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">
+                    <h2 className="form-title erp-page-title">
                         {isEditMode ? `Edit Journal Voucher (ID: ${voucherId})` : "Journal Voucher Entry"}
                     </h2>
                 </div>
 
                 <div className="rm-main-card">
                     <form onSubmit={handleSubmit}>
-                        {/* Top Info Grid */}
                         <div className="info-grid">
                             <div className="info-item">
                                 <label>Voucher No</label>
@@ -330,16 +358,15 @@ const GeneralVoucherForm = () => {
                             </div>
                         </div>
 
-                        {/* DYNAMIC 3-ROW GRID MATRIX */}
-                        <div className="voucher-table-wrapper" style={{ marginTop: "25px", overflowX: "auto" }}>
-                            <table className="rm-transaction-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <div className="voucher-table-wrapper">
+                            <table className="erp-voucher-table">
                                 <thead>
-                                    <tr style={{ background: "#f1f3f5", textAlign: "left", borderBottom: "2px solid #dee2e6" }}>
-                                        <th style={{ padding: "12px 10px" }}>Account Head</th>
-                                        <th style={{ padding: "12px 10px", width: "140px" }}>Type</th>
-                                        <th style={{ padding: "12px 10px" }}>Subsidiary / Entity</th>
-                                        <th style={{ padding: "12px 10px", width: "200px" }}>Amount</th>
-                                        <th style={{ padding: "12px 10px", width: "95px", textAlign: "center" }}>Actions</th>
+                                    <tr>
+                                        <th>Account Head</th>
+                                        <th style={{ width: "120px" }}>Type</th>
+                                        <th>Subsidiary / Entity</th>
+                                        <th style={{ width: "160px" }}>Amount</th>
+                                        <th style={{ width: "80px", textAlign: "center" }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -349,9 +376,8 @@ const GeneralVoucherForm = () => {
 
                                         return (
                                             <React.Fragment key={groupIndex}>
-                                                                                   {/* ROW 2: CREDIT ENTRY */}
-                                                <tr style={{ borderBottom: "1px dashed #e9ecef", background: "#ffffff" }}>
-                                                    <td style={{ padding: "8px" }}>
+                                                <tr>
+                                                    <td>
                                                         <select 
                                                             className="rm-input-field"
                                                             value={group.credit.account_id}
@@ -364,30 +390,28 @@ const GeneralVoucherForm = () => {
                                                             ))}
                                                         </select>
                                                     </td>
-                                                    <td style={{ padding: "8px" }}>
+                                                    <td>
                                                         <input 
                                                             type="text" 
                                                             value="Credit (Cr)" 
                                                             readOnly 
-                                                            className="rm-input-field readonly-input" 
-                                                            style={{ background: "#fdf2f2", color: "#dc3545", fontWeight: "bold", border: "1px solid #fbcccc" }} 
+                                                            className="rm-input-field readonly-input type-credit" 
                                                         />
                                                     </td>
-                                                    <td style={{ padding: "8px" }}>
+                                                    <td>
                                                         {credEntityList.length > 0 ? (
                                                             <Select
-                                                                classNamePrefix="react-select"
+                                                                {...entitySelectProps}
                                                                 options={getEntityOptions(credEntityList)}
                                                                 value={getEntityOptions(credEntityList).find(opt => opt.value === group.credit.entity_id) || null}
                                                                 onChange={(selected) => handleEntitySelect(groupIndex, "credit", selected)}
                                                                 placeholder={`Select ${credEntityLabel}`}
-                                                                isClearable
                                                             />
                                                         ) : (
                                                             <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />
                                                         )}
                                                     </td>
-                                                    <td style={{ padding: "8px" }}>
+                                                    <td>
                                                         <input 
                                                             type="number" step="any" placeholder="0.00" className="rm-input-field"
                                                             value={group.credit.amount}
@@ -395,49 +419,20 @@ const GeneralVoucherForm = () => {
                                                             required
                                                         />
                                                     </td>
-                                                     {/* CUSTOM IMAGE INSPIRED ACTION BUTTONS ZONE */}
-                                                    <td rowSpan={3} style={{ padding: "8px", textAlign: "center", borderLeft: "1px solid #dee2e6", background: "#f8f9fa" }}>
-                                                        <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "center", justifyContent: "center" }}>
-                                                            {/* Custom UI Plus Button */}
+                                                    <td rowSpan={3} className="voucher-actions-cell">
+                                                        <div className="voucher-actions-stack">
                                                             <button 
                                                                 type="button" 
                                                                 onClick={addVoucherGroup}
-                                                                style={{ 
-                                                                    background: "#edf2f9", 
-                                                                    color: "#0d6efd", 
-                                                                    border: "1px solid #d2e3f7", 
-                                                                    width: "44px", 
-                                                                    height: "54px", 
-                                                                    borderRadius: "8px", 
-                                                                    cursor: "pointer", 
-                                                                    display: "flex", 
-                                                                    alignItems: "center", 
-                                                                    justifyContent: "center",
-                                                                    fontSize: "16px",
-                                                                    transition: "all 0.2s ease"
-                                                                }}
+                                                                className="voucher-icon-btn"
                                                                 title="Add New 3-Row Set"
                                                             >
                                                                 <FaPlus />
                                                             </button>
-                                                            {/* Custom UI Delete Button */}
                                                             <button 
                                                                 type="button" 
                                                                 onClick={() => removeVoucherGroup(groupIndex)}
-                                                                style={{ 
-                                                                    background: "#edf2f9", 
-                                                                    color: "#dc3545", 
-                                                                    border: "1px solid #d2e3f7", 
-                                                                    width: "44px", 
-                                                                    height: "54px", 
-                                                                    borderRadius: "8px", 
-                                                                    cursor: "pointer", 
-                                                                    display: "flex", 
-                                                                    alignItems: "center", 
-                                                                    justifyContent: "center",
-                                                                    fontSize: "16px",
-                                                                    transition: "all 0.2s ease"
-                                                                }}
+                                                                className="voucher-icon-btn is-danger"
                                                                 title="Delete This Set"
                                                             >
                                                                 <FaTrash />
@@ -445,9 +440,8 @@ const GeneralVoucherForm = () => {
                                                         </div>
                                                     </td>
                                                 </tr>
-                                                {/* ROW 1: DEBIT ENTRY */}
-                                                <tr style={{ borderBottom: "1px dashed #e9ecef", background: "#ffffff" }}>
-                                                    <td style={{ padding: "8px" }}>
+                                                <tr>
+                                                    <td>
                                                         <select 
                                                             className="rm-input-field"
                                                             value={group.debit.account_id}
@@ -460,52 +454,44 @@ const GeneralVoucherForm = () => {
                                                             ))}
                                                         </select>
                                                     </td>
-                                                    <td style={{ padding: "8px" }}>
+                                                    <td>
                                                         <input 
                                                             type="text" 
                                                             value="Debit (Dr)" 
                                                             readOnly 
-                                                            className="rm-input-field readonly-input" 
-                                                            style={{ background: "#e8f4fd", color: "#0d6efd", fontWeight: "bold", border: "1px solid #bbeeeb" }} 
+                                                            className="rm-input-field readonly-input type-debit" 
                                                         />
                                                     </td>
-                                                    <td style={{ padding: "8px" }}>
+                                                    <td>
                                                         {debEntityList.length > 0 ? (
                                                             <Select
-                                                                classNamePrefix="react-select"
+                                                                {...entitySelectProps}
                                                                 options={getEntityOptions(debEntityList)}
                                                                 value={getEntityOptions(debEntityList).find(opt => opt.value === group.debit.entity_id) || null}
                                                                 onChange={(selected) => handleEntitySelect(groupIndex, "debit", selected)}
                                                                 placeholder={`Select ${debEntityLabel}`}
-                                                                isClearable
                                                             />
                                                         ) : (
                                                             <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />
                                                         )}
                                                     </td>
-                                                    <td style={{ padding: "8px" }}>
+                                                    <td>
                                                         <input 
-                                                            type="number" step="any" placeholder="0.00" className="rm-input-field"
+                                                            type="number" step="any" placeholder="0.00" className="rm-input-field readonly-input"
                                                             value={group.debit.amount}
-                                                            onChange={(e) => handleFieldChange(groupIndex, "debit", "amount", e.target.value)}
-                                                            required
+                                                            readOnly
+                                                            tabIndex={-1}
                                                         />
                                                     </td>
-                                                   
                                                 </tr>
-
-             
-
-                                                {/* ROW 3: DESCRIPTION / REMARKS */}
-                                                <tr style={{ borderBottom: "3px solid #dee2e6", background: "#fdfdfd" }}>
-                                                    <td colSpan={4} style={{ padding: "6px 12px" }}>
-                                                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                                            <span style={{ fontSize: "12px", color: "#6c757d", fontWeight: "600", whiteSpace: "nowrap" }}>Group Remarks:</span>
+                                                <tr className="voucher-group-divider">
+                                                    <td colSpan={4}>
+                                                        <div className="voucher-remarks-row">
+                                                            <span className="voucher-remarks-label">Group Remarks:</span>
                                                             <input 
                                                                 type="text"
                                                                 className="rm-input-field"
                                                                 placeholder="Enter narration/description specific to this entry group pair..."
-                                                                style={{ fontStyle: "italic" }}
                                                                 value={group.description}
                                                                 onChange={(e) => handleDescriptionChange(groupIndex, e.target.value)}
                                                             />
@@ -519,27 +505,10 @@ const GeneralVoucherForm = () => {
                             </table>
                         </div>
 
-                        {/* Totals Matrix Status Block */}
-                        <div className="summary-container" style={{ marginTop: "25px", background: "#f8f9fa", padding: "15px", borderRadius: "4px" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", margin: "5px 0" }}>
-                                <span>Total Debit (Dr):</span>
-                                <b>{totalDebit.toFixed(2)}</b>
-                            </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", margin: "5px 0" }}>
-                                <span>Total Credit (Cr):</span>
-                                <b>{totalCredit.toFixed(2)}</b>
-                            </div>
-                            <div style={{ display: "flex", justifyContent: "space-between", margin: "5px 0", color: difference > 0 ? "#dc3545" : "#198754" }}>
-                                <span>Out of Balance Match:</span>
-                                <b>{difference.toFixed(2)}</b>
-                            </div>
-                        </div>
-
                         <button 
                             type="submit" 
                             className="save-btn" 
-                            disabled={isSubmitting || difference !== 0 || isLoadingVoucher}
-                            style={{ marginTop: "20px", opacity: (difference !== 0 || isLoadingVoucher) ? 0.6 : 1 }}
+                            disabled={isSubmitting || isLoadingVoucher}
                         >
                             {isLoadingVoucher ? "Loading voucher..." : isSubmitting ? "Processing..." : isEditMode ? "Update General Voucher" : "Submit General Voucher Entry"}
                         </button>

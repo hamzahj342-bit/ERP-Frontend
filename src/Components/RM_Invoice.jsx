@@ -115,30 +115,24 @@ const RM_InvoiceDetail = () => {
         <div className="invoice-container">
             <div id="invoice-detail" className="invoice-box shadow-lg">
                 <header className="invoice-header">
-                    <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        {/* Dynamic Logo rendering */}
+                    <div className="company-info">
                         {user?.profile_image ? (
-                            <img 
-                                src={getLogoUrl()} 
-                                alt="Logo" 
-                                style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover' }} 
-                                crossOrigin="anonymous" 
+                            <img
+                                className="invoice-logo"
+                                src={getLogoUrl()}
+                                alt="Logo"
+                                crossOrigin="anonymous"
                             />
                         ) : (
-                            <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
-                                NO LOGO
-                            </div>
+                            <div className="invoice-logo-fallback">NO LOGO</div>
                         )}
                         <div>
-                            {/* Dynamic Company Name */}
-                            <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.2rem', margin: 0 }}>
-                                {currentCompanyName}
-                            </p>
-                            <h4 className="subtitle">RAW MATERIAL INVOICE</h4>
+                            <p className="title text">{currentCompanyName}</p>
+                            <h4 className="subtitle">Raw Material Invoice</h4>
                         </div>
                     </div>
                     <div className="invoice-id">
-                        <p className="title">INVOICE NO.</p>
+                        <p className="title">Invoice No.</p>
                         <h1 className="id-number">#{invoice.invoice_no}</h1>
                     </div>
                 </header>
@@ -267,15 +261,15 @@ const RM_InvoiceDetail = () => {
                         <p className="note">Thank you for your business. This is a computer-generated invoice.</p>
                         
                         {/* Action Buttons (Hidden during PDF/Image capture via 'no-print' class) */}
-                        <div className="action-buttons-group no-print" style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center' }}>
-                            <button onClick={() => navigate(-1)} className="back-button" style={{ padding: '10px 20px', cursor: 'pointer' }}>
+                        <div className="action-buttons-group no-print">
+                            <button type="button" onClick={() => navigate(-1)} className="back-button">
                                 ← Back
                             </button>
-                            <button onClick={handleDownloadImage} className="download-img-button" style={{ padding: '10px 20px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-                                🖼️ Save as Image
+                            <button type="button" onClick={handleDownloadImage} className="download-img-button">
+                                Save as Image
                             </button>
-                            <button onClick={handleDownloadPDF} className="download-pdf-button" style={{ padding: '10px 20px', backgroundColor: '#2980b9', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-                                📄 Save as PDF
+                            <button type="button" onClick={handleDownloadPDF} className="download-pdf-button">
+                                Save as PDF
                             </button>
                         </div>
                     </div>

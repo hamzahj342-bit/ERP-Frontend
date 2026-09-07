@@ -130,23 +130,22 @@ const RM_Return = ({ channel = null }) => {
   return (
     <>
       <NavigationBar />
-      <div className="rm-page">
-        <div className="top-nav-container" style={{marginTop: '30px'}}>
-          <button className="back-btn" onClick={() => navigate(backPath)}>
-            <FaArrowLeft />
-          </button>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h3>{pageTitle}</h3>
-            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
+      <div className="erp-entity-page rm-page">
+        <div className="erp-page-card card">
+          <div className="erp-page-header card-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate(backPath)}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title">{pageTitle}</h2>
+            </div>
+            <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW RETURN
             </button>
           </div>
 
-          <div className="table-container">
-            <table className="product-table">
+          <div className="erp-table-scroll">
+            <table className="product-table entity-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -158,21 +157,21 @@ const RM_Return = ({ channel = null }) => {
                   <th>ITEM NAME</th>
                   <th>GRAND TOTAL</th>
                   {/* <th>INVOICE STATUS</th> */}
-                  <th style={{ textAlign: 'center' }}>ACTION</th>
+                  <th style={{ textAlign: 'right' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
                 {returns.length > 0 ? (
                   returns.map((r) => (
                     <tr key={r.master_id}>
-                      <td style={{ color: '#94a3b8' }}>#{r.master_id}</td>
-                      <td style={{ fontWeight: '700' }}>{r.invoice_no}</td>
+                      <td data-label="ID" style={{ color: '#94a3b8' }}>#{r.master_id}</td>
+                      <td data-label="INVOICE NO" style={{ fontWeight: '700' }}>{r.invoice_no}</td>
                       {/* <td>{r.createdat ? new Date(r.createdat).toLocaleDateString() : "-"}</td> */}
-                      <td>{r.date ? new Date(r.date).toLocaleDateString() : "-"}</td>
+                      <td data-label="DATE">{r.date ? new Date(r.date).toLocaleDateString() : "-"}</td>
                       {/* <td><span className="user-tag">{r.createdby}</span></td> */}
-                      <td><span className="supplier-tag">{r.entity_name}</span></td>
-                      <td><span className="user-tag">{formatRmDetailsList(r.details)}</span></td>
-                      <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                      <td data-label="SUPPLIER"><span className="supplier-tag">{r.entity_name}</span></td>
+                      <td data-label="ITEM NAME"><span className="user-tag">{formatRmDetailsList(r.details)}</span></td>
+                      <td data-label="GRAND TOTAL" style={{ fontWeight: '700', color: '#2b6cb0' }}>
                         {parseFloat(r.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
                       </td>
                       {/* <td>
@@ -186,16 +185,16 @@ const RM_Return = ({ channel = null }) => {
   {r.status === 'Draft' || !r.status ? 'Unapproved' : r.status}
 </span>
                       </td> */}
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                          <button onClick={() => navigate(`/rm-invoice/${r.invoice_no}`)} className="primary-btn">
+                      <td data-label="ACTION" className="erp-actions-cell">
+                        <div className="erp-actions-group">
+                          <button type="button" onClick={() => navigate(`/rm-invoice/${r.invoice_no}`)} className="primary-btn">
                             <FaEye /> VIEW
                           </button>
 
                           {/* 🛑 CONDITIONAL RENDERING CONTROL BLOCK */}
                           {r.status === 'Approved' ? (
                             <>
-                              <button onClick={() => {
+                              <button type="button" onClick={() => {
                                 setApprovedInvoiceId(r.master_id);
                                 setApprovedModalOpen(true);
                               }} className="edit-btn-action">
@@ -207,10 +206,10 @@ const RM_Return = ({ channel = null }) => {
                             </>
                           ) : (
                             <>
-                              <button onClick={() => handleEditInvoice(r.master_id)} className="edit-btn-action">
+                              <button type="button" onClick={() => handleEditInvoice(r.master_id)} className="edit-btn-action">
                                 <FaEdit /> EDIT
                               </button>
-                              <button onClick={() => handleApproveInvoice(r.master_id, r.invoice_no)} className="approve-btn-action">
+                              <button type="button" onClick={() => handleApproveInvoice(r.master_id, r.invoice_no)} className="approve-btn-action">
                                 <FaCheckCircle /> APPROVE
                               </button>
                             </>
@@ -228,7 +227,7 @@ const RM_Return = ({ channel = null }) => {
             </table>
           </div>
 
-          <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+          <div className="erp-pagination-wrap">
             <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
           </div>
         </div>

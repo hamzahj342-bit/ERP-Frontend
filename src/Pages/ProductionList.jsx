@@ -35,19 +35,19 @@ const ProductionList = () => {
       <div className="prod-list-wrapper">
         <div className="prod-container">
           
-          <div className="prod-header"  style={{marginTop: '30px'}}>
-            <div className="prod-title-area">
-              <button className="back-btn" onClick={() => navigate("/fp-production")}>
+          <div className="erp-page-card prod-card">
+          <div className="erp-page-header prod-header">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate("/fp-production")}>
                 <FaArrowLeft />
               </button>
-              <h2>Product Master List</h2>
+              <h2 className="erp-page-title">Product Master List</h2>
             </div>
-            <button className="add-sale-btn" onClick={() => navigate("/production-form")}>
+            <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => navigate("/production-form")}>
               <FaPlus /> Add New Product
             </button>
           </div>
 
-          <div className="prod-card">
             {loading ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <div className="loader"></div> {/* Add your loader CSS if any */}
@@ -56,7 +56,7 @@ const ProductionList = () => {
             ) : error ? (
               <p style={{ color: '#ef4444', textAlign: 'center', padding: '20px' }}>{error}</p>
             ) : (
-              <div className="prod-table-container">
+              <div className="erp-table-scroll prod-table-container">
                 <table className="prod-table">
                   <thead>
                     <tr>

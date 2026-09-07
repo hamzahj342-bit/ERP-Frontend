@@ -120,42 +120,30 @@ const AccountList = () => {
 
       <div className="acc-list-wrapper">
         <div className="acc-list-container">
-          
-          {/* Header Section */}
-          <div className="header-stack" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '30px 0px 25px 0px' }}>
-            <button className="back-btn" onClick={() => navigate("/accounts-setting")}>
-              <FaArrowLeft />
-            </button>
-            <button className="add-sale-btn" onClick={() => navigate("/create-account")} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaPlus /> Add Account
-            </button>
-          </div>
-
-          <div className="acc-card">
-            {/* Title & Search Box */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.3rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <FaBook style={{ color: '#3b82f6' }} /> Chart of Accounts
-              </h2>
-              
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <FaSearch style={{ position: 'absolute', left: '12px', color: '#94a3b8', pointerEvents: 'none' }} />
-                <input 
-                  type="text"
-                  placeholder="Search by name, type or code..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    padding: '8px 12px 8px 35px',
-                    fontSize: '0.9rem',
-                    borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
-                    width: '280px',
-                    outline: 'none',
-                    color: '#334155'
-                  }}
-                />
+          <div className="acc-card erp-page-card">
+            <div className="erp-page-header">
+              <div className="erp-page-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/accounts-setting")}>
+                  <FaArrowLeft />
+                </button>
+                <h2 className="erp-page-title">
+                  <FaBook style={{ color: '#475569' }} /> Chart of Accounts
+                </h2>
               </div>
+              <button type="button" className="add-sale-btn" onClick={() => navigate("/create-account")}>
+                <FaPlus /> Add Account
+              </button>
+            </div>
+
+            <div className="erp-search-bar" style={{ marginBottom: '10px' }}>
+              <FaSearch className="search-icon-inside" />
+              <input
+                type="text"
+                className="erp-search-input"
+                placeholder="Search by name, type or code..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
 
             {/* Edit Modal */}
@@ -229,14 +217,14 @@ const AccountList = () => {
                 <p style={{ color: '#64748b', marginTop: '10px' }}>Loading accounts...</p>
               </div>
             ) : (
-              <div className="prod-table-container">
+              <div className="erp-table-scroll prod-table-container">
                 <table className="entity-table">
                   <thead>
                     <tr>
                       <th style={{ width: '60px' }}>#</th>
                       <th>Code</th>
                       <th>Account Name</th>
-                      <th>Type</th> 
+                      <th>Type</th>
                       <th>Category Code</th>
                       <th style={{ textAlign: 'center' }}>Actions</th>
                     </tr>
@@ -244,12 +232,12 @@ const AccountList = () => {
                   <tbody>
                     {filteredAccounts.map((acc, index) => (
                       <tr key={acc.id}>
-                        <td>{index + 1}</td>
-                        <td><span className="acc-code-pill">{acc.account_code}</span></td>
-                        <td style={{ fontWeight: '500', color: '#1e293b' }}>{acc.account_name}</td>
-                        
+                        <td data-label="#">{index + 1}</td>
+                        <td data-label="Code"><span className="acc-code-pill">{acc.account_code}</span></td>
+                        <td data-label="Account Name" style={{ fontWeight: '500', color: '#0f172a' }}>{acc.account_name}</td>
+
                         {/*  Account Type Badge Column */}
-                        <td>
+                        <td data-label="Type">
                           {/* <span className={`badge ${
                             acc.type === 'Bank' || acc.type === 'Cash' ? 'bg-info text-dark' :
                             acc.type === 'Payable' ? 'bg-warning text-dark' :
@@ -262,12 +250,12 @@ const AccountList = () => {
                           </span>
                         </td>
 
-                        <td>
+                        <td data-label="Category Code">
                           <span className="badge bg-light text-secondary border px-2 py-1" style={{ fontSize: '0.8rem', borderRadius: '4px' }}>
                             {acc.category_code || 'N/A'}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button className="edit-btn-action" onClick={() => handleEdit(acc)} title="Edit">
                               <FaEdit />

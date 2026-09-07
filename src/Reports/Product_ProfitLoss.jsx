@@ -8,16 +8,18 @@ import {
     FaArrowLeft, FaFileExcel, FaFilePdf, FaChartLine, FaImage, FaCalendarAlt 
 } from 'react-icons/fa';
 
-import MainLayout from "../Layout/MainLayout"; 
-
-import api from "../../api"; 
+import NavigationBar from "../Components/NavigationBar";
+import Footer from "../Components/Footer";
+import api from "../../api";
+import '../Profitloss.css'; 
+import { localToday, localYearStart } from '../utils/localDate';
 
 const SegmentedProfitLossReport = () => {
     const navigate = useNavigate();
     const reportRef = useRef(null);
 
-    const [fromDate, setFromDate] = useState(`${new Date().getFullYear()}-01-01`);
-    const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
+    const [fromDate, setFromDate] = useState(localYearStart());
+    const [toDate, setToDate] = useState(localToday());
     const [loading, setLoading] = useState(false);
     const [report, setReport] = useState(null);
 
@@ -208,183 +210,150 @@ const SegmentedProfitLossReport = () => {
 
     return (
         <>
-        <MainLayout />
-            <div className="p-2 p-md-4 mx-auto" style={{ width: '98%' }}>
-                
-                {/* TOP LAYOUT PANEL */}
-                <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
-                    <div className="d-flex align-items-center gap-2 gap-md-3">
-                        <button onClick={() => navigate(-1)} className='back-btn'>
-                            <FaArrowLeft className="text-secondary" /> 
-                        </button>
-                        <h2 className="m-0 fw-bold text-dark h5 d-flex align-items-center gap-2">
-                            <FaChartLine className="text-secondary" /> Segmented Profit & Loss Statement
-                        </h2>
-                    </div>
-                    
-                    {/* Controls Filters Grid */}
-                    <div className="d-flex gap-2 gap-md-3 align-items-center bg-white p-2 rounded shadow-sm flex-wrap border">
-                        <div className="d-flex align-items-center gap-2 justify-content-between">
-                            <span className="text-dark fw-normal m-0" style={{ fontSize: '15px' }}>From:</span>
-                            <div className="position-relative d-flex align-items-center">
-                                <FaCalendarAlt className="position-absolute text-muted d-none d-sm-block" style={{ left: '12px', pointerEvents: 'none' }} />
-                                <input 
-                                    type="date" 
-                                    value={fromDate}
-                                    onChange={(e) => setFromDate(e.target.value)}
-                                    className="form-control form-control-sm bg-light border-0 ps-2 ps-sm-5 text-dark fw-semibold"
-                                    style={{ width: '150px', height: '36px', borderRadius: '6px', fontSize: '13px' }}
-                                />
+            <NavigationBar />
+            <div className="report-page-wrapper">
+                <div className="report-card">
+                    <div className="report-header">
+                        <div className="report-header-top">
+                            <div className="report-header-left">
+                                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                                    <FaArrowLeft />
+                                </button>
+                                <div>
+                                    <h3 className="report-title">
+                                        <FaChartLine className="report-title-icon" /> Segmented Profit & Loss
+                                    </h3>
+                                    <p className="report-description">RM vs FP segmented revenue, costs, and net profit analysis.</p>
+                                </div>
                             </div>
+                            {report && (
+                                <div className="export-btn-group">
+                                    <button type="button" className="icon-button bg-pdf" onClick={downloadPDF} title="PDF"><FaFilePdf /></button>
+                                    <button type="button" className="icon-button bg-excel" onClick={downloadExcel} title="Excel"><FaFileExcel /></button>
+                                    <button type="button" className="icon-button bg-png" onClick={downloadImage} title="PNG"><FaImage /></button>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="text-muted opacity-50 px-1 d-none d-md-block">|</div>
-
-                        <div className="d-flex align-items-center gap-2 justify-content-between">
-                            <span className="text-dark fw-normal m-0" style={{ fontSize: '15px' }}>To:</span>
-                            <div className="position-relative d-flex align-items-center">
-                                <FaCalendarAlt className="position-absolute text-muted d-none d-sm-block" style={{ left: '12px', pointerEvents: 'none' }} />
-                                <input 
-                                    type="date" 
-                                    value={toDate}
-                                    onChange={(e) => setToDate(e.target.value)}
-                                    className="form-control form-control-sm bg-light border-0 ps-2 ps-sm-5 text-dark fw-semibold"
-                                    style={{ width: '150px', height: '36px', borderRadius: '6px', fontSize: '13px' }}
-                                />
-                            </div>
+                        <div className="filter-group">
+                            <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+                            <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+                            <button type="button" className="get-report-btn" onClick={loadReportData} disabled={loading}>
+                                {loading ? "Syncing..." : "Get Report"}
+                            </button>
                         </div>
+                    </div>
 
-                        <button className="btn btn-success btn-sm px-3 fw-semibold" style={{ height: '36px', borderRadius: '6px' }} onClick={loadReportData} disabled={loading}>
-                            {loading ? "Syncing..." : "Get Report"}
-                        </button>
-
-                        {report && (
-                            <div className="d-flex gap-2 justify-content-end border-start ps-2">
-                                <button onClick={downloadPDF} title="Export PDF" className="btn btn-danger d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm" style={{ width: '36px', height: '36px', borderRadius: '8px' }}><FaFilePdf /></button>
-                                <button onClick={downloadExcel} title="Export Excel" className="btn btn-success d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm" style={{ width: '36px', height: '36px', borderRadius: '8px' }}><FaFileExcel /></button>
-                                <button onClick={downloadImage} title="Export Image" className="btn d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm" style={{ width: '36px', height: '36px', backgroundColor: '#ff9100', borderRadius: '8px' }}><FaImage /></button>
+                    {loading ? (
+                        <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Syncing profit & loss records...</div>
+                    ) : report && (
+                        <div ref={reportRef} className="pl-table-container">
+                            <div className="pl-header-section">
+                                <h3 className="pl-statement-title">SEGMENTED PROFIT & LOSS STATEMENT</h3>
+                                <p className="pl-statement-subtitle">For the Period: {fromDate} to {toDate}</p>
                             </div>
-                        )}
-                    </div>
-                </div>
 
-                {/* CONDITIONAL RENDER AREA */}
-                {loading ? (
-                    <div className="text-center bg-white rounded shadow-sm p-5 text-muted small border">
-                        <div className="spinner-border text-secondary spinner-border-sm me-2" role="status"></div>
-                        Syncing profit & loss records...
-                    </div>
-                ) : report && (
-                    <div ref={reportRef} className="bg-white rounded shadow-sm p-4 border">
-                        <div className="table-responsive">
-                            <table className="table table-bordered align-middle m-0">
-                                <thead className="table-dark">
-                                    <tr className="text-center">
-                                        <th className="align-middle text-start py-3" style={{ width: '40%', fontSize: '13.5px', fontWeight: '600' }}>Financial Line Elements</th>
-                                        <th className="align-middle py-3" style={{ width: '20%', fontSize: '13.5px', fontWeight: '600' }}>Raw Materials (RM)</th>
-                                        <th className="align-middle py-3" style={{ width: '20%', fontSize: '13.5px', fontWeight: '600' }}>Finished Goods (FP)</th>
-                                        <th className="align-middle py-3" style={{ width: '20%', fontSize: '13.5px', fontWeight: '600', backgroundColor: '#2d3748' }}>Consolidated Total</th>
+                            <table className="pl-table">
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: '40%' }}>Financial Line</th>
+                                        <th className="text-right" style={{ width: '20%' }}>Raw Materials (RM)</th>
+                                        <th className="text-right" style={{ width: '20%' }}>Finished Goods (FP)</th>
+                                        <th className="text-right" style={{ width: '20%' }}>Consolidated Total</th>
                                     </tr>
                                 </thead>
-                                <tbody style={{ fontSize: '14px' }}>
-                                    
-                                    {/* OPERATIONAL REVENUE */}
-                                    <tr className="table-light fw-bold text-secondary border-bottom">
-                                        <td colSpan="4" className="ps-3 py-2 text-dark" style={{ fontSize: '13px' }}>Operational Revenue</td>
+                                <tbody>
+                                    <tr className="row-section-head">
+                                        <td colSpan="4">Operational Revenue</td>
                                     </tr>
                                     <tr>
-                                        <td className="ps-4 text-success ">Sales Revenue</td>
-                                        <td className="text-end text-success">{formatCurr(report.segments.raw_material.sales)}</td>
-                                        <td className="text-end text-success">{formatCurr(report.segments.finished_product.sales)}</td>
-                                        <td className="text-end text-success fw-bold">{formatCurr(report.segments.raw_material.sales + report.segments.finished_product.sales)}</td>
+                                        <td style={{ paddingLeft: '28px' }}>Sales Revenue</td>
+                                        <td className="text-right" style={{ color: '#2e7d32' }}>{formatCurr(report.segments.raw_material.sales)}</td>
+                                        <td className="text-right" style={{ color: '#2e7d32' }}>{formatCurr(report.segments.finished_product.sales)}</td>
+                                        <td className="text-right font-bold" style={{ color: '#2e7d32' }}>{formatCurr(report.segments.raw_material.sales + report.segments.finished_product.sales)}</td>
                                     </tr>
                                     <tr>
-                                        <td className="ps-4 text-danger">Sales Returns</td>
-                                        <td className="text-end text-danger">({formatCurr(report.segments.raw_material.returns)})</td>
-                                        <td className="text-end text-danger">({formatCurr(report.segments.finished_product.returns)})</td>
-                                        <td className="text-end text-danger">({formatCurr(report.segments.raw_material.returns + report.segments.finished_product.returns)})</td>
+                                        <td style={{ paddingLeft: '28px' }}>Sales Returns</td>
+                                        <td className="text-right" style={{ color: '#c62828' }}>({formatCurr(report.segments.raw_material.returns)})</td>
+                                        <td className="text-right" style={{ color: '#c62828' }}>({formatCurr(report.segments.finished_product.returns)})</td>
+                                        <td className="text-right" style={{ color: '#c62828' }}>({formatCurr(report.segments.raw_material.returns + report.segments.finished_product.returns)})</td>
                                     </tr>
-                                    <tr className="table-secondary fw-bold">
-                                        <td className="ps-3 text-dark fw-bold">Total Net Revenue</td>
-                                        <td className="text-end text-dark">{formatCurr(report.segments.raw_material.net_sales)}</td>
-                                        <td className="text-end text-dark">{formatCurr(report.segments.finished_product.net_sales)}</td>
-                                        <td className="text-end text-success border-bottom border-2 border-dark">{formatCurr(report.totals.total_sales)}</td>
+                                    <tr className="font-bold" style={{ background: '#f1f5f9' }}>
+                                        <td>Total Net Revenue</td>
+                                        <td className="text-right">{formatCurr(report.segments.raw_material.net_sales)}</td>
+                                        <td className="text-right">{formatCurr(report.segments.finished_product.net_sales)}</td>
+                                        <td className="text-right" style={{ color: '#2e7d32' }}>{formatCurr(report.totals.total_sales)}</td>
                                     </tr>
 
-                                    {/* DIRECT COSTS */}
-                                    <tr className="table-light fw-bold text-secondary border-bottom">
-                                        <td colSpan="4" className="ps-3 py-2 text-dark" style={{ fontSize: '13px' }}>Direct Costs Breakdown</td>
+                                    <tr className="row-section-head">
+                                        <td colSpan="4">Direct Costs Breakdown</td>
                                     </tr>
                                     <tr>
-                                        <td className="ps-4 text-danger">Cost of Goods Sold (COGS)</td>
-                                        <td className="text-end text-danger">({formatCurr(report.segments.raw_material.cogs)})</td>
-                                        <td className="text-end text-danger">({formatCurr(report.segments.finished_product.cogs)})</td>
-                                        <td className="text-end text-danger fw-bold">({formatCurr(report.totals.total_cogs)})</td>
+                                        <td style={{ paddingLeft: '28px' }}>Cost of Goods Sold (COGS)</td>
+                                        <td className="text-right" style={{ color: '#c62828' }}>({formatCurr(report.segments.raw_material.cogs)})</td>
+                                        <td className="text-right" style={{ color: '#c62828' }}>({formatCurr(report.segments.finished_product.cogs)})</td>
+                                        <td className="text-right font-bold" style={{ color: '#c62828' }}>({formatCurr(report.totals.total_cogs)})</td>
                                     </tr>
 
-                                    {/* GROSS MARGINS */}
-                                    <tr className="table-secondary fw-bold">
-                                        <td className="ps-3 text-dark fw-bold">Gross Profit Margin</td>
-                                        <td className={`text-end ${Number(report.segments.raw_material.gross_profit) < 0 ? 'text-danger' : 'text-success'}`}>
+                                    <tr className="font-bold" style={{ background: '#f1f5f9' }}>
+                                        <td>Gross Profit Margin</td>
+                                        <td className="text-right" style={{ color: Number(report.segments.raw_material.gross_profit) < 0 ? '#c62828' : '#2e7d32' }}>
                                             {formatCurr(report.segments.raw_material.gross_profit)}
                                         </td>
-                                        <td className={`text-end ${Number(report.segments.finished_product.gross_profit) < 0 ? 'text-danger' : 'text-success'}`}>
+                                        <td className="text-right" style={{ color: Number(report.segments.finished_product.gross_profit) < 0 ? '#c62828' : '#2e7d32' }}>
                                             {formatCurr(report.segments.finished_product.gross_profit)}
                                         </td>
-                                        <td className={`text-end border-bottom border-2 border-dark ${Number(report.totals.total_gross_profit) < 0 ? 'text-danger' : 'text-success'} fw-bold`}>
+                                        <td className="text-right font-bold" style={{ color: Number(report.totals.total_gross_profit) < 0 ? '#c62828' : '#2e7d32' }}>
                                             {formatCurr(report.totals.total_gross_profit)}
                                         </td>
                                     </tr>
-                                    <tr className="text-muted" style={{ fontSize: '12.5px', backgroundColor: '#fafafa' }}>
-                                        <td className="ps-4 ">Gross Profit Margin Ratio (%)</td>
-                                        <td className="text-end fw-bold text-dark">{calcMarginRatio(report.segments.raw_material.gross_profit, report.segments.raw_material.net_sales)}</td>
-                                        <td className="text-end fw-bold text-dark">{calcMarginRatio(report.segments.finished_product.gross_profit, report.segments.finished_product.net_sales)}</td>
-                                        <td className="text-end fw-bold text-dark">{calcMarginRatio(report.totals.total_gross_profit, report.totals.total_sales)}</td>
+                                    <tr style={{ backgroundColor: '#fafafa', fontSize: '12px' }}>
+                                        <td style={{ paddingLeft: '28px', color: '#94a3b8' }}>GP Margin Ratio (%)</td>
+                                        <td className="text-right font-bold">{calcMarginRatio(report.segments.raw_material.gross_profit, report.segments.raw_material.net_sales)}</td>
+                                        <td className="text-right font-bold">{calcMarginRatio(report.segments.finished_product.gross_profit, report.segments.finished_product.net_sales)}</td>
+                                        <td className="text-right font-bold">{calcMarginRatio(report.totals.total_gross_profit, report.totals.total_sales)}</td>
                                     </tr>
 
-                                    {/* INDIRECT OVERHEADS */}
-                                    <tr className="table-light fw-bold text-secondary border-bottom">
-                                        <td colSpan="4" className="ps-3 py-2 text-dark" style={{ fontSize: '13px' }}>Indirect Overheads & Adjustments</td>
-                                    </tr>
-                                    <tr>
-                                        <td className="ps-4 text-success">Add: Inventory System Adjustment Profit</td>
-                                        <td className="text-end text-muted">-</td>
-                                        <td className="text-end text-muted">-</td>
-                                        <td className="text-end text-success">+{formatCurr(report.totals.inventory_adjustment_revenue)}</td>
+                                    <tr className="row-section-head">
+                                        <td colSpan="4">Indirect Overheads & Adjustments</td>
                                     </tr>
                                     <tr>
-                                        <td className="ps-4 text-danger">Less: General Expenses & Wastages</td>
-                                        <td className="text-end text-muted">-</td>
-                                        <td className="text-end text-muted">-</td>
-                                        <td className="text-end text-danger">({formatCurr(report.totals.other_expenses)})</td>
+                                        <td style={{ paddingLeft: '28px' }}>Add: Inventory Adjustment Profit</td>
+                                        <td className="text-right" style={{ color: '#94a3b8' }}>-</td>
+                                        <td className="text-right" style={{ color: '#94a3b8' }}>-</td>
+                                        <td className="text-right" style={{ color: '#2e7d32' }}>+{formatCurr(report.totals.inventory_adjustment_revenue)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ paddingLeft: '28px' }}>Less: General Expenses & Wastages</td>
+                                        <td className="text-right" style={{ color: '#94a3b8' }}>-</td>
+                                        <td className="text-right" style={{ color: '#94a3b8' }}>-</td>
+                                        <td className="text-right" style={{ color: '#c62828' }}>({formatCurr(report.totals.other_expenses)})</td>
                                     </tr>
 
-                                    {/* CONSOLIDATED NET PROFIT */}
-                                   {(() => {
-    const netProfitVal = Number(report.totals.actual_net_profit || 0);
-    const isLoss = netProfitVal < 0;
-
-    return (
-        <tr className="table-secondary fw-bold" style={{ fontSize: '15px' }}>
-            <td className="ps-3 text-dark fw-bold text-uppercase">
-                {isLoss ? 'Net Loss' : 'Net Profit'}
-            </td>
-            <td className="text-end text-muted">-</td>
-            <td className="text-end text-muted">-</td>
-            <td className={`text-end border-bottom border-double border-dark fw-bolder ${isLoss ? 'text-danger' : 'text-success'}`}>
-               Rs {isLoss ? `(${formatCurr(Math.abs(netProfitVal))})` : `${formatCurr(netProfitVal)}`}
-            </td>
-        </tr>
-    );
-})()}
-
+                                    {(() => {
+                                        const netProfitVal = Number(report.totals.actual_net_profit || 0);
+                                        const isLoss = netProfitVal < 0;
+                                        return (
+                                            <tr className="font-bold" style={{
+                                                backgroundColor: isLoss ? '#ffe8e8' : '#f0fdf4',
+                                                borderTop: isLoss ? '2px solid #fca5a5' : '2px solid #a7f3d0'
+                                            }}>
+                                                <td>{isLoss ? 'NET LOSS' : 'NET PROFIT'}</td>
+                                                <td className="text-right" style={{ color: '#94a3b8' }}>-</td>
+                                                <td className="text-right" style={{ color: '#94a3b8' }}>-</td>
+                                                <td className="text-right font-bold" style={{ color: isLoss ? '#c62828' : '#2e7d32' }}>
+                                                    Rs {isLoss ? `(${formatCurr(Math.abs(netProfitVal))})` : formatCurr(netProfitVal)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })()}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                )}
-            
+                    )}
+                </div>
             </div>
+            <Footer />
         </>
     );
 };

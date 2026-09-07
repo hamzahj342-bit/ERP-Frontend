@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import { toast } from 'react-toastify';
-import MainLayout from '../Layout/MainLayout';
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import api from '../../api';
 import { FaBox, FaWarehouse, FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaSync } from 'react-icons/fa';
+import '../Profitloss.css';
 
 // Export Libraries
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
+import { localToday } from '../utils/localDate';
 
 const StockReport = () => {
   const navigate = useNavigate();
   const reportRef = useRef();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localToday();
 
   const [reportType, setReportType] = useState('rm'); 
   const [loading, setLoading] = useState(false);
@@ -215,158 +218,152 @@ const StockReport = () => {
   };
 
   return (
-    <div style={{ width: '100vw', minHeight: '100vh', background: '#f4f7f6' }}>
-      <MainLayout />
-      
-      <div style={{ padding: '20px', width: '98%', margin: '0 auto' }}>
-        {/* Header Section */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <button onClick={() => navigate(-1)} className='back-btn'>
-              <FaArrowLeft />
-            </button>
-            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#2c3e50' }}>Inventory Analytics</h2>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <input 
-              type="text" 
-              placeholder="Search items..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px', minWidth: '200px' }} 
-            />
-            <button onClick={fetchStockReport} style={{ padding: '8px 15px', background: '#2196f3', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}> 
-              <FaSync /> Refresh
-            </button>
+    <>
+      <NavigationBar />
+      <div className="report-page-wrapper">
+        <div className="report-card">
+          <div className="report-header">
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h3 className="report-title">
+                    <FaWarehouse className="report-title-icon" /> Inventory Analytics
+                  </h3>
+                  <p className="report-description">Current stock levels for raw materials and finished goods.</p>
+                </div>
+              </div>
+              <div className="export-btn-group">
+                <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                <button type="button" className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
+              </div>
+            </div>
 
-            <div style={{ display: 'flex', gap: '5px', borderLeft: '1px solid #eee', paddingLeft: '10px' }}>
-               <button onClick={exportToExcel} style={{ padding: '8px 12px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaFileExcel /></button>
-               <button onClick={exportToPDF} style={{ padding: '8px 12px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaFilePdf /></button>
-               <button onClick={exportToPNG} style={{ padding: '8px 12px', background: '#ef6c00', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaImage /></button>
+            <div className="filter-group">
+              <input type="text" className="date-input" placeholder="Search items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ minWidth: '180px' }} />
+              <button type="button" className="get-report-btn" onClick={fetchStockReport}>
+                <FaSync /> Refresh
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #e2e8f0', marginTop: '8px' }}>
+              <button type="button" onClick={() => setReportType('rm')} style={{ padding: '8px 18px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: reportType === 'rm' ? '3px solid #334155' : 'none', color: reportType === 'rm' ? '#334155' : '#94a3b8', fontWeight: '600', fontSize: '12px' }}>
+                <FaWarehouse /> Raw Material Stock
+              </button>
+              <button type="button" onClick={() => setReportType('fg')} style={{ padding: '8px 18px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: reportType === 'fg' ? '3px solid #334155' : 'none', color: reportType === 'fg' ? '#334155' : '#94a3b8', fontWeight: '600', fontSize: '12px' }}>
+                <FaBox /> Finished Goods (Batches)
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Tabs Section */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #ddd' }}>
-          <button 
-            onClick={() => setReportType('rm')}
-            style={{ padding: '12px 25px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: reportType === 'rm' ? '4px solid #43a047' : 'none', color: reportType === 'rm' ? '#43a047' : '#666', fontWeight: '600' }}
-          >
-            <FaWarehouse /> Raw Material Stock
-          </button>
-          <button 
-            onClick={() => setReportType('fg')}
-            style={{ padding: '12px 25px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: reportType === 'fg' ? '4px solid #e53935' : 'none', color: reportType === 'fg' ? '#e53935' : '#666', fontWeight: '600' }}
-          >
-            <FaBox /> Finished Goods (Batches)
-          </button>
-        </div>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Loading Inventory Data...</div>
+          ) : (
+            <div ref={reportRef} className="pl-table-container">
+              <div className="pl-header-section">
+                <h3 className="pl-statement-title">Stock Report - {reportType === 'rm' ? 'Raw Materials' : 'Finished Goods'}</h3>
+                <p className="pl-statement-subtitle">As of {today}</p>
+              </div>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '100px', fontSize: '18px', color: '#666' }}>Loading Inventory Data...</div>
-        ) : (
-          <div ref={reportRef} style={{ background: '#fff', borderRadius: '10px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            
-            {reportType === 'rm' ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #eee' }}>
-                    <th style={{ padding: '15px', textAlign: 'left', color: '#444' }}>Material Name</th>
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Base Stock</th>
-                    {showPackStock && (
-                      <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Pack Stock</th>
-                    )}
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Stock Value</th>
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Avg Cost</th>
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Consumed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRM.map((row, index) => (
-                    <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '18px 15px', fontWeight: '600', color: '#2c3e50' }}>{row['RawMaterial.name']}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span style={{ color: '#2e7d32', background: '#e8f5e9', padding: '4px 10px', borderRadius: '12px', fontSize: '0.9em', fontWeight: 'bold' }}>
-                          {Number(row.total_current_stock).toLocaleString()}{row.base_uom_name ? ` ${row.base_uom_name}` : ''}
-                        </span>
-                      </td>
-                      {showPackStock && (
-                        <td style={{ textAlign: 'center', fontWeight: '500', color: '#1565c0' }}>
-                          {row.pack_stock_display || '-'}
+              {reportType === 'rm' ? (
+                <table className="pl-table">
+                  <thead>
+                    <tr>
+                      <th>Material Name</th>
+                      <th className="text-center">Base Stock</th>
+                      {showPackStock && <th className="text-center">Pack Stock</th>}
+                      <th className="text-center">Stock Value</th>
+                      <th className="text-center">Avg Cost</th>
+                      <th className="text-center">Consumed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRM.map((row, index) => (
+                      <tr key={index}>
+                        <td className="font-bold">{row['RawMaterial.name']}</td>
+                        <td className="text-center">
+                          <span style={{ color: '#2e7d32', background: '#e8f5e9', padding: '2px 8px', borderRadius: '10px', fontSize: '0.85em', fontWeight: 'bold' }}>
+                            {Number(row.total_current_stock).toLocaleString()}{row.base_uom_name ? ` ${row.base_uom_name}` : ''}
+                          </span>
                         </td>
-                      )}
-                      <td style={{ textAlign: 'center', fontWeight: '500' }}>{Number(row.total_stock_price).toLocaleString()}</td>
-                      <td style={{ textAlign: 'center', color: '#666' }}>{Number(row.average_unit_cost).toFixed(2)}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span style={{ color: '#2196f3', background: '#ebf3ff', padding: '4px 10px', borderRadius: '12px', fontSize: '0.9em', fontWeight: 'bold' }}>
-                          {row.total_consumed}
-                        </span>
-                      </td>
+                        {showPackStock && (
+                          <td className="text-center" style={{ color: '#1565c0' }}>{row.pack_stock_display || '-'}</td>
+                        )}
+                        <td className="text-center">{Number(row.total_stock_price).toLocaleString()}</td>
+                        <td className="text-center">{Number(row.average_unit_cost).toFixed(2)}</td>
+                        <td className="text-center">
+                          <span style={{ color: '#2196f3', background: '#ebf3ff', padding: '2px 8px', borderRadius: '10px', fontSize: '0.85em', fontWeight: 'bold' }}>
+                            {row.total_consumed}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="font-bold">
+                      <td>GRAND TOTAL</td>
+                      <td className="text-center" style={{ color: '#2e7d32' }}>{totalRMStock.toLocaleString()}</td>
+                      {showPackStock && <td></td>}
+                      <td className="text-center">{totalRMValue.toLocaleString()}</td>
+                      <td></td>
+                      <td className="text-center" style={{ color: '#2196f3' }}>{totalRMConsumed.toLocaleString()}</td>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot style={{ background: '#f8f9fa', fontWeight: 'bold' }}>
-                  <tr>
-                    <td style={{ padding: '15px' }}>GRAND TOTAL</td>
-                    <td style={{ textAlign: 'center', color: '#2e7d32' }}>{totalRMStock.toLocaleString()}</td>
-                    {showPackStock && <td></td>}
-                    <td style={{ textAlign: 'center' }}>{totalRMValue.toLocaleString()}</td>
-                    <td></td>
-                    <td style={{ textAlign: 'center', color: '#2196f3'}}>{totalRMConsumed.toLocaleString()}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #eee' }}>
-                    <th style={{ padding: '15px', textAlign: 'left', color: '#444' }}>Product Name</th>
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Qty Remaining</th>
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Unit Cost (Avg)</th>
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Total Value</th>
-                    <th style={{ padding: '15px', textAlign: 'center', color: '#444' }}>Consumed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFG.map((row, index) => (
-                    <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '18px 15px', fontWeight: '600', color: '#2c3e50' }}>{row['product.name']}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span style={{ color: '#2e7d32', background: '#e8f5e9', padding: '4px 10px', borderRadius: '12px', fontSize: '0.9em', fontWeight: 'bold' }}>
-                          {Number(row.total_qty_remaining).toLocaleString()}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center', color: '#666', fontWeight: '600' }}>{Number(row.unit_cost).toFixed(2)}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span style={{ color: '#2196f3', background: '#ebf3ff', padding: '4px 10px', borderRadius: '12px', fontSize: '0.9em', fontWeight: 'bold' }}>
-                          {(Number(row.unit_cost) * Number(row.total_qty_remaining)).toLocaleString()}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-  <span style={{ color: '#ff9800', background: '#fff3e0', padding: '4px 10px', borderRadius: '12px', fontWeight: 'bold' }}>
-    {Number(row.total_consumed || 0).toLocaleString()}
-  </span>
-</td>
+                  </tfoot>
+                </table>
+              ) : (
+                <table className="pl-table">
+                  <thead>
+                    <tr>
+                      <th>Product Name</th>
+                      <th className="text-center">Qty Remaining</th>
+                      <th className="text-center">Unit Cost (Avg)</th>
+                      <th className="text-center">Total Value</th>
+                      <th className="text-center">Consumed</th>
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot style={{ background: '#f8f9fa', fontWeight: 'bold' }}>
-                  <tr>
-                    <td style={{ padding: '15px' }}>GRAND TOTAL</td>
-                    <td style={{ textAlign: 'center', color: '#2e7d32' }}>{totalFGQty.toLocaleString()}</td>
-                    <td></td>
-                    <td style={{ textAlign: 'center', color: '#2196f3' }}>{totalFGValue.toLocaleString()}</td>
-                    <td style={{ textAlign: 'center', color: '#ff9800' }}>{totalFGConsumed.toLocaleString()}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            )}
-          </div>
-        )}
+                  </thead>
+                  <tbody>
+                    {filteredFG.map((row, index) => (
+                      <tr key={index}>
+                        <td className="font-bold">{row['product.name']}</td>
+                        <td className="text-center">
+                          <span style={{ color: '#2e7d32', background: '#e8f5e9', padding: '2px 8px', borderRadius: '10px', fontSize: '0.85em', fontWeight: 'bold' }}>
+                            {Number(row.total_qty_remaining).toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="text-center">{Number(row.unit_cost).toFixed(2)}</td>
+                        <td className="text-center">
+                          <span style={{ color: '#2196f3', background: '#ebf3ff', padding: '2px 8px', borderRadius: '10px', fontSize: '0.85em', fontWeight: 'bold' }}>
+                            {(Number(row.unit_cost) * Number(row.total_qty_remaining)).toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="text-center">
+                          <span style={{ color: '#ff9800', background: '#fff3e0', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+                            {Number(row.total_consumed || 0).toLocaleString()}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="font-bold">
+                      <td>GRAND TOTAL</td>
+                      <td className="text-center" style={{ color: '#2e7d32' }}>{totalFGQty.toLocaleString()}</td>
+                      <td></td>
+                      <td className="text-center" style={{ color: '#2196f3' }}>{totalFGValue.toLocaleString()}</td>
+                      <td className="text-center" style={{ color: '#ff9800' }}>{totalFGConsumed.toLocaleString()}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 

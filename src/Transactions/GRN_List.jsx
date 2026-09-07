@@ -61,23 +61,22 @@ const GRN_Listing = () => {
   return (
     <>
       <NavigationBar />
-      <div className="rm-page">
-        <div className="top-nav-container" style={{ marginTop: '30px' }}>
-          <button className="back-btn" onClick={() => navigate(-1)}>
-            <FaArrowLeft />
-          </button>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h3>Goods Received Note (GRN)</h3>
-            <button className="add-sale-btn" onClick={() => navigate('/grn-form')}>
+      <div className="erp-entity-page rm-page">
+        <div className="erp-page-card card">
+          <div className="erp-page-header card-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate(-1)}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title">Goods Received Note (GRN)</h2>
+            </div>
+            <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => navigate('/grn-form')}>
               <FaPlus /> ADD NEW GRN
             </button>
           </div>
 
-          <div className="table-container">
-            <table className="product-table">
+          <div className="erp-table-scroll">
+            <table className="product-table entity-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -86,38 +85,38 @@ const GRN_Listing = () => {
                   <th>SUPPLIER / ENTITY</th>
                   <th><FaTruck /> DRIVER NAME</th>
                   <th style={{ textAlign: 'center' }}>PURCHASE</th>
-                  <th style={{ textAlign: 'center' }}>ACTION</th>
+                  <th style={{ textAlign: 'right' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
                 {documents.length > 0 ? (
                   documents.map((d) => (
                     <tr key={d.id}>
-                      <td style={{ color: '#94a3b8' }}>#{d.id}</td>
-                      <td style={{ fontWeight: '700' }}>{d.no}</td>
-                      <td>{d.date ? new Date(d.date).toLocaleDateString() : "-"}</td>
-                      <td><span className="supplier-tag">{d.entity?.name}</span></td>
-                      <td><span className="user-tag">{d.driver?.driver_name}</span></td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td data-label="ID" style={{ color: '#94a3b8' }}>#{d.id}</td>
+                      <td data-label="GRN NO" style={{ fontWeight: '700' }}>{d.no}</td>
+                      <td data-label="DATE">{d.date ? new Date(d.date).toLocaleDateString() : "-"}</td>
+                      <td data-label="SUPPLIER / ENTITY"><span className="supplier-tag">{d.entity?.name}</span></td>
+                      <td data-label="DRIVER NAME"><span className="user-tag">{d.driver?.driver_name}</span></td>
+                      <td data-label="PURCHASE" style={{ textAlign: 'center' }}>
                         <span className={`status-badge ${d.is_posted ? 'status-approved' : 'status-draft'}`}>
                           {d.is_posted ? 'Yes' : 'No'}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                      <td data-label="ACTION" className="erp-actions-cell">
+                        <div className="erp-actions-group">
                           
                           {/* 🔓 VIEW is always allowed */}
-                          <button onClick={() => navigate(`/grn-view/${d.no}`)} className="primary-btn">
+                          <button type="button" onClick={() => navigate(`/grn-view/${d.no}`)} className="primary-btn">
                             <FaEye /> VIEW
                           </button>
 
                           {/* 🛑 EDIT & DELETE are bound to is_posted */}
                           {!d.is_posted && (
                             <>
-                              <button onClick={() => navigate(`/grn-form?editId=${d.id}`)} className="edit-btn-action">
+                              <button type="button" onClick={() => navigate(`/grn-form?editId=${d.id}`)} className="edit-btn-action">
                                 <FaEdit /> EDIT
                               </button>
-                              <button onClick={() => handleDelete(d.id, d.no)} className="approve-btn-action" style={{ backgroundColor: '#d33' }}>
+                              <button type="button" onClick={() => handleDelete(d.id, d.no)} className="approve-btn-action" style={{ backgroundColor: '#d33' }}>
                                 <FaTrash /> DELETE
                               </button>
                             </>
@@ -135,7 +134,7 @@ const GRN_Listing = () => {
             </table>
           </div>
 
-          <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+          <div className="erp-pagination-wrap">
             <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
           </div>
         </div>

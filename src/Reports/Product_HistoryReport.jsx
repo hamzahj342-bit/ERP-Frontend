@@ -1,22 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import MainLayout from '../Layout/MainLayout';
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import api from '../../api';
 import Select from 'react-select';
-import { FaArrowLeft, FaSearch, FaFileExcel, FaFilePdf, FaImage, FaSync } from 'react-icons/fa';
+import { FaArrowLeft, FaSearch, FaFileExcel, FaFilePdf, FaImage, FaSync, FaHistory } from 'react-icons/fa';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
-import '../downloads-btn.css';
+import '../Profitloss.css';
+import { localToday, localFirstOfMonth } from '../utils/localDate';
 
 const Product_HistoryReport = () => {
   const navigate = useNavigate();
   const reportRef = useRef();
 
-  const today = new Date().toISOString().split('T')[0];
-  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const today = localToday();
+  const firstOfMonth = localFirstOfMonth();
 
   const [activeTab, setActiveTab] = useState('RM');
   const [txGroup, setTxGroup] = useState('ALL'); // ALL | PURCHASE | SALE
@@ -300,148 +302,170 @@ const Product_HistoryReport = () => {
     }
   };
 
+  const selectStyles = {
+    control: (p) => ({ ...p, minHeight: "32px", height: "32px", borderRadius: "6px", borderColor: "#e2e8f0", boxShadow: "none", fontSize: "12px" }),
+    valueContainer: (p) => ({ ...p, padding: "0 8px", height: "30px" }),
+    indicatorsContainer: (p) => ({ ...p, height: "30px" }),
+    input: (p) => ({ ...p, margin: 0, padding: 0 }),
+    singleValue: (p) => ({ ...p, fontSize: "12px", color: "#334155" }),
+    placeholder: (p) => ({ ...p, fontSize: "12px", color: "#94a3b8" }),
+    menu: (p) => ({ ...p, zIndex: 9999, fontSize: "12px" }),
+    option: (p) => ({ ...p, fontSize: "12px", padding: "6px 10px" })
+  };
+
   return (
-    <div style={{ width: '100vw', minHeight: '100vh', background: '#f8fafc' }}>
-      <MainLayout />
-      <div style={{ padding: '20px', width: '98%', margin: '0 auto' }}>
-        {/* Header Section */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <button onClick={() => navigate(-1)} className='back-btn'><FaArrowLeft /></button>
-            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#1e293b' }}>FP & RM History & Profit Report</h2>
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-            <input type='date' value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-            <input type='date' value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-            <input type='text' placeholder='Search...' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px' }} />
-            
-            <button onClick={fetchHistoryReport} style={{ padding: '7px 14px', background: '#475569', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}><FaSearch /> Search</button>
-            <button onClick={fetchHistoryReport} style={{ padding: '7px 14px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}><FaSync /> Refresh</button>
-            
-            <div style={{ display: 'flex', gap: '8px', borderLeft: '1px solid #e2e8f0', paddingLeft: '8px' }}>
-              <button className="download-button bg-excel" onClick={exportToExcel} title="Export Excel"><FaFileExcel size={14} /></button>
-              <button className="download-button bg-pdf" onClick={exportToPDF} title="Export PDF"><FaFilePdf size={14} /></button>
-              <button className="download-button bg-png" onClick={exportToImage} title="Export Image"><FaImage size={14} /></button>
-            </div>
-          </div>
-        </div>
-
-        {/* Tab & Transaction Type Filter Row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #cbd5e1', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '5px' }}>
-            <button onClick={() => setActiveTab('RM')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'RM' ? '3px solid #334155' : 'none', color: activeTab === 'RM' ? '#1e293b' : '#64748b', fontWeight: '600' }}>Raw Material</button>
-            <button onClick={() => setActiveTab('FP')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'FP' ? '3px solid #334155' : 'none', color: activeTab === 'FP' ? '#1e293b' : '#64748b', fontWeight: '600' }}>Finished Product</button>
-          </div>
-
-          <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-            <button onClick={() => setTxGroup('ALL')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'ALL' ? '#334155' : 'transparent', color: txGroup === 'ALL' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>All Types</button>
-            <button onClick={() => setTxGroup('PURCHASE')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'PURCHASE' ? '#0284c7' : 'transparent', color: txGroup === 'PURCHASE' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>
-              {activeTab === 'FP' ? 'Production / Batch' : 'Purchase / Return'}
-            </button>
-            <button onClick={() => setTxGroup('SALE')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'SALE' ? '#16a34a' : 'transparent', color: txGroup === 'SALE' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>Sale / Return</button>
-          </div>
-        </div>
-
-        {/* Paper Container */}
-        <div ref={reportRef} style={{ background: '#fff', borderRadius: '8px', padding: '20px', border: '1px solid #e2e8f0' }}>
-          
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '280px', flex: '1 1 280px' }}>
-              <label style={{ fontWeight: '600', color: '#475569', fontSize: '13px' }}>Filter by Item</label>
-              <Select options={itemOptions} value={selectedItem} onChange={setSelectedItem} placeholder='Select Item...' isClearable isSearchable />
-            </div>
-            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px' }}>
-              <strong>Items:</strong> {uniqueItemsCount}
-            </div>
-            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px' }}>
-              <strong>Total Qty:</strong> {totalQuantity.toLocaleString()}
-            </div>
-            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', textAlign: 'center', fontSize: '13px' }}>
-              <strong>Total Value:</strong> {formatCurrency(totalValue)}
-            </div>
-          </div>
-
-          {/* Table */}
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading report data...</div>
-          ) : (
-            <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
-                    {['Date', 'Item Name', 'Type', 'Ref No.', 'Party', 'Qty', 'Selling/Tx Price', 'Avg Cost Price', 'Total Value'].map(h => (
-                      <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '13px', color: '#334155' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportData.length === 0 ? (
-                    <tr>
-                      <td colSpan="9" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No transactions found for the selected filters.</td>
-                    </tr>
-                  ) : (
-                    reportData.map((row, idx) => {
-                      const refLink = getReferenceLink(row);
-                      return (
-                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
-                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : ''}</td>
-                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '500' }}>{row.item_name}</td>
-                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.transaction_type}</td>
-                          <td style={{ padding: '10px', fontSize: '13px' }}>
-                            {refLink ? <Link to={refLink} style={{ color: '#0284c7' }}>{row.reference_no}</Link> : row.reference_no || 'N/A'}
-                          </td>
-                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.entity_name}</td>
-                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '600' }}>{Number(row.quantity || 0).toLocaleString()}</td>
-                          <td style={{ padding: '10px', fontSize: '13px' }}>{formatCurrency(row.unit_price)}</td>
-                          <td style={{ padding: '10px', fontSize: '13px', color: '#0284c7', fontWeight: '600' }}>{formatCurrency(row.unit_cost)}</td>
-                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '600' }}>{formatCurrency(row.total_price)}</td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Profitability Summary Section */}
-          {(txGroup === 'SALE' || txGroup === 'ALL') && (
-            <div style={{ borderTop: '2px solid #cbd5e1', paddingTop: '15px', background: '#f8fafc', padding: '15px', borderRadius: '6px' }}>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', fontWeight: '700' }}>PROFITABILITY ANALYSIS SUMMARY</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>NET SALE QTY (Sale - Return)</span>
-                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>{netSaleQty.toLocaleString()}</span>
-                </div>
-                <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>NET REVENUE (Sale - Return)</span>
-                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#0284c7' }}>{formatCurrency(netSaleRevenue)}</span>
-                </div>
-                <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>TOTAL COST OF GOODS SOLD</span>
-                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626' }}>{formatCurrency(totalSaleCost)}</span>
-                </div>
-                <div style={{ 
-                  padding: '10px', 
-                  background: netProfit >= 0 ? '#f0fdf4' : '#fef2f2', 
-                  border: `1px solid ${netProfit >= 0 ? '#16a34a' : '#dc2626'}`, 
-                  borderRadius: '4px' 
-                }}>
-                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
-                    {netProfit >= 0 ? 'NET PROFIT / MARGIN' : 'NET LOSS / MARGIN'}
-                  </span>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: netProfit >= 0 ? '#16a34a' : '#dc2626' }}>
-                    {formatCurrency(netProfit)}
-                  </span>
+    <>
+      <NavigationBar />
+      <div className="report-page-wrapper">
+        <div className="report-card">
+          <div className="report-header">
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h3 className="report-title">
+                    <FaHistory className="report-title-icon" /> FP & RM History & Profit Report
+                  </h3>
+                  <p className="report-description">View transaction history and profitability analysis for raw materials and finished products.</p>
                 </div>
               </div>
+              {reportData.length > 0 && (
+                <div className="export-btn-group">
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToImage} title="PNG"><FaImage /></button>
+                </div>
+              )}
+            </div>
+
+            <div className="filter-group">
+              <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <input type="text" className="date-input" placeholder="Search..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <div className="react-select-shell">
+                <Select options={itemOptions} value={selectedItem} onChange={setSelectedItem} placeholder="Select Item..." isClearable isSearchable styles={selectStyles} />
+              </div>
+              <button type="button" className="get-report-btn" onClick={fetchHistoryReport}>
+                <FaSearch /> Search
+              </button>
+            </div>
+
+            <div className="filter-group" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button type="button" onClick={() => setActiveTab('RM')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'RM' ? '3px solid #334155' : 'none', color: activeTab === 'RM' ? '#1e293b' : '#64748b', fontWeight: '600' }}>Raw Material</button>
+                <button type="button" onClick={() => setActiveTab('FP')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'FP' ? '3px solid #334155' : 'none', color: activeTab === 'FP' ? '#1e293b' : '#64748b', fontWeight: '600' }}>Finished Product</button>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '4px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                <button type="button" onClick={() => setTxGroup('ALL')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'ALL' ? '#334155' : 'transparent', color: txGroup === 'ALL' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>All Types</button>
+                <button type="button" onClick={() => setTxGroup('PURCHASE')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'PURCHASE' ? '#0284c7' : 'transparent', color: txGroup === 'PURCHASE' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>
+                  {activeTab === 'FP' ? 'Production / Batch' : 'Purchase / Return'}
+                </button>
+                <button type="button" onClick={() => setTxGroup('SALE')} style={{ padding: '6px 14px', border: 'none', borderRadius: '4px', background: txGroup === 'SALE' ? '#16a34a' : 'transparent', color: txGroup === 'SALE' ? '#fff' : '#475569', fontWeight: '600', fontSize: '12px', cursor: 'pointer' }}>Sale / Return</button>
+              </div>
+            </div>
+          </div>
+
+          {reportData.length > 0 && (
+            <div ref={reportRef} className="pl-table-container">
+              <div className="pl-header-section">
+                <h3 className="pl-statement-title">{activeTab === 'RM' ? 'RAW MATERIAL' : 'FINISHED PRODUCT'} HISTORY & PROFIT REPORT</h3>
+                <p className="pl-statement-subtitle">Period: <strong>{fromDate}</strong> to <strong>{toDate}</strong></p>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'center', marginBottom: '15px' }}>
+                <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
+                  <strong>Items:</strong> <span className="pl-summary-value">{uniqueItemsCount}</span>
+                </div>
+                <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
+                  <strong>Total Qty:</strong> <span className="pl-summary-value">{totalQuantity.toLocaleString()}</span>
+                </div>
+                <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
+                  <strong>Total Value:</strong> <span className="pl-summary-value">{formatCurrency(totalValue)}</span>
+                </div>
+              </div>
+
+              {loading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading report data...</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="pl-table">
+                    <thead>
+                      <tr>
+                        {['Date', 'Item Name', 'Type', 'Ref No.', 'Party', 'Qty', 'Selling/Tx Price', 'Avg Cost Price', 'Total Value'].map(h => (
+                          <th key={h}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportData.length === 0 ? (
+                        <tr>
+                          <td colSpan="9" className="text-center" style={{ padding: '20px', color: '#64748b' }}>No transactions found for the selected filters.</td>
+                        </tr>
+                      ) : (
+                        reportData.map((row, idx) => {
+                          const refLink = getReferenceLink(row);
+                          return (
+                            <tr key={idx}>
+                              <td>{row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : ''}</td>
+                              <td className="font-bold">{row.item_name}</td>
+                              <td>{row.transaction_type}</td>
+                              <td>
+                                {refLink ? <Link to={refLink} style={{ color: '#0284c7' }}>{row.reference_no}</Link> : row.reference_no || 'N/A'}
+                              </td>
+                              <td>{row.entity_name}</td>
+                              <td className="text-right font-bold">{Number(row.quantity || 0).toLocaleString()}</td>
+                              <td className="text-right">{formatCurrency(row.unit_price)}</td>
+                              <td className="text-right font-bold" style={{ color: '#0284c7' }}>{formatCurrency(row.unit_cost)}</td>
+                              <td className="text-right font-bold">{formatCurrency(row.total_price)}</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {(txGroup === 'SALE' || txGroup === 'ALL') && (
+                <div style={{ borderTop: '2px solid #cbd5e1', paddingTop: '15px', background: '#f8fafc', padding: '15px', borderRadius: '6px', marginTop: '15px' }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', fontWeight: '700' }}>PROFITABILITY ANALYSIS SUMMARY</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                    <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>NET SALE QTY (Sale - Return)</span>
+                      <span style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>{netSaleQty.toLocaleString()}</span>
+                    </div>
+                    <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>NET REVENUE (Sale - Return)</span>
+                      <span style={{ fontSize: '16px', fontWeight: '700', color: '#0284c7' }}>{formatCurrency(netSaleRevenue)}</span>
+                    </div>
+                    <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>TOTAL COST OF GOODS SOLD</span>
+                      <span style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626' }}>{formatCurrency(totalSaleCost)}</span>
+                    </div>
+                    <div style={{ 
+                      padding: '10px', 
+                      background: netProfit >= 0 ? '#f0fdf4' : '#fef2f2', 
+                      border: `1px solid ${netProfit >= 0 ? '#16a34a' : '#dc2626'}`, 
+                      borderRadius: '4px' 
+                    }}>
+                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
+                        {netProfit >= 0 ? 'NET PROFIT / MARGIN' : 'NET LOSS / MARGIN'}
+                      </span>
+                      <span style={{ fontSize: '18px', fontWeight: '700', color: netProfit >= 0 ? '#16a34a' : '#dc2626' }}>
+                        {formatCurrency(netProfit)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
         </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 

@@ -37,9 +37,9 @@ const RM_Transactions = () => {
   id: 5, 
   title: "Opening Stock Entry", 
   description: "Initialize startup inventory and setup opening stock balances for new clients.", 
-  icon: <FaPlayCircle />, // Startup entries ke liye active initiation icon
+  icon: <FaPlayCircle />,
   path: "/rm-opening-stock-entry", 
-  color: "#6b7280" // Professional Slate Gray color setup/initialization tasks ke liye
+  color: "#6b7280"
 }
   ];
 
@@ -48,28 +48,30 @@ const RM_Transactions = () => {
       <NavigationBar />
       <main className="rm-main-container">
         <div className="rm-content-limit">
-          <div className="rm-header" style={{marginTop: '30px'}}>
-            <button className="back-btn" onClick={() => navigate('/dashboard')}>
-              <FaArrowLeft />
-            </button>
-            <div className="header-info">
-              <h2>Raw Material Transactions</h2>
-              <p>Manage all your inward and outward raw material flow</p>
+          <div className="erp-page-card">
+            <div className="erp-page-header rm-header">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/dashboard')}>
+                <FaArrowLeft />
+              </button>
+              <div className="header-info">
+                <h2 className="erp-page-title">Raw Material Transactions</h2>
+                <p className="erp-page-subtitle">Manage all your inward and outward raw material flow</p>
+              </div>
             </div>
-          </div>
 
-          <div className="tr-grid-row">
-            {transactionData.map(transaction => (
-              <TransactionCard 
-                key={transaction.id}
-                title={transaction.title}
-                description={transaction.description}
-                icon={transaction.icon}
-                path={transaction.path}
-                color={transaction.color}
-                navigate={navigate}
-              />
-            ))}
+            <div className="tr-grid-row">
+              {transactionData.map(transaction => (
+                <TransactionCard 
+                  key={transaction.id}
+                  title={transaction.title}
+                  description={transaction.description}
+                  icon={transaction.icon}
+                  path={transaction.path}
+                  color={transaction.color}
+                  navigate={navigate}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </main>

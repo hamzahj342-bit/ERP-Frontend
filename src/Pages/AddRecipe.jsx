@@ -109,13 +109,12 @@ const AddRecipe = () => {
     <div className="page-wrapper">
       <NavigationBar />
       <div className="recipe-form-wrapper">
-        <div className="recipe-form-container" style={{marginTop: '30px'}}>
-          <button className="back-btn" onClick={() => navigate("/recipe")} style={{ marginBottom: "20px" }}>
-            <FaArrowLeft />
-          </button>
-
+        <div className="recipe-form-container">
           <div className="form-card">
             <div className="form-header">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate("/recipe")}>
+                <FaArrowLeft />
+              </button>
               <h2>{id ? "Edit Recipe (New Version)" : "Create New Recipe"}</h2>
             </div>
 
@@ -190,7 +189,7 @@ const AddRecipe = () => {
                 ))}
               </div>
 
-              <div style={{ marginTop: "40px", display: "flex", justifyContent: "flex-end" }}>
+              <div className="erp-form-actions">
                 <button type="submit" className="save-btn">
                   {id ? "Update Formulation" : "Save Formulation"}
                 </button>

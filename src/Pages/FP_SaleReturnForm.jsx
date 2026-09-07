@@ -283,8 +283,8 @@ const FP_SaleReturnForm = () => {
         return (
             <div className="rm-page-wrapper">
                 <NavigationBar />
-                <div className="rm-content-container" style={{ textAlign: 'center', marginTop: '60px' }}>
-                    <h3>Fetching Sale Return Configuration Logs...</h3>
+                <div className="rm-content-container">
+                    <div className="erp-loader">Fetching Sale Return Configuration Logs...</div>
                 </div>
                 <Footer />
             </div>
@@ -296,10 +296,10 @@ const FP_SaleReturnForm = () => {
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button type="button" className="back-btn" onClick={() => navigate("/fp-salereturn-list")}>
+                    <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/fp-salereturn-list")}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">
+                    <h2 className="form-title erp-page-title">
                         {isEditMode ? `Modify Return Draft (${invoiceNo})` : "Finished Goods Sale Return"}
                     </h2>
                 </div>
@@ -330,6 +330,7 @@ const FP_SaleReturnForm = () => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="rm-items-scroll">
                         <div className="items-table-header">
                             <span>Product Selection</span>
                             <span>UOM</span>
@@ -340,7 +341,7 @@ const FP_SaleReturnForm = () => {
                         </div>
 
                         {rows.map((row, index) => (
-                            <div className="item-row" key={index}>
+                            <div className="item-row" key={index} style={{ alignItems: 'center' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <select
                                         className="rm-input-field"
@@ -387,7 +388,7 @@ const FP_SaleReturnForm = () => {
                                 <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
                                 <input type="text" className="rm-input-field readonly-input" placeholder="Total" value={row.total} readOnly />
 
-                                <div style={{ display: 'flex', gap: '5px' }}>
+                                <div className="erp-row-actions">
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
                                     {rows.length > 1 && (
                                         <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)}><FaTrash /></button>
@@ -395,6 +396,7 @@ const FP_SaleReturnForm = () => {
                                 </div>
                             </div>
                         ))}
+                        </div>
 
                         <div className="summary-container">
                             <div className="summary-row">
@@ -429,9 +431,11 @@ const FP_SaleReturnForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn">
-                            {isEditMode ? "Update Return Draft" : "Save Return Transaction"}
-                        </button>
+                        <div className="erp-form-actions">
+                            <button type="submit" className="save-btn">
+                                {isEditMode ? "Update Return Draft" : "Save Return Transaction"}
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

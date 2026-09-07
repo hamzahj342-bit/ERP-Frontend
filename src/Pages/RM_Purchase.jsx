@@ -182,23 +182,22 @@ const RM_Purchase = ({ channel = null }) => {
   return (
     <>
       <NavigationBar />
-      <div className="rm-page">
-        <div className="top-nav-container" style={{ marginTop: '30px' }}>
-          <button className="back-btn" onClick={() => navigate(backPath)}>
-            <FaArrowLeft />
-          </button>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h3>{pageTitle}</h3>
-            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
+      <div className="erp-entity-page rm-page">
+        <div className="erp-page-card card">
+          <div className="erp-page-header card-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate(backPath)}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title">{pageTitle}</h2>
+            </div>
+            <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW PURCHASE
             </button>
           </div>
 
-          <div className="table-container">
-            <table className="product-table">
+          <div className="erp-table-scroll">
+            <table className="product-table entity-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -208,7 +207,7 @@ const RM_Purchase = ({ channel = null }) => {
                   <th>SUPPLIER</th>
                   <th>GRAND TOTAL</th>
                   <th>PAYMENT STATUS</th> {/*  New Column Added */}
-                  <th style={{ textAlign: 'center' }}>ACTION</th>
+                  <th style={{ textAlign: 'right' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,18 +220,19 @@ const RM_Purchase = ({ channel = null }) => {
 
                     return (
                       <tr key={p.master_id}>
-                        <td style={{ color: '#94a3b8' }}>#{p.master_id}</td>
-                        <td style={{ fontWeight: '700' }}>{p.invoice_no}</td>
-                        <td>{p.date ? new Date(p.date).toLocaleDateString() : "-"}</td>
-                        <td><span className="user-tag">{renderItemNames(p.details)}</span></td>
-                        <td><span className="supplier-tag">{p.entity_name}</span></td>
-                        <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                        <td data-label="ID" style={{ color: '#94a3b8' }}>#{p.master_id}</td>
+                        <td data-label="INVOICE NO" style={{ fontWeight: '700' }}>{p.invoice_no}</td>
+                        <td data-label="DATE">{p.date ? new Date(p.date).toLocaleDateString() : "-"}</td>
+                        <td data-label="ITEM NAME"><span className="user-tag">{renderItemNames(p.details)}</span></td>
+                        <td data-label="SUPPLIER"><span className="supplier-tag">{p.entity_name}</span></td>
+                        <td data-label="GRAND TOTAL" style={{ fontWeight: '700', color: '#2b6cb0' }}>
                           {parseFloat(p.grand_total).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
 
                         {/* 👈 Dynamic Payment Status Button */}
-                        <td>
+                        <td data-label="PAYMENT STATUS">
                           <button
+                            type="button"
                             onClick={() => handlePaymentStatusChange(p.master_id, payStatus, p.invoice_no)}
                             className={`payment-status-btn ${badgeClass}`}
                             title="Click to change payment status"
@@ -241,15 +241,16 @@ const RM_Purchase = ({ channel = null }) => {
                           </button>
                         </td>
 
-                        <td style={{ textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                            <button onClick={() => navigate(`/rm-invoice/${p.invoice_no}`)} className="primary-btn">
+                        <td data-label="ACTION" className="erp-actions-cell">
+                          <div className="erp-actions-group">
+                            <button type="button" onClick={() => navigate(`/rm-invoice/${p.invoice_no}`)} className="primary-btn">
                               <FaEye /> VIEW
                             </button>
 
                             {p.status === 'Approved' ? (
                               <>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setApprovedInvoiceId(p.master_id);
                                     setApprovedModalOpen(true);
@@ -264,10 +265,10 @@ const RM_Purchase = ({ channel = null }) => {
                               </>
                             ) : (
                               <>
-                                <button onClick={() => handleEditInvoice(p.master_id)} className="edit-btn-action">
+                                <button type="button" onClick={() => handleEditInvoice(p.master_id)} className="edit-btn-action">
                                   <FaEdit /> EDIT
                                 </button>
-                                <button onClick={() => handleApproveInvoice(p.master_id, p.invoice_no)} className="approve-btn-action">
+                                <button type="button" onClick={() => handleApproveInvoice(p.master_id, p.invoice_no)} className="approve-btn-action">
                                   <FaCheckCircle /> APPROVE
                                 </button>
                               </>
@@ -288,7 +289,7 @@ const RM_Purchase = ({ channel = null }) => {
             </table>
           </div>
 
-          <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+          <div className="erp-pagination-wrap">
             <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
           </div>
         </div>

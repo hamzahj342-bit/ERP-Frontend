@@ -164,35 +164,33 @@ const MaterialsList = () => {
             <NavigationBar />
             <div className="materials-wrapper">
                 <div className="materials-container">
-                    
-                    <div className="materials-header">
-                        <div className="header-left" style={{marginTop: '30px'}}>
-                            <button className="back-btn" onClick={() => navigate('/dashboard')}>
-                                <FaArrowLeft />
+                    <div className="erp-page-card">
+                        <div className="erp-page-header materials-header">
+                            <div className="erp-page-header-left header-left">
+                                <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/dashboard')}>
+                                    <FaArrowLeft />
+                                </button>
+                                <h2 className="erp-page-title materials-title">Raw Materials</h2>
+                            </div>
+                            <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => navigate("/add-materials")}>
+                                <FaPlus /> Add New Material
                             </button>
-                            <div className="materials-title">
-                                <h2>Raw Materials</h2>
+                        </div>
+
+                        <div className="actions-bar erp-search-bar">
+                            <div className="search-wrapper">
+                                <input
+                                    type="text"
+                                    placeholder="Search material name..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="search-input erp-search-input"
+                                />
                             </div>
                         </div>
-                    </div>
 
-                    <div className="actions-bar">
-                        <div className="search-wrapper">
-                            <input
-                                type="text"
-                                placeholder="Search material name..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="search-input"
-                            />
-                        </div>
-                        <button className="add-sale-btn" onClick={() => navigate("/add-materials")}>
-                            <FaPlus /> Add New Material
-                        </button>
-                    </div>
-
-                    <div className="table-responsive">
-                        <table className="materials-table">
+                        <div className="erp-table-scroll table-responsive">
+                            <table className="materials-table entity-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -221,25 +219,26 @@ const MaterialsList = () => {
                                                 : '-'}
                                         </td>
                                         <td data-label="Weight">{m.unit_quantity || '-'}</td>
-                                        <td data-label="Actions">
-                                            <div className="action-btns">
-                                                <button onClick={() => openEditModal(m)} className="edit-btn-action"><FaEdit /></button>
-                                                <button onClick={() => openPackModal(m)} className="edit-btn-action" title="Pack Sizes (UOM conversion)"><FaBalanceScale /></button>
-                                                <button onClick={() => handleDelete(m.rm_id, m.name)} className="delete-btn"><FaTrashAlt /></button>
+                                        <td data-label="Actions" className="erp-actions-cell">
+                                            <div className="action-btns erp-actions-group">
+                                                <button type="button" onClick={() => openEditModal(m)} className="edit-btn-action"><FaEdit /></button>
+                                                <button type="button" onClick={() => openPackModal(m)} className="edit-btn-action" title="Pack Sizes (UOM conversion)"><FaBalanceScale /></button>
+                                                <button type="button" onClick={() => handleDelete(m.rm_id, m.name)} className="delete-btn"><FaTrashAlt /></button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
-                    </div>
+                            </table>
+                        </div>
 
-                    <div style={{ marginTop: '30px' }}>
-                        <Pagination
-                            page={page}
-                            totalPages={totalPages}
-                            onPageChange={(p) => setPage(p)}
-                        />
+                        <div className="erp-pagination-wrap">
+                            <Pagination
+                                page={page}
+                                totalPages={totalPages}
+                                onPageChange={(p) => setPage(p)}
+                            />
+                        </div>
                     </div>
                 </div>
 

@@ -6,6 +6,7 @@ import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
 import api from "../../api";
 import Swal from 'sweetalert2';
+import '../Profile.css';
 
 const Profile = () => {
     const [user, setUser] = useState(null);
@@ -129,55 +130,52 @@ const getProfileImageUrl = () => {
     };
 
     if (loading) return (
-        <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
-            <div className="spinner-border text-primary" role="status">
+        <div className="d-flex justify-content-center align-items-center vh-100" style={{ background: '#f8fafc' }}>
+            <div className="spinner-border" style={{ color: '#0f172a' }} role="status">
                 <span className="visually-hidden">Loading...</span>
             </div>
         </div>
     );
 
     return (
-        <div className="bg-light min-vh-100">
+        <div className="profile-page-wrapper">
             <NavigationBar />
             
-            <div className="container py-5">
+            <div className="container" style={{ paddingTop: '24px' }}>
                 {/* Back Button */}
                 <button 
                     onClick={() => navigate('/dashboard')}
-                    className="back-btn"
+                    className="back-btn erp-back-btn"
                 >
                     <FaArrowLeft className="me-2" />
                 </button>
 
                 {/* Main Profile Card */}
-                <div className="card border-0 shadow-lg rounded-4 overflow-hidden mx-auto" style={{ maxWidth: "850px" }}>
+                <div className="profile-card-main">
                     
-                    {/* Header Image/Gradient */}
-                    <div className="profile-banner position-relative" style={{ height: "180px", background: "linear-gradient(135deg, #001d3d 0%, #003566 100%)" }}>
-                        <div className="position-absolute" style={{ bottom: "-60px", left: "40px" }}>
+                    {/* Banner */}
+                    <div className="profile-banner">
+                        <div className="profile-avatar-area">
                             <div className="position-relative d-inline-block">
                                 {user?.profile_image ? (
                                     <img 
                 src={getProfileImageUrl()} 
                 alt="Profile" 
-                className="rounded-circle border border-5 border-white shadow"
-                style={{ width: "130px", height: "130px", objectFit: "cover" }}
-                // ✅ Added for html2canvas support in case you print profile
+                className="profile-avatar-img"
                 crossOrigin="anonymous" 
             />
                                 ) : (
-                                    <FaUserCircle className="rounded-circle bg-white border border-5 border-white shadow text-light" style={{ fontSize: "130px" }} />
+                                    <FaUserCircle className="profile-avatar-placeholder" />
                                 )}
                                 <button 
                                     onClick={() => fileInputRef.current.click()}
-                                    className="btn btn-primary rounded-circle position-absolute bottom-0 end-0 shadow-sm d-flex align-items-center justify-content-center"
-                                    style={{ width: "38px", height: "38px" }}
+                                    className="profile-camera-btn"
                                 >
-                                    <FaCamera size={14} />
+                                    <FaCamera size={12} />
                                 </button>
                                 <input type="file" ref={fileInputRef} hidden onChange={handleImageChange} accept="image/*" />
                                 {uploading && (
-                                    <div className="position-absolute top-0 start-0 w-100 h-100 rounded-circle d-flex align-items-center justify-content-center bg-dark bg-opacity-25">
+                                    <div className="profile-upload-overlay">
                                         <div className="spinner-border spinner-border-sm text-white"></div>
                                     </div>
                                 )}
@@ -185,10 +183,10 @@ const getProfileImageUrl = () => {
                         </div>
                     </div>
 
-                    <div className="card-body p-4 p-md-5 mt-5">
-                        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
+                    <div className="profile-body">
+                        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                             <div>
-                                <h2 className="fw-black text-dark mb-1 text-uppercase tracking-tighter">{user?.name}</h2>
+                                <h2 className="profile-name">{user?.name}</h2>
                                 <div className="d-flex align-items-center">
                                     <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle fw-bold">
                                         <span className="d-inline-block rounded-circle bg-success me-2" style={{ width: "8px", height: "8px" }}></span>
@@ -196,37 +194,31 @@ const getProfileImageUrl = () => {
                                     </span>
                                 </div>
                             </div>
-                            <button className="btn btn-outline-dark rounded-pill px-4 fw-bold">Edit Profile</button>
+                            <button className="profile-edit-btn">Edit Profile</button>
                         </div>
 
-                        <hr className="opacity-10 mb-5" />
+                        <hr className="opacity-10 mb-4" />
 
                         {/* Information Grid */}
-                        <div className="row g-4">
-                            <ProfileInfoItem label="Email Address" value={user?.email} icon={<FaEnvelope className="text-primary" />} />
-                            <ProfileInfoItem label="User Identification" value={`#USR-${user?.id}`} icon={<FaIdBadge className="text-primary" />} />
-                            <ProfileInfoItem label="Company Reference" value={`CID-${user?.company_id}`} icon={<FaBuilding className="text-primary" />} />
-                            <ProfileInfoItem label="Registration Date" value={user?.createdat ? new Date(user.createdat).toLocaleDateString("en-GB") : "N/A"} icon={<FaCalendarAlt className="text-primary" />} />
+                        <div className="row g-3">
+                            <ProfileInfoItem label="Email Address" value={user?.email} icon={<FaEnvelope />} />
+                            <ProfileInfoItem label="User Identification" value={`#USR-${user?.id}`} icon={<FaIdBadge />} />
+                            <ProfileInfoItem label="Company Reference" value={`CID-${user?.company_id}`} icon={<FaBuilding />} />
+                            <ProfileInfoItem label="Registration Date" value={user?.createdat ? new Date(user.createdat).toLocaleDateString("en-GB") : "N/A"} icon={<FaCalendarAlt />} />
                         </div>
 
-                        {/* Security Alert Section */}
-                        <div className="mt-5 p-4 rounded-4 border border-primary border-dashed bg-primary bg-opacity-10">
-                            <div className="row align-items-center">
-                                <div className="col-auto">
-                                    <div className="bg-primary p-3 rounded-3 shadow">
-                                        <FaShieldAlt className="text-white fs-4" />
-                                    </div>
-                                </div>
-                                <div className="col text-center text-md-start my-3 my-md-0">
-                                    <h6 className="fw-bold mb-1 text-dark">Security Settings</h6>
-                                    <p className="small text-muted mb-0">Manage your account security and password preferences.</p>
-                                </div>
-                                <div className="col-12 col-md-auto">
-                                    <button onClick={() => setShowModal(true)} className="btn btn-primary w-100 rounded-3 fw-bold px-4 py-2 shadow-sm">
-                                        Reset Password
-                                    </button>
-                                </div>
+                        {/* Security Section */}
+                        <div className="profile-security-box">
+                            <div className="profile-security-icon">
+                                <FaShieldAlt />
                             </div>
+                            <div className="profile-security-text">
+                                <h6>Security Settings</h6>
+                                <p>Manage your account security and password preferences.</p>
+                            </div>
+                            <button onClick={() => setShowModal(true)} className="profile-reset-btn">
+                                Reset Password
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -234,7 +226,7 @@ const getProfileImageUrl = () => {
 
             {/* PASSWORD MODAL (Bootstrap Logic) */}
             {showModal && (
-                <div className="modal show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(5px)" }}>
+                <div className="modal show d-block profile-modal" tabIndex="-1" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(5px)" }}>
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content border-0 rounded-4 shadow-2xl p-3">
                             <div className="modal-header border-0">
@@ -242,9 +234,9 @@ const getProfileImageUrl = () => {
                             </div>
                             <div className="modal-body text-center">
                                 <div className="bg-light rounded-circle d-inline-flex p-3 mb-4">
-                                    <FaLock className="text-primary fs-3" />
+                                    <FaLock className="modal-lock-icon fs-3" />
                                 </div>
-                                <h4 className="fw-black mb-3">
+                                <h4 className="fw-bold mb-3" style={{ fontWeight: 800 }}>
                                     {step === 1 && "Identity Check"}
                                     {step === 2 && "Verification"}
                                     {step === 3 && "Update Password"}
@@ -286,13 +278,6 @@ const getProfileImageUrl = () => {
             )}
 
             <Footer />
-
-            <style>{`
-                .fw-black { font-weight: 900; }
-                .tracking-tighter { letter-spacing: -0.5px; }
-                .tracking-widest { letter-spacing: 10px; }
-                .card { transition: transform 0.3s ease; }
-            `}</style>
         </div>
     );
 };
@@ -300,11 +285,11 @@ const getProfileImageUrl = () => {
 // Reusable Sub-component
 const ProfileInfoItem = ({ label, value, icon }) => (
     <div className="col-md-6">
-        <div className="p-3 bg-white border-start border-4 border-primary rounded-3 h-100 shadow-sm">
-            <label className="text-uppercase text-muted fw-bold mb-1" style={{ fontSize: "10px", letterSpacing: "1.5px" }}>{label}</label>
-            <div className="d-flex align-items-center gap-2">
+        <div className="profile-info-item">
+            <div className="profile-info-label">{label}</div>
+            <div className="profile-info-value">
                 {icon}
-                <span className="fw-bold text-dark truncate">{value || 'N/A'}</span>
+                <span>{value || 'N/A'}</span>
             </div>
         </div>
     </div>

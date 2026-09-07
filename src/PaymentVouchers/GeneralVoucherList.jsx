@@ -49,85 +49,86 @@ const GeneralVoucherList = () => {
   return (
     <>
       <NavigationBar />
-      <div className="rm-page">
-        <button
-          className="back-btn"
-          style={{ marginTop: "30px" }}
-          onClick={() => navigate("/payment-transactions")}
-        >
-          <FaArrowLeft />
-        </button>
-
-        <div className="card">
-          <div className="card-header">
-            <h3>Journal Vouchers (JV)</h3>
-            <button className="add-sale-btn" onClick={() => navigate("/payments")}>
-              <FaPlus /> NEW JOURNAL VOUCHER
-            </button>
+      <div className="erp-entity-page rm-page">
+        <div className="erp-page-card card">
+          <div className="erp-page-header card-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate("/payment-transactions")}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title" style={{ color: '#0f172a' }}>Journal Vouchers (JV)</h2>
+            </div>
+            <div className="erp-header-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button className="add-sale-btn" onClick={() => navigate("/payments")}>
+                <FaPlus /> NEW JOURNAL VOUCHER
+              </button>
+            </div>
           </div>
 
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '50px' }}>Loading Vouchers...</div>
-          ) : (
-            <table className="product-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "80px" }}>ID</th> {/* 🌟 ID Column Wapas Add Kar Diya */}
-                  <th>Voucher No</th>
-                  <th>Transaction Date</th> 
-                  <th >Total Amount</th>
-                  <th style={{ textAlign: "center" }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.invoice_no}>
-                    <td style={{ color: "#6c757d", fontWeight: "500" }}>{tx.id}</td> {/* 🌟 Database key ID rendering */}
-                    <td style={{ fontWeight: "600", color: "#495057" }}>{tx.invoice_no}</td>
-                    <td>{tx.transaction_date || "-"}</td> 
-                    <td style={{ fontWeight: "600", color: "#0d6efd" }}>
-                      {parseFloat(tx.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ textAlign: "center", flexDirection: "row", display: "flex", justifyContent: "center", gap: "8px" }}>
-                      <button
-                        className="edit-btn-action"
-                        
-                        onClick={async () => {
-                          const result = await Swal.fire({
-                            title: `Are you sure you want to edit Voucher ${tx.invoice_no}?`,
-                            icon: "question",
-                            showCancelButton: true,
-                            confirmButtonText: "Yes, Confirm",
-                            cancelButtonText: "Cancel"
-                          });
-                          if (result.isConfirmed) {
-                            navigate(`/payments/${tx.id}`);
-                          }
-                        }}
-                      >
-                        <FaEdit />
-                        Edit
-                      </button>
-                      <button
-                        className="primary-btn"
-                        style={{ width: "140px" }}
-                        onClick={() => navigate(`/payment-transaction/${tx.invoice_no}`)}
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {transactions.length === 0 && (
+          <div className="erp-table-scroll">
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '50px' }}>Loading Vouchers...</div>
+            ) : (
+              <table className="product-table entity-table">
+                <thead>
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center", padding: '30px', color: "#6c757d" }}>
-                      No general vouchers found.
-                    </td>
+                    <th style={{ width: "80px" }}>ID</th> {/* 🌟 ID Column Wapas Add Kar Diya */}
+                    <th>Voucher No</th>
+                    <th>Transaction Date</th>
+                    <th >Total Amount</th>
+                    <th style={{ textAlign: "center" }}>Action</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.invoice_no}>
+                      <td style={{ color: "#6c757d", fontWeight: "500" }}>{tx.id}</td> {/* 🌟 Database key ID rendering */}
+                      <td style={{ fontWeight: "600", color: "#495057" }}>{tx.invoice_no}</td>
+                      <td>{tx.transaction_date || "-"}</td>
+                      <td style={{ fontWeight: "600", color: "#0f172a" }}>
+                        {parseFloat(tx.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ textAlign: "center", flexDirection: "row", display: "flex", justifyContent: "center", gap: "8px" }}>
+                        <button
+                          className="edit-btn-action"
+                          
+                          onClick={async () => {
+                            const result = await Swal.fire({
+                              title: `Are you sure you want to edit Voucher ${tx.invoice_no}?`,
+                              icon: "question",
+                              showCancelButton: true,
+                              confirmButtonText: "Yes, Confirm",
+                              cancelButtonText: "Cancel"
+                            });
+                            if (result.isConfirmed) {
+                              navigate(`/payments/${tx.id}`);
+                            }
+                          }}
+                        >
+                          <FaEdit />
+                          Edit
+                        </button>
+                        <button
+                          className="primary-btn"
+                          style={{ width: "140px" }}
+                          onClick={() => navigate(`/payment-transaction/${tx.invoice_no}`)}
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {transactions.length === 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: "center", padding: '30px', color: "#6c757d" }}>
+                        No general vouchers found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
 
           {/* Pagination Controls */}
           {!loading && transactions.length > 0 && (

@@ -112,93 +112,106 @@ const handleSubmit = async (e) => {
 
   return (
     <>
-    <NavigationBar />
-    <div className="page-container">
-      <button className="back-btn" style={{marginTop:"30px"}}  
-      onClick={() => navigate("/suppliers")}>
-        <FaArrowLeft />
-      </button>
+    <NavigationBar />
+    <div className="page-container">
+      <button className="back-btn" type="button" onClick={() => navigate("/suppliers")}>
+        <FaArrowLeft />
+      </button>
 
-      <div className="entity-card">
-        <h2>Add Suppliers</h2>
-        <form className="form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-           
-          <input
-            type="text"
-            name="address"
-            placeholder="Address"
-            value={formData.address}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            type="text"
-            name="contact"
-            placeholder="Contact (Optional)"
-            value={formData.contact}
-            onChange={handleChange}
-          />
-          {/* ✅ Shops dropdown (Required removed) */}
-          <div className="row">
-            <select
-              name="shop_id"
-              value={formData.shop_id}
-              onChange={handleChange}
-              className=" col select-customer"
-              // 🛑 Removed 'required' attribute here
-            >
-              <option value="">Select Shop (Optional)</option> {/* 🛑 Updated placeholder */}
-              {shops.map((shop) => (
-                <option key={shop.id} value={shop.id}>
-                  {shop.name}
-                </option>
-              ))}
-            </select>
-            {/*Action button*/}
-            <button type="button" className="col add-btn" onClick={() => navigate("/add-shops")}>
-              Add Shop
-            </button>
-          </div>
-
-          <div className="linkage-card">
-            <label className="linkage-label">
+      <div className="entity-card">
+        <h2>Add Suppliers</h2>
+        <form className="form erp-form" onSubmit={handleSubmit}>
+          <div className="erp-form-grid">
+            <div className="erp-form-field">
+              <label htmlFor="supplier-name">Full Name</label>
               <input
-                type="checkbox"
-                checked={isCustomerLinked}
-                onChange={(e) => {
-                  setIsCustomerLinked(e.target.checked);
-                  if (!e.target.checked) setSelectedCustomer(null);
-                }}
+                id="supplier-name"
+                type="text"
+                name="name"
+                placeholder="Full Name"
+                value={formData.name}
+                onChange={handleChange}
+                required
               />
-              <span>Is this supplier also an active Customer?</span>
-            </label>
+            </div>
 
-            {isCustomerLinked && (
-              <Select
-                options={customerOptions}
-                value={selectedCustomer}
-                onChange={setSelectedCustomer}
-                placeholder="Search & select Customer..."
-                isClearable
-                isSearchable
-                className="linkage-select"
+            <div className="erp-form-field">
+              <label htmlFor="supplier-address">Address</label>
+              <input
+                id="supplier-address"
+                type="text"
+                name="address"
+                placeholder="Address"
+                value={formData.address}
+                onChange={handleChange}
+                required
               />
-            )}
+            </div>
+
+            <div className="erp-form-field">
+              <label htmlFor="supplier-contact">Contact (Optional)</label>
+              <input
+                id="supplier-contact"
+                type="text"
+                name="contact"
+                placeholder="Contact (Optional)"
+                value={formData.contact}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="erp-form-field erp-form-field--full shop-row row">
+              <select
+                name="shop_id"
+                value={formData.shop_id}
+                onChange={handleChange}
+                className="select-customer"
+              >
+                <option value="">Select Shop (Optional)</option>
+                {shops.map((shop) => (
+                  <option key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="add-btn" onClick={() => navigate("/add-shops")}>
+                Add Shop
+              </button>
+            </div>
+
+            <div className="linkage-card erp-form-field--full">
+              <label className="linkage-label">
+                <input
+                  type="checkbox"
+                  checked={isCustomerLinked}
+                  onChange={(e) => {
+                    setIsCustomerLinked(e.target.checked);
+                    if (!e.target.checked) setSelectedCustomer(null);
+                  }}
+                />
+                <span>Is this supplier also an active Customer?</span>
+              </label>
+
+              {isCustomerLinked && (
+                <Select
+                  options={customerOptions}
+                  value={selectedCustomer}
+                  onChange={setSelectedCustomer}
+                  placeholder="Search & select Customer..."
+                  isClearable
+                  isSearchable
+                  className="linkage-select"
+                />
+              )}
+            </div>
           </div>
 
-          <button type="submit" className="save-btn">Save Supplier</button>
-        </form>
-      </div>
-    </div>
+          <div className="erp-form-actions">
+            <button type="submit" className="save-btn">Save Supplier</button>
+          </div>
+        </form>
+      </div>
+    </div>
     <Footer />
     </>
   );

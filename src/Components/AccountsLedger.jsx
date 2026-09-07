@@ -10,13 +10,14 @@ import NavigationBar from "./NavigationBar";
 import Footer from "./Footer";
 import api from "../../api";
 import "../Profitloss.css"; 
+import { localToday, localYearStart } from "../utils/localDate";
 
 const AccountLedger = () => {
   const navigate = useNavigate();
   const { accountId } = useParams();
   const reportRef = useRef(null);
-  const today = new Date().toISOString().split('T')[0];
-  const currentYearStart = `${new Date().getFullYear()}-01-01`;
+  const today = localToday();
+  const currentYearStart = localYearStart();
 
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(accountId || "");
@@ -151,62 +152,113 @@ const AccountLedger = () => {
     });
   };
 
+  const selectStyles = {
+    control: (provided) => ({
+      ...provided,
+      minHeight: "32px",
+      height: "32px",
+      borderRadius: "6px",
+      borderColor: "#e2e8f0",
+      boxShadow: "none",
+      fontSize: "12px"
+    }),
+    valueContainer: (provided) => ({
+      ...provided,
+      padding: "0 8px",
+      height: "30px"
+    }),
+    indicatorsContainer: (provided) => ({
+      ...provided,
+      height: "30px"
+    }),
+    input: (provided) => ({
+      ...provided,
+      margin: 0,
+      padding: 0
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      fontSize: "12px",
+      color: "#334155"
+    }),
+    placeholder: (provided) => ({
+      ...provided,
+      fontSize: "12px",
+      color: "#94a3b8"
+    }),
+    menu: (provided) => ({
+      ...provided,
+      zIndex: 9999,
+      fontSize: "12px"
+    }),
+    option: (provided) => ({
+      ...provided,
+      fontSize: "12px",
+      padding: "6px 10px"
+    })
+  };
+
   return (
     <>
       <NavigationBar />
       <div className="report-page-wrapper">
-        <button className="back-btn" onClick={() => navigate("/reports")} style={{marginTop: "50px"}}><FaArrowLeft /></button>
-        <div className="report-card" style={{marginTop: "15px"}}>
+        <div className="report-card">
           <div className="report-header">
-            <h3 className="report-title"><FaBook className="mr-2"/> Account Ledger Report</h3>
-            <div className="filter-group">
-              {/* <select className="date-input" style={{minWidth: '220px'}} value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)}>
-                <option value="">Select Account</option>
-                {accounts.map((acc) => <option key={acc.id} value={acc.id}>{acc.account_name} ({acc.category_name})</option>)}
-              </select> */}
-               <div style={{ minWidth: '280px' }}>
-                  <Select
-                    classNamePrefix="react-select"
-                    options={accountOptions}
-                    value={accountOptions.find(opt => opt.value === selectedAccount) || null}
-                    onChange={(option) => setSelectedAccount(option?.value || "")}
-                    placeholder="Select Account"
-                    isClearable
-                  />
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}><FaArrowLeft /></button>
+                <div>
+                  <h3 className="report-title"><FaBook className="report-title-icon" /> Account Ledger Report</h3>
+                  <p className="report-description">Review account activity, party references, and running balances in a compact ledger view.</p>
                 </div>
-              <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-              <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              <button className="get-report-btn" onClick={() => fetchLedger(selectedAccount, fromDate, toDate)}>{loading ? "..." : "Get Report"}</button>
-              
+              </div>
               {report && (
                 <div className="export-btn-group">
-                  <button className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
-                  <button className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
-                  <button className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
                 </div>
               )}
+            </div>
+            <div className="filter-group">
+              <div className="react-select-shell">
+                <Select
+                  classNamePrefix="react-select"
+                  options={accountOptions}
+                  value={accountOptions.find(opt => opt.value === selectedAccount) || null}
+                  onChange={(option) => setSelectedAccount(option?.value || "")}
+                  placeholder="Select Account"
+                  isClearable
+                  styles={selectStyles}
+                />
+              </div>
+              <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <button type="button" className="get-report-btn" onClick={() => fetchLedger(selectedAccount, fromDate, toDate)}>{loading ? "..." : "Get Report"}</button>
             </div>
           </div>
 
           {report && (
-            <div ref={reportRef} className="pl-table-container bg-white p-3" style={{ overflowX: 'auto', backgroundColor: '#fff' }}>
-              <h3 className="text-xl font-bold mb-1" style={{color: '#2c3e50'}}>{report.accountName}</h3>
-              <p className="text-muted mb-2" style={{fontSize: '14px'}}>{report.categoryName} Account</p>
-              
-              <div className="d-flex justify-content-between mb-3">
-                <span><strong>Opening Balance:</strong> <span className="text-blue-700">{Number(report.openingBalance).toLocaleString()}</span></span>
+            <div ref={reportRef} className="pl-table-container">
+              <div className="pl-header-section">
+                <h3 className="pl-statement-title">{report.accountName}</h3>
+                <p className="pl-statement-subtitle">{report.categoryName} Account</p>
+              </div>
+
+              <div className="pl-meta-row">
+                <span><strong>Opening Balance:</strong> <span className="pl-value-strong">{Number(report.openingBalance).toLocaleString()}</span></span>
                 <span><strong>Period:</strong> {fromDate} to {toDate}</span>
               </div>
 
-              <table className="pl-table" style={{ width: '100%', tableLayout: 'auto', borderCollapse: 'collapse' }}>
+              <table className="pl-table">
                 <thead>
-                  <tr className="row-section-head">
-                    <th className="border p-2" style={{ minWidth: '110px', textAlign: 'center' }}>Date</th>
-                    <th className="border p-2" style={{ minWidth: '200px', textAlign: 'left' }}>Description</th>
-                    <th className="border p-2" style={{ minWidth: '140px', textAlign: 'left' }}>Party / Entity</th>
-                    <th className="border p-2 text-right" style={{ minWidth: '100px', textAlign: 'right' }}>Debit</th>
-                    <th className="border p-2 text-right" style={{ minWidth: '100px', textAlign: 'right' }}>Credit</th>
-                    <th className="border p-2 text-right" style={{ minWidth: '110px', textAlign: 'right' }}>Balance</th>
+                  <tr>
+                    <th className="text-center" style={{ minWidth: '110px' }}>Date</th>
+                    <th style={{ minWidth: '200px' }}>Description</th>
+                    <th style={{ minWidth: '140px' }}>Party / Entity</th>
+                    <th className="text-right" style={{ minWidth: '100px' }}>Debit</th>
+                    <th className="text-right" style={{ minWidth: '100px' }}>Credit</th>
+                    <th className="text-right" style={{ minWidth: '110px' }}>Balance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -214,21 +266,21 @@ const AccountLedger = () => {
                     const rb = calculateRunningBalance(index, report.ledger, report.openingBalance, report.categoryName);
                     return (
                       <tr key={index}>
-                        <td className="border p-2" style={{ textAlign: 'center', fontSize: '13px' }}>{t.date.split('T')[0]}</td>
-                        <td className="border p-2" style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }} title={t.description || t.narration}>{t.description || t.narration}</td>
-                        <td className="border p-2" style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={t.entity_name || '-'}>{t.entity_name || '-'}</td>
-                        <td className="border p-2 text-right" style={{ textAlign: 'right', fontSize: '13px' }}>{t.debit > 0 ? Number(t.debit).toLocaleString() : '-'}</td>
-                        <td className="border p-2 text-right" style={{ textAlign: 'right', fontSize: '13px' }}>{t.credit > 0 ? Number(t.credit).toLocaleString() : '-'}</td>
-                        <td className="border p-2 text-right font-bold" style={{ textAlign: 'right', fontSize: '13px' }}>{Number(rb).toLocaleString()}</td>
+                        <td className="text-center">{t.date.split('T')[0]}</td>
+                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }} title={t.description || t.narration}>{t.description || t.narration}</td>
+                        <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={t.entity_name || '-'}>{t.entity_name || '-'}</td>
+                        <td className="text-right">{t.debit > 0 ? Number(t.debit).toLocaleString() : '-'}</td>
+                        <td className="text-right">{t.credit > 0 ? Number(t.credit).toLocaleString() : '-'}</td>
+                        <td className="text-right font-bold">{Number(rb).toLocaleString()}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
 
-              <div className="mt-4 p-3" style={{ background: '#f0fdf4', borderRadius: '6px', textAlign: 'right' }}>
-                <span className="text-xl"><strong>Closing Balance: </strong> 
-                  <span style={{ color: '#15803d', fontWeight: '800' }}>PKR {Number(report.closingBalance).toLocaleString()}</span>
+              <div className="pl-summary-bar">
+                <span><strong>Closing Balance: </strong> 
+                  <span className="pl-summary-value">PKR {Number(report.closingBalance).toLocaleString()}</span>
                 </span>
               </div>
             </div>

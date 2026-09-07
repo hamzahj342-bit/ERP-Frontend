@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaEye, FaFileInvoice } from "react-icons/fa";
 import NavigationBar from "../Components/NavigationBar";
 import Footer from "../Components/Footer";
+import "../CustomersAndSuppliers.css";
 import api from "../../api"; 
 
 const SupplierInvoices = () => {
@@ -42,51 +43,48 @@ const SupplierInvoices = () => {
   return (
     <>
       <NavigationBar />
-      <div className="table-container" style={{ marginTop: '50px' }}>
-        <div style={{ width: '100%', marginBottom: '20px' }}>
-          <button className='back-btn' onClick={() => navigate('/suppliers')}>
-            <FaArrowLeft /> 
-          </button>
-        </div>
-
-        <div className="table-wrapper">
-          <div className="header-flex" style={{ marginBottom: '25px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
-            <div>
-              <h2 style={{ color: '#1a73e8', margin: 0 }}>Supplier Invoice History</h2>
-              <p style={{ color: '#666', marginTop: '5px' }}>
-                Purchases from: <span style={{ fontWeight: 'bold', color: '#333' }}>{data.supplierName}</span>
-              </p>
+      <div className="erp-entity-page table-container">
+        <div className="erp-page-card table-wrapper">
+          <div className="erp-page-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/suppliers')}>
+                <FaArrowLeft />
+              </button>
+              <div>
+                <h2 className="erp-page-title">Supplier Invoice History</h2>
+                <p className="erp-page-subtitle">
+                  Purchases from: <b>{data.supplierName}</b>
+                </p>
+              </div>
             </div>
-            <FaFileInvoice size={35} color="#1a73e8" />
+            <FaFileInvoice className="erp-header-icon" size={24} />
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '50px' }}>
-              <div className="loader">Loading Invoices...</div>
-            </div>
+            <div className="erp-loader loader">Loading Invoices...</div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
+            <div className="erp-table-scroll">
               <table className="entity-table">
                 <thead>
                   <tr>
                     <th>Invoice No</th>
                     <th>Date</th>
                     <th>Grand Total</th>
-                    <th style={{ textAlign: 'center' }}>Actions</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {/* 3. Safety Check: data.rmPurchases ko check kar rahe hain */}
                   {data?.rmPurchases?.length > 0 ? (
                     data.rmPurchases.map((inv) => (
                       <tr key={inv.id}>
-                        <td style={{ fontWeight: '600' }}>{inv.invoice_no}</td>
-                        <td>{new Date(inv.createdat).toLocaleDateString('en-GB')}</td>
-                        <td style={{ fontWeight: 'bold', color: '#2c3e50' }}>
+                        <td data-label="Invoice No" style={{ fontWeight: '600' }}>{inv.invoice_no}</td>
+                        <td data-label="Date">{new Date(inv.createdat).toLocaleDateString('en-GB')}</td>
+                        <td data-label="Grand Total" style={{ fontWeight: 'bold', color: '#2c3e50' }}>
                           Rs. {Number(inv.grand_total).toLocaleString()}
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td data-label="Actions" className="erp-actions-cell">
                           <button 
+                            type="button"
                             className="edit-btn" 
                             onClick={() => navigate(`/rm-invoice/${inv.invoice_no}`)}
                           >
@@ -97,7 +95,7 @@ const SupplierInvoices = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="4" style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+                      <td colSpan="4" className="erp-empty-cell">
                         No invoices found for this supplier.
                       </td>
                     </tr>

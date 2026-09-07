@@ -150,8 +150,8 @@ const DC_FP_Form = () => {
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate(-1)}><FaArrowLeft /></button>
-                    <h2 className="form-title">{isEditMode ? `Modify DC-FP (${dcNo})` : "New Delivery Challan - Finished Product (DC-FP)"}</h2>
+                    <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(-1)}><FaArrowLeft /></button>
+                    <h2 className="form-title erp-page-title">{isEditMode ? `Modify DC-FP (${dcNo})` : "New Delivery Challan - Finished Product (DC-FP)"}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -191,6 +191,7 @@ const DC_FP_Form = () => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="rm-items-scroll">
                         <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '4.5fr 1.5fr 2fr 1.5fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
                             <span>Material</span>
                             <span>UOM</span>
@@ -202,7 +203,7 @@ const DC_FP_Form = () => {
                             const currentSelectionValue = row.rm_id ? String(row.rm_id) : "";
 
                             return (
-                                <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '4.5fr 1.5fr 2fr 1.5fr', gap: '12px', alignItems: 'start', marginBottom: '12px' }}>
+                                <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '4.5fr 1.5fr 2fr 1.5fr', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <select className="rm-input-field" value={currentSelectionValue} onChange={(e) => {
                                             const val = e.target.value;
@@ -239,7 +240,7 @@ const DC_FP_Form = () => {
                                     <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => {
                                         const updated = [...rows]; updated[index].quantity = e.target.value; setRows(updated);
                                     }} />
-                                    <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
+                                    <div className="erp-row-actions">
                                         <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={() => setRows([...rows, { rm_id: "", rm_name: "", quantity: "", uom_id: "", uom_name: "", supplier_id: "", shop_name: "", current_stock: 0 }])}><FaPlus /></button>
                                         {rows.length > 1 && (
                                             <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => setRows(rows.filter((_, i) => i !== index))}><FaTrash /></button>
@@ -248,8 +249,9 @@ const DC_FP_Form = () => {
                                 </div>
                             );
                         })}
+                        </div>
 
-                        <div style={{ marginTop: '20px' }}>
+                        <div className="erp-form-actions">
                             <button type="submit" className="save-btn">{isEditMode ? 'Update DC-FP' : 'Save DC-FP'}</button>
                         </div>
                     </form>

@@ -143,24 +143,21 @@ const FP_SaleReturnList = () => {
   return (
     <>
       <NavigationBar />
-      <div className="rm-page">
-        {/* Top Header Section */}
-        <div className="top-nav-container" style={{ marginTop: '30px' }}>
-          <button className="back-btn" onClick={() => navigate('/fp-transactions')}>
-            <FaArrowLeft />
-          </button>
-        </div>
-
-        {/* Table Card Module */}
-        <div className="card">
-          <div className="card-header">
-            <h3>Finished Goods Sale Returns List</h3>
-            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
+      <div className="erp-entity-page rm-page">
+        <div className="erp-page-card card">
+          <div className="erp-page-header card-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/fp-transactions')}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title">Finished Goods Sale Returns List</h2>
+            </div>
+            <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW FG RETURN
             </button>
           </div>
           
-          <div className="table-container">
+          <div className="erp-table-scroll">
             {loading ? (
               <div className="loading-state">Loading Finished Goods Sale Returns...</div>
             ) : sales.length === 0 ? (
@@ -168,7 +165,7 @@ const FP_SaleReturnList = () => {
                 No Finished Goods Sale Returns transactions found.
               </div>
             ) : (
-              <table className="product-table">
+              <table className="product-table entity-table">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -179,21 +176,21 @@ const FP_SaleReturnList = () => {
                     <th>GRAND TOTAL</th>
                     <th>INVOICE STATUS</th>
                     <th><FaUserAlt /> CREATED BY</th>
-                    <th style={{ textAlign: 'center' }}>ACTION</th>
+                    <th style={{ textAlign: 'right' }}>ACTION</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sales.map((sale) => (
                     <tr key={sale.id}>
-                      <td className="id-cell" style={{ color: '#94a3b8' }}>#{sale.id}</td> 
-                      <td className="invoice-cell" style={{ fontWeight: '700' }}>{sale.invoice_no}</td>
-                      <td>{formatDate(sale.createdat)}</td> 
-                      <td>{formatDate(sale.date)}</td>
-                      <td><span className="supplier-tag">{sale.customer?.name || sale.entity_name || "N/A"}</span></td>
-                      <td className="total-cell" style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                      <td data-label="ID" className="id-cell" style={{ color: '#94a3b8' }}>#{sale.id}</td> 
+                      <td data-label="INVOICE NO" className="invoice-cell" style={{ fontWeight: '700' }}>{sale.invoice_no}</td>
+                      <td data-label="CREATED AT">{formatDate(sale.createdat)}</td> 
+                      <td data-label="DATE">{formatDate(sale.date)}</td>
+                      <td data-label="CUSTOMER"><span className="supplier-tag">{sale.customer?.name || sale.entity_name || "N/A"}</span></td>
+                      <td data-label="GRAND TOTAL" className="total-cell" style={{ fontWeight: '700', color: '#2b6cb0' }}>
                         {parseFloat(sale.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
-                      <td>
+                      <td data-label="INVOICE STATUS">
                         {/* Status Badge Mapping */}
                         <span className={`status-badge ${
   sale.status === 'Approved' 
@@ -205,11 +202,12 @@ const FP_SaleReturnList = () => {
   {sale.status === 'Draft' || !sale.status ? 'Unapproved' : sale.status}
 </span>
                       </td>
-                      <td><span className="user-tag">{sale.createdby || "—"}</span></td>
-                      <td className="action-cell" style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                      <td data-label="CREATED BY"><span className="user-tag">{sale.createdby || "—"}</span></td>
+                      <td data-label="ACTION" className="erp-actions-cell">
+                        <div className="erp-actions-group">
                           
                           <button 
+                            type="button"
                             onClick={() => handleViewDetails(sale.invoice_no)} 
                             className="primary-btn"
                           >
@@ -220,6 +218,7 @@ const FP_SaleReturnList = () => {
                           {sale.status === 'Approved' ? (
                             <>
                               <button
+                                type="button"
                                 onClick={() => {
                                   setApprovedInvoiceId(sale.id);
                                   setApprovedModalOpen(true);
@@ -235,12 +234,14 @@ const FP_SaleReturnList = () => {
                           ) : (
                             <>
                               <button 
+                                type="button"
                                 onClick={() => handleEditInvoice(sale.id)} 
                                 className="edit-btn-action"
                               >
                                 <FaEdit /> EDIT
                               </button>
                               <button 
+                                type="button"
                                 onClick={() => handleApproveInvoice(sale.id, sale.invoice_no)} 
                                 className="approve-btn-action"
                               >
@@ -258,7 +259,7 @@ const FP_SaleReturnList = () => {
             )}
           </div>
             
-          <div className="pagination-footer" style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+          <div className="erp-pagination-wrap">
             <Pagination
               page={page}
               totalPages={totalPages}
@@ -266,28 +267,28 @@ const FP_SaleReturnList = () => {
             />
           </div>
         </div>
+
+        <InvoiceTypeModal
+          open={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          onSelect={(type) => {
+            setIsInvoiceModalOpen(false);
+            navigate(`/fp-salereturn-form?invoiceType=${type}`);
+          }}
+          title="FG Sale Return Invoice Type"
+        />
+
+        <ApprovedInvoiceEditModal
+          open={approvedModalOpen}
+          onClose={() => {
+            setApprovedModalOpen(false);
+            setApprovedInvoiceId(null);
+          }}
+          invoiceId={approvedInvoiceId}
+          invoiceCategory="fp"
+          onSaved={fetchSaleReturns}
+        />
       </div>
-
-      <InvoiceTypeModal
-        open={isInvoiceModalOpen}
-        onClose={() => setIsInvoiceModalOpen(false)}
-        onSelect={(type) => {
-          setIsInvoiceModalOpen(false);
-          navigate(`/fp-salereturn-form?invoiceType=${type}`);
-        }}
-        title="FG Sale Return Invoice Type"
-      />
-
-      <ApprovedInvoiceEditModal
-        open={approvedModalOpen}
-        onClose={() => {
-          setApprovedModalOpen(false);
-          setApprovedInvoiceId(null);
-        }}
-        invoiceId={approvedInvoiceId}
-        invoiceCategory="fp"
-        onSaved={fetchSaleReturns}
-      />
       <Footer />
     </>
   );

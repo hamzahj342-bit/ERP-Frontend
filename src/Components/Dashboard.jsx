@@ -28,15 +28,13 @@ import api from '../../api';
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  // 🗓️ Date Logic for Filter
-  const today = new Date().toISOString().split('T')[0];
+  // 🗓️ Date Logic for Filter (local calendar day — avoids UTC midnight shift in PKT)
   const now = new Date();
   const year = now.getFullYear();
-
   const month = String(now.getMonth() + 1).padStart(2, '0');
-
+  const day = String(now.getDate()).padStart(2, '0');
+  const today = `${year}-${month}-${day}`;
   const firstDay = `${year}-${month}-01`;
-  console.log(firstDay);
 
   const [fromDate, setFromDate] = useState(firstDay);
   const [toDate, setToDate] = useState(today);
@@ -123,10 +121,9 @@ const Dashboard = () => {
   };
 
   return (
-    <div>
-      <MainLayout />
+    <MainLayout>
       <div className="dashboard">
-       {/* 🗓️ Header with Date Filters */}
+       {/* Header with Date Filters */}
         <div className="dashboard-header-flex">
           <div className="dashboard-title">Dashboard</div>
           
@@ -145,13 +142,12 @@ const Dashboard = () => {
                 onChange={(e) => setToDate(e.target.value)} 
               />
             </div>
-            {/* <button className="refresh-btn" onClick={fetchDashboardData}>Refresh</button> */}
           </div>
         </div>
 
         <div className="dashboard-content">
 
-            {/* 📋 Quick Stats Section */}
+            {/* Quick Stats Section */}
           <div className="stats-grid">
             <div className="stat-card blue">
               <div className="stat-icon">💰</div>
@@ -189,13 +185,14 @@ const Dashboard = () => {
           </div>
 
 
-          {/* 📊 Charts Section */}
-          <div className="chart-section ">
-            {/* 🟩 Professional Bar Chart */}
+          {/* Charts Section */}
+          <div className="chart-section">
+            {/* Bar Chart */}
             <div className="chart-box">
               <h3>Raw Material vs Finished Product Sales</h3>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={barChartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }} barGap={10}>
+              <div className="chart-plot">
+              <ResponsiveContainer width="100%" height={210}>
+                <BarChart data={barChartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }} barGap={8}>
                   <defs>
                     <linearGradient id="barGradientGreen" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#66bb6a" stopOpacity={1}/>
@@ -207,41 +204,43 @@ const Dashboard = () => {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#666', fontSize: 12}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#666', fontSize: 12}} />
-                  <Tooltip cursor={{fill: '#f8f9fa'}} contentStyle={{borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}} />
-                  <Legend iconType="circle" wrapperStyle={{paddingTop: '10px'}} />
-                  <Bar dataKey="rawMaterial" fill="url(#barGradientGreen)" barSize={40} radius={[10, 10, 0, 0]} />
-                  <Bar dataKey="finishedProductSales" fill="url(#barGradientRed)" barSize={40} radius={[10, 10, 0, 0]} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#666', fontSize: 10}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#666', fontSize: 10}} width={40} />
+                  <Tooltip cursor={{fill: '#f8f9fa'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px'}} />
+                  <Legend iconType="circle" wrapperStyle={{paddingTop: '2px', fontSize: '12px'}} />
+                  <Bar dataKey="rawMaterial" fill="url(#barGradientGreen)" barSize={32} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="finishedProductSales" fill="url(#barGradientRed)" barSize={32} radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+              </div>
             </div>
 
-            {/* 📈 Line Chart */}
-            <div className="chart-box" >
+            {/* Line Chart */}
+            <div className="chart-box">
               <h3>Sales & Purchases Trend</h3>
-              <ResponsiveContainer width="100%" height={280} className='chart-color'> 
-                <LineChart data={lineChartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="sales" stroke="#f44336" strokeWidth={2} />
-                  <Line type="monotone" dataKey="purchases" stroke="#4caf50" strokeWidth={2} />
+              <div className="chart-plot">
+              <ResponsiveContainer width="100%" height={210} className="chart-color"> 
+                <LineChart data={lineChartData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fill: '#666', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#666', fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }} />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '2px' }} />
+                  <Line type="monotone" dataKey="sales" stroke="#f44336" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="purchases" stroke="#4caf50" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
-        
-
-          {/* --- Area Chart with Gradients --- */}
+          {/* Area Chart with Gradients */}
           <div className="bottom-chart-section">
             <div className="chart-box full-width">
               <h3>Revenue vs Expenses Trend</h3>
-              <ResponsiveContainer width="100%" height={320}>
-                <AreaChart data={trendData}>
+              <div className="chart-plot">
+              <ResponsiveContainer width="100%" height={230}>
+                <AreaChart data={trendData} margin={{ top: 8, right: 12, left: 4, bottom: 20 }}>
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#4caf50" stopOpacity={0.3}/>
@@ -253,59 +252,65 @@ const Dashboard = () => {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                  <XAxis dataKey="date" tickFormatter={(str) => {
+                  <XAxis dataKey="date" tick={{ fill: '#666', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(str) => {
                     const date = new Date(str);
                     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                   }} />
-                  <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="sales" stroke="#4caf50" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" name="Revenue/Sales" />
-                  <Area type="monotone" dataKey="purchases" stroke="#f44336" strokeWidth={3} fillOpacity={1} fill="url(#colorPurchases)" name="Expenses/Purchases" />
+                  <YAxis tick={{ fill: '#666', fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }} />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '2px' }} />
+                  <Area type="monotone" dataKey="sales" stroke="#4caf50" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" name="Revenue/Sales" />
+                  <Area type="monotone" dataKey="purchases" stroke="#f44336" strokeWidth={2} fillOpacity={1} fill="url(#colorPurchases)" name="Expenses/Purchases" />
                 </AreaChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
-          {/* --- Top Performing Products --- */}
-          <div className="trending-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+          {/* Top Performing Products */}
+          <div className="trending-grid">
             <div className="chart-box">
-              <h3 style={{color : '#2e7d32'}}>Top 5 Selling Products</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart layout="vertical" data={trendingProducts}>
+              <h3 className="trending-title-green">Top 5 Selling Products</h3>
+              <div className="chart-plot">
+              <ResponsiveContainer width="100%" height={190}>
+                <BarChart layout="vertical" data={trendingProducts} margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
                   <XAxis type="number" hide /> 
-                  <YAxis dataKey="name" type="category" width={100} style={{fontSize: '12px'}} />
-                  <Tooltip />
-                  <Bar dataKey="sales" radius={[0, 5, 5, 0]}>
+                  <YAxis dataKey="name" type="category" width={88} tick={{ fill: '#555', fontSize: 11 }} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }} />
+                  <Bar dataKey="sales" radius={[0, 4, 4, 0]} barSize={14}>
                     {trendingProducts.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={index === 0 ? '#1b5e20' : '#4caf50'} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              </div>
             </div>
 
             <div className="chart-box">
-              <h3 style={{ color: '#1565c0' }}>Top 5 Selling Materials</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart layout="vertical" data={trendingMaterials}>
+              <h3 className="trending-title-blue">Top 5 Selling Materials</h3>
+              <div className="chart-plot">
+              <ResponsiveContainer width="100%" height={190}>
+                <BarChart layout="vertical" data={trendingMaterials} margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
                   <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={100} style={{fontSize: '12px'}} />
-                  <Tooltip />
-                  <Bar dataKey="sales" radius={[0, 5, 5, 0]}>
+                  <YAxis dataKey="name" type="category" width={88} tick={{ fill: '#555', fontSize: 11 }} />
+                  <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', fontSize: '12px' }} />
+                  <Bar dataKey="sales" radius={[0, 4, 4, 0]} barSize={14}>
                     {trendingMaterials.map((entry, index) => (
                       <Cell key={`cell-m-${index}`} fill={index === 0 ? '#0d47a1' : '#2196f3'} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
 
-        </div>  
+        </div>
       </div>
-      <Footer/>
-    </div>
+      <Footer />
+    </MainLayout>
   );
 };
 

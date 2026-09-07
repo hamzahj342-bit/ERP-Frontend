@@ -74,26 +74,28 @@ const Customers = () => {
   return (
     <>
       <NavigationBar />
-      <div className="table-container">
-        <div style={{marginTop: '50px', width: '100%' }}>
-          <button className='back-btn' onClick={() => navigate('/dashboard')}><FaArrowLeft /></button>
-        </div>
-        
-        <div className="table-wrapper">
-          <div className="header-flex">
-            <h2>Customers Management</h2>
-            <button className="add-cust-sup" onClick={() => navigate("/add-customers")}><FaPlus /> Add Customer</button>
+      <div className="erp-entity-page table-container">
+        <div className="erp-page-card table-wrapper">
+          <div className="erp-page-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/dashboard')}><FaArrowLeft /></button>
+              <h2 className="erp-page-title">Customers Management</h2>
+            </div>
+            <button className="add-cust-sup erp-btn-primary" type="button" onClick={() => navigate("/add-customers")}><FaPlus /> Add Customer</button>
           </div>
 
-          <div className="search-container" style={{ position: 'relative', marginBottom: '20px' }}>
-            <FaSearch style={{ position: 'absolute', left: '15px', top: '13px', color: '#aaa' }} />
-            <input 
-              type="text" className="input" placeholder="Search customer..." 
-              value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ paddingLeft: '45px', marginBottom: '0' }}
+          <div className="erp-search-bar search-container">
+            <FaSearch className="erp-search-icon" />
+            <input
+              type="text"
+              className="input erp-search-input"
+              placeholder="Search customer..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
+          <div className="erp-table-scroll">
           <table className="entity-table">
             <thead>
               <tr>
@@ -101,60 +103,59 @@ const Customers = () => {
                 <th>Customer Name</th>
                 <th>Address</th>
                 <th>Contact</th>
-                <th style={{textAlign: 'center'}}>Actions</th>
+                <th style={{textAlign: 'right'}}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {customers.map((cust) => (
                 <tr key={cust.id}>
-                  <td>{cust.id}</td>
-                  <td style={{fontWeight: 'bold'}}>{cust.name}</td>
-                  <td>{cust.address}</td>
-                  <td>{cust.contact || "N/A"}</td>
-                  <td style={{textAlign: 'center'}}>
-                    <div style={{display: 'flex', gap: '5px', justifyContent: 'center'}}>
-                      
-                      {/* ✅ Naya Invoices Button */}
-                      <button 
-                        className="primary-btn" 
-                        // style={{backgroundColor: '#1a73e8', color: 'white', borderColor: '#1a73e8'}}
+                  <td data-label="Id">{cust.id}</td>
+                  <td data-label="Customer Name" style={{fontWeight: 'bold'}}>{cust.name}</td>
+                  <td data-label="Address">{cust.address}</td>
+                  <td data-label="Contact">{cust.contact || "N/A"}</td>
+                  <td data-label="Actions" className="erp-actions-cell">
+                    <div className="erp-actions-group">
+                      <button
+                        type="button"
+                        className="primary-btn"
                         onClick={() => navigate(`/customer-invoices/${cust.id}`)}
                       >
                         <FaFileInvoice /> Invoices
                       </button>
 
-                      <button className="edit-btn-action" onClick={() => { 
-                        setOnEdit(cust); 
+                      <button type="button" className="edit-btn-action" onClick={() => {
+                        setOnEdit(cust);
                         setFormData({ name: cust.name, address: cust.address, contact: cust.contact || "" });
                       }}>
                         <FaEdit /> Edit
                       </button>
 
-                      <button className="delete-btn" onClick={() => handleDelete(cust.id, cust.name)}>
+                      <button type="button" className="delete-btn" onClick={() => handleDelete(cust.id, cust.name)}>
                         <FaTrash /> Delete
                       </button>
-
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
 
-          <Pagination page={currentPage} totalPages={totalPages} onPageChange={(p) => fetchCustomers(p, searchTerm)} />
+          <div className="erp-pagination-wrap">
+            <Pagination page={currentPage} totalPages={totalPages} onPageChange={(p) => fetchCustomers(p, searchTerm)} />
+          </div>
         </div>
       </div>
 
-      {/* Edit Modal (Sirf editing ke liye rakha hai) */}
       {onEdit && (
-         <div className="modal-overlay" style={{position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000}}>
-            <div className="modal-content" style={{backgroundColor: 'white', padding: '20px', borderRadius: '8px', width: '400px'}}>
+         <div className="erp-modal-overlay modal-overlay">
+            <div className="erp-modal-content modal-content">
               <h3>Edit Customer</h3>
               <form onSubmit={handleUpdate}>
                 <input className="input" type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Name" required />
                 <input className="input" type="text" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} placeholder="Address" required />
                 <input className="input" type="text" value={formData.contact} onChange={(e) => setFormData({...formData, contact: e.target.value})} placeholder="Contact" />
-                <div style={{display: 'flex', gap: '10px', marginTop: '15px'}}>
+                <div className="erp-modal-actions">
                   <button type="submit" className="add-cust-sup">Update</button>
                   <button type="button" className="delete-btn" onClick={() => setOnEdit(null)}>Cancel</button>
                 </div>

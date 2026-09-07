@@ -74,35 +74,35 @@ const RecipeList = () => {
       
       <div className="recipe-wrapper">
         <div className="recipe-container">
-          
-          <div className="recipe-header" style={{ marginTop: "30px" }}>
-            <button className="back-btn" onClick={() => navigate("/fp-production")}>
-              <FaArrowLeft />
-            </button>
-            <div className="recipe-title">
-              <h2>Recipe Management</h2>
+          <div className="erp-page-card recipe-table-card">
+            <div className="erp-page-header recipe-header">
+              <div className="erp-page-header-left">
+                <button className="back-btn erp-back-btn" type="button" onClick={() => navigate("/fp-production")}>
+                  <FaArrowLeft />
+                </button>
+                <h2 className="erp-page-title">Recipe Management</h2>
+              </div>
+              <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => navigate("/add-recipe")}>
+                <FaPlus /> Add New Recipe
+              </button>
             </div>
-          </div>
 
-          <div className="recipe-actions-bar">
-            <div className="recipe-search-wrapper">
-              <input
-                type="text"
-                placeholder="Search by recipe name..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="recipe-search-input"
-              />
+            <div className="recipe-actions-bar erp-search-bar">
+              <div className="recipe-search-wrapper">
+                <input
+                  type="text"
+                  placeholder="Search by recipe name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="recipe-search-input erp-search-input"
+                />
+              </div>
             </div>
-            <button className="add-sale-btn" onClick={() => navigate("/add-recipe")}>
-              <FaPlus /> Add New Recipe
-            </button>
-          </div>
 
-          <div className="recipe-table-card">
             {loading ? (
               <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>Loading recipe data...</div>
             ) : (
+              <div className="erp-table-scroll">
               <table className="recipe-table">
                 <thead>
                   <tr>
@@ -125,10 +125,11 @@ const RecipeList = () => {
                           <td data-label="Created By">{r.createdby || "—"}</td>
                           <td data-label="Current Stock">{parseFloat(r.current_stock || 0).toFixed(2)}</td>
                           <td data-label="Stock Price">{parseFloat(r.current_stock_price || 0).toLocaleString()}</td>
-                          <td data-label="Actions">
-                            <div className="recipe-action-btns">
-                              <button className="btn-table-edit" onClick={() => navigate(`/add-recipe/${r.recipe_id}`)}>Edit</button>
+                          <td data-label="Actions" className="erp-actions-cell">
+                            <div className="recipe-action-btns erp-actions-group">
+                              <button type="button" className="btn-table-edit" onClick={() => navigate(`/add-recipe/${r.recipe_id}`)}>Edit</button>
                               <button 
+                                type="button"
                                 className="btn-table-delete" 
                                 disabled={isDisabled}
                                 onClick={() => handleDelete(r.recipe_id)}
@@ -148,14 +149,15 @@ const RecipeList = () => {
                   )}
                 </tbody>
               </table>
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="erp-pagination-wrap">
+                <Pagination page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} />
+              </div>
             )}
           </div>
-
-          {totalPages > 1 && (
-            <div style={{ marginTop: "30px" }}>
-              <Pagination page={page} totalPages={totalPages} onPageChange={(p) => setPage(p)} />
-            </div>
-          )}
         </div>
       </div>
 

@@ -401,10 +401,10 @@ const RM_ReturnForm = ({ channel = null }) => {
 
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate(listPath)}>
+                    <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Return Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Purchase Return` : "Raw Material Purchase Return")}</h2>
+                    <h2 className="form-title erp-page-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Return Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Purchase Return` : "Raw Material Purchase Return")}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -438,6 +438,7 @@ const RM_ReturnForm = ({ channel = null }) => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="rm-items-scroll">
                         <div className="items-table-header">
                             <span>Material</span>
                             <span>UOM</span>
@@ -507,7 +508,7 @@ const RM_ReturnForm = ({ channel = null }) => {
 
                                 <input type="text" className="rm-input-field readonly-input" value={row.total} readOnly placeholder='Total Price'/>
 
-                                <div style={{ display: "flex", gap: "8px" }}>
+                                <div className="erp-row-actions">
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}>
                                         <FaPlus />
                                     </button>
@@ -519,6 +520,7 @@ const RM_ReturnForm = ({ channel = null }) => {
                                 </div>
                             </div>
                         ))}
+                        </div>
 
                         <div className="summary-container">
                             <div className="summary-row">
@@ -553,9 +555,11 @@ const RM_ReturnForm = ({ channel = null }) => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn">
-                            {isEditMode ? "Update Return Draft" : "Save"}
-                        </button>
+                        <div className="erp-form-actions">
+                            <button type="submit" className="save-btn">
+                                {isEditMode ? "Update Return Draft" : "Save"}
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

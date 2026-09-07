@@ -67,16 +67,16 @@ const FinishedProductList = () => {
             <div className="stock-page-wrapper">
                 <div className="stock-container">
                     
-                    <div className="prod-header" style={{ marginTop: '30px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <button className="back-btn" onClick={() => navigate('/dashboard')}>
+                    <div className="erp-page-card stock-card">
+                    <div className="erp-page-header prod-header">
+                        <div className="erp-page-header-left">
+                            <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/dashboard')}>
                                 <FaArrowLeft />
                             </button>
-                            <h2 style={{ margin: 0, fontWeight: 700, color: '#1e293b' }}>Finished Goods Stock Summary</h2>
+                            <h2 className="erp-page-title">Finished Goods Stock Summary</h2>
                         </div>
                     </div>
 
-                    <div className="stock-card">
                         {/* Search Bar */}
                         <div className="search-box-wrapper">
                             <FaSearch className="search-icon-inside" />
@@ -85,7 +85,7 @@ const FinishedProductList = () => {
                                 placeholder="Search by Product Name..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="stock-search-input"
+                                className="stock-search-input erp-search-input"
                             />
                         </div>
 
@@ -95,8 +95,8 @@ const FinishedProductList = () => {
                                 <p>Loading stock records...</p>
                             </div>
                         ) : (
-                            <div className="prod-table-container">
-                                <table className="stock-table">
+                            <div className="erp-table-scroll prod-table-container">
+                                <table className="stock-table stock-table-responsive">
                                     <thead>
                                         <tr>
                                             <th>Batch ID</th>
@@ -117,28 +117,30 @@ const FinishedProductList = () => {
 
                                             return (
                                                 <tr key={item.id}>
-                                                    <td style={{ color: '#64748b', fontFamily: 'monospace' }}>#{item.id}</td>
-                                                    <td style={{ fontWeight: '600', color: '#1e293b' }}>
+                                                    <td data-label="Batch ID" style={{ color: '#64748b', fontFamily: 'monospace' }}>#{item.id}</td>
+                                                    <td data-label="Product Name" style={{ fontWeight: '600', color: '#1e293b' }}>
                                                         {item.product_master?.name || 'N/A'}
                                                     </td>
-                                                    <td style={{ textAlign: 'center' }}>{parseFloat(item.quantity).toFixed(2)}</td>
-                                                    <td style={{ textAlign: 'center' }} className="sold-text">
+                                                    <td data-label="Produced" style={{ textAlign: 'center' }}>{parseFloat(item.quantity).toFixed(2)}</td>
+                                                    <td data-label="Sold" style={{ textAlign: 'center' }} className="sold-text">
                                                         {parseFloat(item.sold).toFixed(2)}
                                                     </td>
-                                                    <td style={{ textAlign: 'center' }} className="consumed-text">
+                                                    <td data-label="Internal Use" style={{ textAlign: 'center' }} className="consumed-text">
                                                         {parseFloat(item.consumed_qty || 0).toFixed(2)}
                                                     </td>
-                                                    <td style={{ textAlign: 'center' }}>
+                                                    <td data-label="Available Stock" style={{ textAlign: 'center' }}>
                                                         <span className={`stock-label ${currentStock > 0 ? 'stock-positive' : 'stock-zero'}`}>
                                                             {currentStock.toFixed(2)}
                                                         </span>
                                                     </td>
-                                                    <td>{parseFloat(item.unit_cost).toFixed(2)}</td>
-                                                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(item.createdat)}</td>
+                                                    <td data-label="Unit Cost">{parseFloat(item.unit_cost).toFixed(2)}</td>
+                                                    <td data-label="Production Date" style={{ whiteSpace: 'nowrap' }}>{formatDate(item.createdat)}</td>
                                                     
                                                     {/* 🚀 Action Button Cell */}
-                                                    <td style={{ textAlign: 'center' }}>
+                                                    <td data-label="Actions" className="erp-actions-cell" style={{ textAlign: 'center' }}>
+                                                        <div className="erp-actions-group">
                                                         <button 
+                                                            type="button"
                                                             className={`edit-btn-action ${!isEditable ? 'disabled-btn' : ''}`}
                                                             onClick={() => isEditable && navigate(`/production-form/${item.product_batch_id}`)}
                                                             disabled={!isEditable}
@@ -158,6 +160,7 @@ const FinishedProductList = () => {
                                                         >
                                                             <FaEdit size={14} />
                                                         </button>
+                                                        </div>
                                                     </td> 
                                                 </tr>
                                             );
@@ -173,7 +176,7 @@ const FinishedProductList = () => {
                             </div>
                         )}
 
-                        <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+                        <div className="erp-pagination-wrap">
                             <Pagination
                                 page={page}
                                 totalPages={totalPages}

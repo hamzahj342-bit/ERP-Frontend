@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; 
-import MainLayout from '../Layout/MainLayout';
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import api from '../../api';
 import { FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaCalendarAlt, FaUniversity, FaBalanceScale } from 'react-icons/fa';
+import '../Profitloss.css';
 import { toast } from 'react-toastify';
 
 // Export Libraries
@@ -10,14 +12,15 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
+import { localToday, localYearStart } from '../utils/localDate';
 
 const CapitalReport = () => {
   const navigate = useNavigate();
   const reportRef = useRef();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localToday();
 
   // --- 📊 State Definitions ---
-  const currentYearStart = `${new Date().getFullYear()}-01-01`;
+  const currentYearStart = localYearStart();
   const [fromDate, setFromDate] = useState(currentYearStart);
   const [toDate, setToDate] = useState(today);
   const [loading, setLoading] = useState(false);
@@ -201,151 +204,64 @@ const CapitalReport = () => {
   };
 
   return (
-    <div className="vw-100 min-vh-100 bg-light">
-      <MainLayout />
-      
-      <div className="p-4 mx-auto" style={{ width: '98%' }}>
-        
-        {/* --- Header Control Panel Section --- */}
-        <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
-          <div className="d-flex align-items-center gap-3">
-            <button onClick={() => navigate(-1)} className='back-btn'>
-              <FaArrowLeft />
-            </button>
-            <h2 className="m-0 font-bold text-dark h4 d-flex align-items-center gap-2">
-              <FaBalanceScale className="text-primary" /> Net Capital Statement
-            </h2>
-          </div>
-          
-          {/* 🎯 Realignment Bar With Exact Match Styles */}
-          <div className="d-flex gap-3 align-items-center bg-white p-2 rounded shadow-sm flex-wrap border">
-            
-            {/* FROM DATE */}
-            <div className="d-flex align-items-center gap-2">
-              <span className="text-dark fw-normal m-0" style={{ fontSize: '15px' }}>From:</span>
-              <div className="position-relative d-flex align-items-center">
-                <FaCalendarAlt className="position-absolute text-muted" style={{ left: '12px', pointerEvents: 'none' }} />
-                <input 
-                  type="date" 
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="form-control form-control-sm bg-light border-0 ps-5 text-dark"
-                  style={{ width: '160px', height: '36px', borderRadius: '6px' }}
-                />
+    <>
+      <NavigationBar />
+      <div className="report-page-wrapper">
+        <div className="report-card">
+          <div className="report-header">
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h3 className="report-title">
+                    <FaBalanceScale className="report-title-icon" /> Net Capital Statement
+                  </h3>
+                  <p className="report-description">Assets, liabilities, and net owner equity overview.</p>
+                </div>
               </div>
+              {(assets.length > 0 || liabilities.length > 0) && (
+                <div className="export-btn-group">
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
+                </div>
+              )}
             </div>
 
-            {/* VERTICAL LINE 1 */}
-            <div className="text-muted opacity-50 px-1">|</div>
+            <div className="filter-group">
+              <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            </div>
+          </div>
 
-            {/* TO DATE */}
-            <div className="d-flex align-items-center gap-2">
-              <span className="text-dark fw-normal m-0" style={{ fontSize: '15px' }}>To:</span>
-              <div className="position-relative d-flex align-items-center">
-                <FaCalendarAlt className="position-absolute text-muted" style={{ left: '12px', pointerEvents: 'none' }} />
-                <input 
-                  type="date" 
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="form-control form-control-sm bg-light border-0 ps-5 text-dark"
-                  style={{ width: '160px', height: '36px', borderRadius: '6px' }}
-                />
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Analyzing ledger balances...</div>
+          ) : (
+            <div ref={reportRef} className="pl-table-container">
+              <div className="pl-header-section">
+                <h3 className="pl-statement-title">CAPITAL & EQUITY STATEMENT</h3>
+                <p className="pl-statement-subtitle">For the Period: {fromDate} to {toDate}</p>
               </div>
-            </div>
 
-            {/* VERTICAL LINE 2 */}
-            <div className="text-muted opacity-50 px-1">|</div>
-
-            {/* 🎯 Exact Styled Action Square Buttons Panel */}
-            <div className="d-flex gap-2">
-               {/* PDF BUTTON - Deep Red */}
-               <button 
-                 onClick={exportToPDF} 
-                 title="Export PDF" 
-                 className="btn d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm"
-                 style={{ width: '38px', height: '38px', backgroundColor: '#dc3545', borderRadius: '8px', fontSize: '16px' }}
-               >
-                 <FaFilePdf />
-               </button>
-
-               {/* EXCEL BUTTON - Dark Green */}
-               <button 
-                 onClick={exportToExcel} 
-                 title="Export Excel" 
-                 className="btn d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm"
-                 style={{ width: '38px', height: '38px', backgroundColor: '#198754', borderRadius: '8px', fontSize: '16px' }}
-               >
-                 <FaFileExcel />
-               </button>
-
-               {/* IMAGE BUTTON - Amber/Orange */}
-               <button 
-                 onClick={exportToPNG} 
-                 title="Export Image" 
-                 className="btn d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm"
-                 style={{ width: '38px', height: '38px', backgroundColor: '#ff9100', borderRadius: '8px', fontSize: '16px' }}
-               >
-                 <FaImage />
-               </button>
-            </div>
-          </div>
-        </div>
-
-        {/* --- Financial Aggregate Summary Cards Section --- */}
-        <div className="row g-3 mb-4">
-          <div className="col-12 col-md-3">
-            <div className="card bg-white border-0 shadow-sm rounded-3 border-start border-primary border-4 p-3">
-              <div className="text-muted text-uppercase small font-monospace">Total Assets (A)</div>
-              <div className="h3 font-bold text-success mt-1">
-                {Number(summary.total_assets).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="small text-muted h6">Rs</span>
+              <div className="pl-meta-row">
+                <span>Assets: <strong style={{ color: '#2e7d32' }}>{Number(summary.total_assets).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
+                <span>Liabilities: <strong style={{ color: '#c62828' }}>{Number(summary.total_liabilities).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
+                <span>Net Capital: <strong>{Number(summary.net_capital).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></span>
               </div>
-            </div>
-          </div>
-          <div className="col-12 col-md-3">
-            <div className="card bg-white border-0 shadow-sm rounded-3 border-start border-danger border-4 p-3">
-              <div className="text-muted text-uppercase small font-monospace">Total Liabilities (B)</div>
-              <div className="h3 font-bold text-danger mt-1">
-                {Number(summary.total_liabilities).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="small text-muted h6">Rs</span>
-              </div>
-            </div>
-          </div>
-          <div className="col-12 col-md-3">
-            <div className="card bg-success text-white border-0 shadow-sm rounded-3 p-3">
-              <div className="text-white-50 text-uppercase small font-monospace">Net Worth / Capital (A - B)</div>
-              <div className="h3 font-bold mt-1">
-                {Number(summary.net_capital).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="text-white-50 h6">Rs</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* --- Content Statements Table Output Container --- */}
-        {loading ? (
-          <div className="text-center bg-white rounded shadow-sm p-5 text-muted fs-5">
-            <div className="spinner-border text-primary spinner-border-sm me-2" role="status"></div>
-            Analyzing ledger balances snapshot arrays...
-          </div>
-        ) : (
-          <div ref={reportRef} className="bg-white rounded shadow-sm p-4">
-            <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
-                <h5 className="m-0 text-secondary">Statement View Balance Ledger Sheet</h5>
-                <span className="badge bg-light text-dark border p-2">Timeline Range: {fromDate} to {toDate}</span>
-            </div>
-            
-            <div className="table-responsive">
-              <table className="table table-hover align-middle">
-                <thead className="table-light">
+              <table className="pl-table">
+                <thead>
                   <tr>
-                    <th style={{ width: '150px' }}>Account Code</th>
+                    <th style={{ width: '140px' }}>Account Code</th>
                     <th>Account Name</th>
-                    <th className="text-end" style={{ width: '250px' }}>Balance (Rs)</th>
+                    <th className="text-right" style={{ width: '200px' }}>Balance (Rs)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  
-                  {/* SECTION 1: ASSETS */}
-                  <tr className="table-primary font-weight-bold">
-                    <td colSpan="3" className="fw-bold text-primary font-monospace"><FaUniversity className="me-2" /> 1. ASSETS</td>
+                  <tr className="row-section-head">
+                    <td colSpan="3"><FaUniversity /> 1. ASSETS</td>
                   </tr>
                   {assets.length > 0 ? assets.map((row, index) => (
                     <tr
@@ -361,29 +277,23 @@ const CapitalReport = () => {
                       tabIndex={0}
                       style={{ cursor: 'pointer' }}
                     >
-                      <td className="text-muted font-monospace">{row.account_code}</td>
-                      <td className="fw-medium">{row.account_name}</td>
-                      <td className="text-end text-success fw-bold">
-                        {Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
+                      <td style={{ color: '#94a3b8', fontFamily: 'monospace' }}>{row.account_code}</td>
+                      <td>{row.account_name}</td>
+                      <td className="text-right" style={{ color: '#2e7d32' }}>{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     </tr>
                   )) : (
-                    <tr><td colSpan="3" className="text-center text-muted italic small">No asset entries reported within this frame.</td></tr>
+                    <tr><td colSpan="3" className="text-center" style={{ color: '#94a3b8' }}>No asset entries found.</td></tr>
                   )}
-                  <tr className="bg-light fw-bold">
+                  <tr className="font-bold" style={{ background: '#f8fafc' }}>
                     <td></td>
-                    <td className="text-end pe-3 fw-bold">Total Assets Summary (A):</td>
-                    <td className="text-end text-success border-bottom border-2 border-dark fw-bold">
-                      {Number(summary.total_assets).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
+                    <td className="text-right">Total Assets (A):</td>
+                    <td className="text-right font-bold" style={{ color: '#2e7d32' }}>{Number(summary.total_assets).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                   </tr>
 
-                  {/* Spacer Row */}
-                  <tr><td colSpan="3" className="border-0 py-3"></td></tr>
+                  <tr><td colSpan="3" style={{ padding: '8px' }}></td></tr>
 
-                  {/* SECTION 2: LIABILITIES */}
-                  <tr className="table-danger font-weight-bold">
-                    <td colSpan="3" className="fw-bold text-danger font-monospace"><FaUniversity className="me-2" /> 2. LIABILITIES</td>
+                  <tr className="row-section-head">
+                    <td colSpan="3"><FaUniversity /> 2. LIABILITIES</td>
                   </tr>
                   {liabilities.length > 0 ? liabilities.map((row, index) => (
                     <tr
@@ -399,42 +309,31 @@ const CapitalReport = () => {
                       tabIndex={0}
                       style={{ cursor: 'pointer' }}
                     >
-                      <td className="text-muted font-monospace">{row.account_code}</td>
-                      <td className="fw-medium">{row.account_name}</td>
-                      <td className="text-end text-danger fw-bold">
-                        {Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
+                      <td style={{ color: '#94a3b8', fontFamily: 'monospace' }}>{row.account_code}</td>
+                      <td>{row.account_name}</td>
+                      <td className="text-right" style={{ color: '#c62828' }}>{Number(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     </tr>
                   )) : (
-                    <tr><td colSpan="3" className="text-center text-muted italic small">No liability entries reported within this frame.</td></tr>
+                    <tr><td colSpan="3" className="text-center" style={{ color: '#94a3b8' }}>No liability entries found.</td></tr>
                   )}
-                  <tr className="bg-light fw-bold">
+                  <tr className="font-bold" style={{ background: '#f8fafc' }}>
                     <td></td>
-                    <td className="text-end pe-3 fw-bold">Total Liabilities Summary (B):</td>
-                    <td className="text-end text-danger border-bottom border-2 border-dark fw-bold">
-                      {Number(summary.total_liabilities).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </td>
+                    <td className="text-right">Total Liabilities (B):</td>
+                    <td className="text-right font-bold" style={{ color: '#c62828' }}>{Number(summary.total_liabilities).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                   </tr>
-
                 </tbody>
               </table>
-            </div>
 
-            {/* --- Net Capital Conclusion Footer Board --- */}
-            <div className="mt-4 p-3 bg-dark text-white rounded d-flex justify-content-between align-items-center">
-              <div>
-                <h6 className="m-0 text-uppercase tracking-wider fw-bold">Statement Formula Result</h6>
-                <small className="text-white-50">Net Worth Value base formula (Assets less Liabilities)</small>
-              </div>
-              <div className="h3 m-0 font-weight-bold text-warning fw-bold">
-                {Number(summary.net_capital).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="small text-white-50 h6">PKR</span>
+              <div className="pl-summary-bar">
+                <strong>Net Capital (Owner's Equity):</strong>
+                <span className="pl-summary-value">{Number(summary.net_capital).toLocaleString(undefined, { minimumFractionDigits: 2 })} PKR</span>
               </div>
             </div>
-
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 
