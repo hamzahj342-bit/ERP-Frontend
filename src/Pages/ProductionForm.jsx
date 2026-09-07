@@ -199,21 +199,20 @@ const ProductionForm = () => {
     <div className="page-wrapper">
       <NavigationBar />
       <div className="prod-form-wrapper">
-        <div className="prod-form-container" style={{marginTop: '30px'}}>
-          <button className="back-btn" onClick={() => navigate("/finished-products")} style={{ marginBottom: "20px" }}>
-            <FaArrowLeft />
-          </button>
-
+        <div className="prod-form-container">
           <div className="prod-form-card">
-            <div className="form-header" style={{ marginBottom: "25px" }}>
-              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="form-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/finished-products")}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <FaCheckCircle style={{ color: isEditMode ? '#eab308' : '#3b82f6' }} /> 
                 {isEditMode ? `Edit Production Order (Batch #${batch_id})` : "Production Order"}
               </h2>
-              <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                {isEditMode ? "Modify parameters. System will safely reverse and adjust balances automatically." : "Fill finished product details and verify BOM consumption."}
-              </p>
             </div>
+            <p style={{ color: '#64748b', fontSize: '12px', margin: '0 0 12px' }}>
+              {isEditMode ? "Modify parameters. System will safely reverse and adjust balances automatically." : "Fill finished product details and verify BOM consumption."}
+            </p>
 
             <form onSubmit={handleSubmit}>
               <div className="prod-header-grid">
@@ -304,7 +303,7 @@ const ProductionForm = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <div className="erp-form-actions">
                 <button type="submit" className="save-btn" style={{ padding: '12px 40px', fontSize: '1rem', background: isEditMode ? '#eab308' : '#3b82f6' }}>
                   {isEditMode ? "Update Production" : "Complete Production"}
                 </button>

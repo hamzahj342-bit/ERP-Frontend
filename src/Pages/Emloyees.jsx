@@ -117,58 +117,51 @@ const Employees = () => {
   return (
     <>
       <NavigationBar />
-      <div className="table-container">
-        <div style={{marginTop: '50px', width: '100%' }}>
-          <button className='back-btn' onClick={() => navigate('/dashboard')}>
-            <FaArrowLeft />
-          </button>
-        </div>
-        
-        <div className="table-wrapper">
-          <div className="header-flex">
-            <h2>Employees List</h2>
-            <button className="add-cust-sup" onClick={() => navigate("/add-employees")}>
+      <div className="erp-entity-page table-container">
+        <div className="erp-page-card table-wrapper">
+          <div className="erp-page-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/dashboard')}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title">Employees List</h2>
+            </div>
+            <button className="add-cust-sup erp-btn-primary" type="button" onClick={() => navigate("/add-employees")}>
               <FaPlus /> Add Employee
             </button>
           </div>
 
-          {/* 🔍 Search Bar */}
-          <div className="search-container" style={{ position: 'relative', marginBottom: '20px' }}>
-            <FaSearch style={{ position: 'absolute', left: '15px', top: '13px', color: '#aaa' }} />
+          <div className="erp-search-bar search-container">
+            <FaSearch className="erp-search-icon" />
             <input 
               type="text" 
-              className="input" 
+              className="input erp-search-input" 
               placeholder="Search employee by name..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ paddingLeft: '45px', marginBottom: '0' }}
             />
           </div>
 
-          {/* Edit Modal */}
           {onEdit && (
-            <div className="modal-overlay" style={{
-              position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex',
-              justifyContent: 'center', alignItems: 'center', zIndex: 1000
-            }}>
-              <div className="modal-content" style={{ backgroundColor: 'white', padding: '30px', borderRadius: '15px', width: '90%', maxWidth: '400px' }}>
-                <h3 style={{marginBottom: '15px', color: '#1a73e8'}}>Edit Employee</h3>
-                <form onSubmit={handleUpdate} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+            <div className="erp-modal-overlay modal-overlay">
+              <div className="erp-modal-content modal-content">
+                <h3>Edit Employee</h3>
+                <form onSubmit={handleUpdate}>
                   <input className="input" name="name" value={formData.name} onChange={handleChange} placeholder="Name" required />
                   <input className="input" name="address" value={formData.address} onChange={handleChange} placeholder="Address" required />
                   <input className="input" name="contact" value={formData.contact} onChange={handleChange} placeholder="Contact" />
                   <input className="input" type="number" name="salary" value={formData.salary} onChange={handleChange} placeholder="Salary" />
                   
-                  <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
-                    <button type="submit" className="add-cust-sup" style={{flex: 1}}>Update</button>
-                    <button type="button" className="add-cust-sup" style={{flex: 1, backgroundColor: '#6c757d'}} onClick={() => setOnEdit(null)}>Cancel</button>
+                  <div className="erp-modal-actions">
+                    <button type="submit" className="add-cust-sup">Update</button>
+                    <button type="button" className="delete-btn" onClick={() => setOnEdit(null)}>Cancel</button>
                   </div>
                 </form>
               </div>
             </div>
           )}
 
+          <div className="erp-table-scroll">
           <table className="entity-table">
             <thead>
               <tr>
@@ -177,7 +170,7 @@ const Employees = () => {
                 <th>Address</th>
                 <th>Contact</th>
                 <th>Salary</th>
-                <th style={{textAlign: 'center'}}>Actions</th>
+                <th style={{textAlign: 'right'}}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -189,24 +182,25 @@ const Employees = () => {
                     <td data-label="Address">{emp.address}</td>
                     <td data-label="Contact">{emp.contact || "N/A"}</td>
                     <td data-label="Salary">{emp.salary ? `${emp.salary}` : "N/A"}</td>
-                    <td data-label="Actions" style={{textAlign: 'center'}}>
-                      <div style={{display: 'flex', gap: '8px', justifyContent: 'center'}}>
-                        <button className="edit-btn-action" onClick={() => handleEditClick(emp)}><FaEdit /> Edit</button>
-                        <button className="delete-btn" onClick={() => handleDelete(emp.id, emp.name)}><FaTrash /> Delete</button>
+                    <td data-label="Actions" className="erp-actions-cell">
+                      <div className="erp-actions-group">
+                        <button type="button" className="edit-btn-action" onClick={() => handleEditClick(emp)}><FaEdit /> Edit</button>
+                        <button type="button" className="delete-btn" onClick={() => handleDelete(emp.id, emp.name)}><FaTrash /> Delete</button>
                       </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{textAlign: 'center', padding: '30px'}}>No employees found.</td>
+                  <td colSpan="6" className="erp-empty-cell">No employees found.</td>
                 </tr>
               )}
             </tbody>
           </table>
+          </div>
 
           {totalPages > 1 && (
-            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center' }}>
+            <div className="erp-pagination-wrap">
               <Pagination page={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
             </div>
           )}

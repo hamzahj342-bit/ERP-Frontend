@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import Select from 'react-select';
 import '../Model.css';
 import '../Transactions.css';
 
@@ -45,6 +46,12 @@ const RM_SaleForm = ({ channel = null }) => {
     const [sourceDocuments, setSourceDocuments] = useState([]);
     const [selectedSourceDoc, setSelectedSourceDoc] = useState("");
     const [originalSourceItems, setOriginalSourceItems] = useState([]);
+
+    const customerOptions = customers.map((customer) => ({ value: customer.id, label: customer.name }));
+    const materialOptions = materials.map((material) => ({
+        value: `${Number(material.rm_id)}-${String(material.supplier_id).trim()}`,
+        label: `${material.rm_name || material.name || "Material"} - ${material.shop_name || 'No Supplier'}`,
+    }));
 
     const getMaterialMeta = (material, fallbackDetail = {}) => {
         const packSizes = (material?.pack_sizes || []).map((p) => ({
@@ -510,10 +517,10 @@ const RM_SaleForm = ({ channel = null }) => {
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate(listPath)}>
+                    <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Sale Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Sale` : "Raw Material Sale")}</h2>
+                    <h2 className="form-title erp-page-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Sale Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Sale` : "Raw Material Sale")}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -524,11 +531,17 @@ const RM_SaleForm = ({ channel = null }) => {
                         </div>
                         <div className="info-item">
                             <label>Customer</label>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <select className="rm-input-field" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)} disabled={!!selectedSourceDoc}>
-                                    <option value="">Select Customer</option>
-                                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <Select
+                                    className="rm-input-field"
+                                    classNamePrefix="react-select"
+                                    options={customerOptions}
+                                    value={customerOptions.find((option) => String(option.value) === String(selectedCustomer)) || null}
+                                    onChange={(selectedOption) => setSelectedCustomer(selectedOption?.value || "")}
+                                    isSearchable
+                                    isClearable
+                                    isDisabled={!!selectedSourceDoc}
+                                />
                                 <button type="button" className="quick-add-btn" onClick={() => setShowCustomerModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
                             </div>
                         </div>
@@ -538,7 +551,7 @@ const RM_SaleForm = ({ channel = null }) => {
                         </div>
                         <div className="info-item">
                             <label>Source DC</label>
-                            <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <select className="rm-input-field" value={selectedSourceDoc} onChange={(e) => handleSourceDocumentSelection(e.target.value)}>
                                     <option value="">Select DC (optional)</option>
                                     {sourceDocuments.map(doc => (
@@ -551,6 +564,7 @@ const RM_SaleForm = ({ channel = null }) => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="rm-items-scroll">
                         <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '3.5fr 1.2fr 1.5fr 1.5fr 1.5fr 1fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
                             <span>Material</span>
                             <span>UOM</span>
@@ -565,23 +579,19 @@ const RM_SaleForm = ({ channel = null }) => {
                             const currentSelectionValue = row.rm_id && row.supplier_id ? `${Number(row.rm_id)}-${String(row.supplier_id).trim()}` : "";
 
                             return (
-                                <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '3.5fr 1.2fr 1.5fr 1.5fr 1.5fr 1fr', gap: '12px', alignItems: 'start', marginBottom: '12px' }}>
+                                <div className="item-row" key={index} style={{ display: 'grid', gridTemplateColumns: '3.5fr 1.2fr 1.5fr 1.5fr 1.5fr 1fr', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
                                     
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <select
+                                    <div className="erp-col-stack" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <Select
                                             className="rm-input-field"
-                                            value={currentSelectionValue}
-                                            disabled={!!selectedSourceDoc}
-                                            onChange={(e) => handleMaterialSelection(index, e.target.value)}
-                                        >
-                                            <option value="">Select Material</option>
-                                            
-                                            {materials.map(m => (
-                                                <option key={`${m.rm_id}-${m.supplier_id}`} value={`${Number(m.rm_id)}-${String(m.supplier_id).trim()}`}>
-                                                    {m.rm_name} - {m.shop_name || 'No Supplier'}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            classNamePrefix="react-select"
+                                            options={materialOptions}
+                                            value={materialOptions.find((option) => option.value === currentSelectionValue) || null}
+                                            onChange={(selectedOption) => handleMaterialSelection(index, selectedOption?.value || "")}
+                                            isSearchable
+                                            isClearable
+                                            isDisabled={!!selectedSourceDoc}
+                                        />
                                         {row.rm_id && (
                                             <small className='text-success' style={{ fontSize: '12px', paddingLeft: '4px', marginTop: '2px' }}>
                                                 Available: {row.current_stock}
@@ -605,7 +615,7 @@ const RM_SaleForm = ({ channel = null }) => {
                                     ) : (
                                         <input type="text" className="rm-input-field readonly-input" style={{ marginTop: '0px' }} placeholder="UOM" value={row.uom_name} readOnly />
                                     )}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <div className="erp-col-stack" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                         <input type="number" className="rm-input-field" placeholder="Qty" value={row.quantity} onChange={(e) => handleChange(index, "quantity", e.target.value)} />
                                         {Number(row.factor) !== 1 && parseFloat(row.quantity) > 0 && (
                                             <small style={{ fontSize: '11px', color: '#3182ce', paddingLeft: '4px' }}>
@@ -616,7 +626,7 @@ const RM_SaleForm = ({ channel = null }) => {
                                     <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
                                     <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
 
-                                    <div style={{ display: 'flex', gap: '5px', marginTop: '4px' }}>
+                                    <div className="erp-row-actions">
                                         <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow} disabled={!!selectedSourceDoc}><FaPlus /></button>
                                         {rows.length > 1 && (
                                             <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)} disabled={!!selectedSourceDoc}><FaTrash /></button>
@@ -625,6 +635,7 @@ const RM_SaleForm = ({ channel = null }) => {
                                 </div>
                             );
                         })}
+                        </div>
 
                         <div className="summary-container" style={{ marginTop: '20px' }}>
                             <div className="summary-row">
@@ -667,7 +678,9 @@ const RM_SaleForm = ({ channel = null }) => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn">{isEditMode ? "Update Sale Draft" : "Save Sale Draft"}</button>
+                        <div className="erp-form-actions">
+                            <button type="submit" className="save-btn">{isEditMode ? "Update Sale Draft" : "Save Sale Draft"}</button>
+                        </div>
                     </form>
                 </div>
             </div>

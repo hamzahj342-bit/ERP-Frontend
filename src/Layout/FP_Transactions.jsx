@@ -53,29 +53,31 @@ const FP_Transactions = () => {
       
       <main className="rm-main-container">
         <div className="rm-content-limit">
-          <div className="rm-header" style={{marginTop: '30px'}}>
-            <button className="back-btn" onClick={() => navigate('/dashboard')}>
-              <FaArrowLeft />
-            </button>
-            <div className="header-info">
-              <h2>Finished Product Transactions</h2>
-              <p>Monitor your sales performance and return activities</p>
+          <div className="erp-page-card">
+            <div className="erp-page-header rm-header">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/dashboard')}>
+                <FaArrowLeft />
+              </button>
+              <div className="header-info">
+                <h2 className="erp-page-title">Finished Product Transactions</h2>
+                <p className="erp-page-subtitle">Monitor your sales performance and return activities</p>
+              </div>
             </div>
-          </div>
 
-          {/* Cards Grid - Since there are only 2 cards, they will take space accordingly */}
-          <div className="tr-grid-row">
-            {transactionData.map(transaction => (
-              <TransactionCard 
-                key={transaction.id}
-                title={transaction.title}
-                description={transaction.description}
-                icon={transaction.icon}
-                path={transaction.path}
-                color={transaction.color}
-                navigate={navigate}
-              />
-            ))}
+            {/* Cards Grid - Since there are only 2 cards, they will take space accordingly */}
+            <div className="tr-grid-row">
+              {transactionData.map(transaction => (
+                <TransactionCard 
+                  key={transaction.id}
+                  title={transaction.title}
+                  description={transaction.description}
+                  icon={transaction.icon}
+                  path={transaction.path}
+                  color={transaction.color}
+                  navigate={navigate}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </main>

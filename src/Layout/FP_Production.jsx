@@ -31,6 +31,7 @@ const ProductionCard = ({ title, description, icon, path, color }) => {
             
             <div className="card-footer-prod">
                 <button 
+                    type="button"
                     className="action-btn" 
                     style={{ backgroundColor: color }}
                     onClick={() => navigate(path)}
@@ -47,37 +48,41 @@ const FP_Production = () => {
     return (
          <>
     <NavigationBar/>
-    <div className="rm-page">
-                    <button
-                              className="back-btn"
-                              style={{ marginTop: "30px" }}
-                              onClick={() => navigate("/dashboard")}
-                            >
-                              <FaArrowLeft/>
-                            </button>
+    <div className="rm-page fp-hub-page">
         <div className="fp-production-container">
-            <h3>🏭 Finished Product Production Management</h3>
+            <div className="fp-hub-card">
+                <div className="fp-hub-header">
+                    <button
+                        className="back-btn erp-back-btn"
+                        type="button"
+                        onClick={() => navigate("/dashboard")}
+                    >
+                        <FaArrowLeft/>
+                    </button>
+                    <h2>Finished Product Production Management</h2>
+                </div>
             
-            <div className="production-cards-grid">
-                
-                {/* 1. CREATE RECIPE CARD */}
-                <ProductionCard 
-                    title="📝 Create Recipe & Details"
-                    description="Define the Bill of Materials (BOM) for a new Finished Product, including all required Raw Materials and quantities."
-                    icon={<FaFlask size={40} />}
-                    path="/recipe" // Recipe Creation Route
-                    color="#17a2b8" // Cyan/Blue
-                />
+                <div className="production-cards-grid">
+                    
+                    {/* 1. CREATE RECIPE CARD */}
+                    <ProductionCard 
+                        title="Create Recipe & Details"
+                        description="Define the Bill of Materials (BOM) for a new Finished Product, including all required Raw Materials and quantities."
+                        icon={<FaFlask size={20} />}
+                        path="/recipe" // Recipe Creation Route
+                        color="#17a2b8" // Cyan/Blue
+                    />
 
-                {/* 2. CREATE FINISHED PRODUCT CARD */}
-                <ProductionCard 
-                    title="📦 Create Finished Product"
-                    description="Record a production batch using an existing recipe. This consumes RM stock and increases FP stock."
-                    icon={<FaCubes size={40} />}
-                    path="/production" // Production Record Route
-                    color="#28a745" // Green/Success
-                />
+                    {/* 2. CREATE FINISHED PRODUCT CARD */}
+                    <ProductionCard 
+                        title="Create Finished Product"
+                        description="Record a production batch using an existing recipe. This consumes RM stock and increases FP stock."
+                        icon={<FaCubes size={20} />}
+                        path="/production" // Production Record Route
+                        color="#28a745" // Green/Success
+                    />
 
+                </div>
             </div>
         </div>
         </div>

@@ -7,6 +7,7 @@ import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
 import api from "../../api"; 
 import '../save-btn.css'
+import '../EntityForm.css'
 
 const AddMaterial = () => {
   const navigate = useNavigate();
@@ -173,114 +174,106 @@ const AddMaterial = () => {
       <NavigationBar />
       <div className="page-container">
         <button
-          className="back-btn"
-          style={{ marginTop: '30px' }}
+          className="back-btn erp-back-btn"
+          type="button"
           onClick={() => navigate('/materials-list')}
         >
           <FaArrowLeft />
         </button>
 
-        {/* Create Material */}
-        <div className="card">
+        <div className="entity-card">
           <h2>Create Raw Material</h2>
-          <form onSubmit={handleCreateMaterial} className="form">
-            <input
-              type="text"
-              name="name"
-              placeholder="Material Name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-            />
+          <form onSubmit={handleCreateMaterial} className="form erp-form">
+            <div className="erp-form-grid">
+              <div className="erp-form-field erp-form-field--full">
+                <label htmlFor="material-name">Material Name</label>
+                <input
+                  id="material-name"
+                  type="text"
+                  name="name"
+                  placeholder="Material Name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
 
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: '-30px' }}>
-              <select
-                className="form"
-                name="uom_id"
-                value={formData.uom_id}
-                onChange={handleInputChange}
-                required
-                style={{ flex: 1 }}
-              >
-                <option value="">Select UOM</option>
-                {uoms.map((uom) => (
-                  <option key={uom.id} value={uom.id}>
-                    {uom.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="add-btn"
-                onClick={openUomModal}
-                title="Add UOM"
-                style={{
-                  width: 46,
-                  height: 46,
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 10,
-                  marginTop: '8px'
-                }}
-              >
-                <FaPlus />
-              </button>
+              <div className="erp-form-field erp-form-field--full">
+                <label htmlFor="uom_id">UOM</label>
+                <div className="shop-row row">
+                  <select
+                    id="uom_id"
+                    name="uom_id"
+                    value={formData.uom_id}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Select UOM</option>
+                    {uoms.map((uom) => (
+                      <option key={uom.id} value={uom.id}>
+                        {uom.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="erp-inline-add-btn"
+                    onClick={openUomModal}
+                    title="Add UOM"
+                  >
+                    <FaPlus />
+                  </button>
+                </div>
+              </div>
+
+              <div className="erp-form-field erp-form-field--full">
+                <label htmlFor="material_category_id">Material Category</label>
+                <div className="shop-row row">
+                  <select
+                    id="material_category_id"
+                    name="material_category_id"
+                    value={formData.material_category_id}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">Select Material Category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="erp-inline-add-btn"
+                    onClick={openCategoryModal}
+                    title="Add Category"
+                  >
+                    <FaPlus />
+                  </button>
+                </div>
+              </div>
+
+              {['Bag', 'Drum', 'Piece', 'Bottle Piece', 'Cap Piece'].includes(
+                uoms.find((u) => u.id == formData.uom_id)?.name
+              ) && (
+                <div className="erp-form-field erp-form-field--full">
+                  <label htmlFor="unit_quantity">Weight per unit</label>
+                  <input
+                    id="unit_quantity"
+                    type="number"
+                    name="unit_quantity"
+                    placeholder="Enter Weight per unit"
+                    value={formData.unit_quantity}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              )}
             </div>
 
-            <div style={{ height: 8 }} />
-
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: '-50px'  }}>
-              <select
-                className="form"
-                name="material_category_id"
-                value={formData.material_category_id}
-                onChange={handleInputChange}
-                style={{ flex: 1 }}
-              >
-                <option value="">Select Material Category</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="add-btn"
-                onClick={openCategoryModal}
-                title="Add Category"
-                style={{
-                  width: 46,
-                  height: 46,
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 10,
-                  marginTop: '8px'
-                }}
-              >
-                <FaPlus />
-              </button>
-            </div>
-
-            {/* Conditional input for Bag, Drum, Piece */}
-            {['Bag', 'Drum', 'Piece', 'Bottle Piece', 'Cap Piece'].includes(
-              uoms.find((u) => u.id == formData.uom_id)?.name
-            ) && (
-              <input
-                type="number"
-                name="unit_quantity"
-                placeholder="Enter Weight per unit"
-                value={formData.unit_quantity}
-                onChange={handleInputChange}
-                required // Added required if conditional is true
-              />
-            )}
-
-            <button className="save-btn" type="submit">
-              Add Raw Material
-            </button>
+            <div className="erp-form-actions">
+              <button className="save-btn" type="submit">
+                Add Raw Material
+              </button>
+            </div>
           </form>
           {/* UOM modal */}
           {showUomModal && (

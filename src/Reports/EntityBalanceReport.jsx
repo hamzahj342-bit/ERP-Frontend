@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; 
-import MainLayout from '../Layout/MainLayout';
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import api from '../../api';
 import { FaUserFriends, FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaSearch, FaUserTie, FaTruckLoading } from 'react-icons/fa';
+import '../Profitloss.css';
 import Pagination from '../Components/Pagination'; // Pagination component import kiya
 import { toast } from 'react-toastify';
 
@@ -11,11 +13,12 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
+import { localToday } from '../utils/localDate';
 
 const EntityBalanceReport = () => {
   const navigate = useNavigate();
   const reportRef = useRef();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localToday();
 
   const [reportType, setReportType] = useState('customer'); 
   const [loading, setLoading] = useState(false);
@@ -136,129 +139,113 @@ const EntityBalanceReport = () => {
   };
 
   return (
-    <div style={{ width: '100vw', minHeight: '100vh', background: '#f4f7f6' }}>
-      <MainLayout />
-      
-      <div style={{ padding: '20px', width: '98%', margin: '0 auto' }}>
-        
-        {/* Header Section */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <button onClick={() => navigate(-1)} className='back-btn'>
-              <FaArrowLeft />
-            </button>
-            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 'bold', color: '#2c3e50' }}>Financial Balances Summary</h2>
+    <>
+      <NavigationBar />
+      <div className="report-page-wrapper">
+        <div className="report-card">
+          <div className="report-header">
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h3 className="report-title">
+                    <FaUserFriends className="report-title-icon" /> Financial Balances Summary
+                  </h3>
+                  <p className="report-description">Customer and supplier closing balance overview.</p>
+                </div>
+              </div>
+              {data.length > 0 && (
+                <div className="export-btn-group">
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
+                </div>
+              )}
+            </div>
+
+            <div className="filter-group">
+              <input type="text" className="date-input" placeholder="Search Name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ minWidth: '200px' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid #e2e8f0', marginTop: '8px' }}>
+              {['customer', 'supplier'].map((type) => (
+                <button
+                  type="button"
+                  key={type}
+                  onClick={() => { setReportType(type); setPage(1); }}
+                  style={{
+                    padding: '8px 18px', border: 'none', background: 'none', cursor: 'pointer',
+                    borderBottom: reportType === type ? '3px solid #334155' : 'none',
+                    color: reportType === type ? '#334155' : '#94a3b8',
+                    fontWeight: '600', fontSize: '12px', textTransform: 'capitalize'
+                  }}
+                >
+                  {type === 'customer' ? <FaUserFriends /> : <FaTruckLoading />} {type}s
+                </button>
+              ))}
+            </div>
           </div>
-          
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: '#fff', padding: '10px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <FaSearch style={{ position: 'absolute', left: '10px', color: '#999' }} />
-                <input 
-                   type="text" 
-                   placeholder="Search Name..." 
-                   value={searchTerm} 
-                   onChange={(e) => setSearchTerm(e.target.value)} 
-                   style={{ padding: '8px 8px 8px 35px', border: '1px solid #ddd', borderRadius: '4px', width: '250px' }} 
-                />
-            </div>
 
-            <div style={{ display: 'flex', gap: '5px', borderLeft: '1px solid #eee', paddingLeft: '10px' }}>
-               <button onClick={exportToExcel} title="Excel" style={{ padding: '8px 12px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaFileExcel /></button>
-               <button onClick={exportToPDF} title="PDF" style={{ padding: '8px 12px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaFilePdf /></button>
-               <button onClick={exportToPNG} title="PNG" style={{ padding: '8px 12px', background: '#ef6c00', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaImage /></button>
-            </div>
-          </div>
-        </div>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Loading Balances...</div>
+          ) : (
+            <div ref={reportRef} className="pl-table-container">
+              <div className="pl-header-section">
+                <h3 className="pl-statement-title" style={{ textTransform: 'capitalize' }}>{reportType} Wise Closing Balances</h3>
+                <p className="pl-statement-subtitle">Showing {data.length} of {totalItems} records</p>
+              </div>
 
-        {/* Tab Buttons */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #ddd' }}>
-          {['customer', 'supplier'].map((type) => (
-            <button 
-              key={type}
-              onClick={() => { setReportType(type); setPage(1); }}
-              style={{ 
-                padding: '12px 25px', 
-                border: 'none', 
-                background: 'none', 
-                cursor: 'pointer', 
-                borderBottom: reportType === type ? `4px solid ${type === 'customer' ? '#2196f3' : '#43a047'}` : 'none', 
-                color: reportType === type ? (type === 'customer' ? '#2196f3' : '#43a047') : '#666', 
-                fontWeight: '600',
-                textTransform: 'capitalize'
-              }}
-            >
-              {type === 'customer' ? <FaUserFriends /> : <FaTruckLoading />} {type}s
-            </button>
-          ))}
-        </div>
-
-        {/* Content Table */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '100px', fontSize: '18px', color: '#666' }}>Loading Balances...</div>
-        ) : (
-          <div ref={reportRef} style={{ background: '#fff', borderRadius: '10px', padding: '25px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ margin: 0, textTransform: 'capitalize' }}>{reportType} Wise Closing Balances</h3>
-                <span style={{ fontSize: '14px', color: '#666' }}>Showing {data.length} of {totalItems} records</span>
-            </div>
-            
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f8f9fa', textAlign: 'left' }}>
-                  <th style={{ padding: '15px', borderBottom: '2px solid #eee', width: '80px' }}>#</th>
-                  <th style={{ padding: '15px', borderBottom: '2px solid #eee' }}>Name</th>
-                  <th style={{ padding: '15px', borderBottom: '2px solid #eee', textAlign: 'right' }}>Closing Balance (Rs)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.length > 0 ? data.map((row, index) => (
-                  <tr 
-                    key={index} 
-                    onClick={() => {
-                      if (row.id) {
-                        navigate(`/entity-ledger?entity_id=${row.id}&type=${reportType}`);
-                      } else {
-                        toast.error("Entity ID missing. Cannot open ledger.");
-                      }
-                    }}
-                    style={{ 
-                      borderBottom: '1px solid #eee',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  >
-                    <td style={{ padding: '15px', color: '#7f8c8d' }}>{(page - 1) * 50 + (index + 1)}</td>
-                    <td style={{ padding: '15px', fontWeight: '500'}}>{row.name}</td>
-                    <td style={{ 
-                        padding: '15px', 
-                        textAlign: 'right', 
-                        fontWeight: 'bold', 
-                        color: row.balance >= 0 ? '#2e7d32' : '#c62828' 
-                    }}>
-                      {Math.abs(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })} 
-                      <span style={{ fontSize: '11px', marginLeft: '5px' }}>{row.balance >= 0 ? '(Dr)' : '(Cr)'}</span>
-                    </td>
+              <table className="pl-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>#</th>
+                    <th>Name</th>
+                    <th className="text-right">Closing Balance (Rs)</th>
                   </tr>
-                )) : (
-                  <tr><td colSpan="3" style={{ padding: '30px', textAlign: 'center' }}>No records found.</td></tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.length > 0 ? data.map((row, index) => (
+                    <tr
+                      key={index}
+                      onClick={() => {
+                        if (row.id) {
+                          navigate(`/entity-ledger?entity_id=${row.id}&type=${reportType}`);
+                        } else {
+                          toast.error("Entity ID missing. Cannot open ledger.");
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <td style={{ color: '#94a3b8' }}>{(page - 1) * 50 + (index + 1)}</td>
+                      <td className="font-bold">{row.name}</td>
+                      <td className="text-right font-bold" style={{ color: row.balance >= 0 ? '#2e7d32' : '#c62828' }}>
+                        {Math.abs(row.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        <span style={{ fontSize: '10px', marginLeft: '4px' }}>{row.balance >= 0 ? '(Dr)' : '(Cr)'}</span>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan="3" className="text-center" style={{ padding: '30px' }}>No records found.</td></tr>
+                  )}
+                </tbody>
+              </table>
 
-            {/* Pagination Component */}
-            <div style={{ marginTop: '30px' }}>
-                <Pagination 
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={(newPage) => setPage(newPage)}
+              <div style={{ marginTop: '20px' }}>
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => setPage(newPage)}
                 />
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 

@@ -192,118 +192,112 @@ const ProfitLoss = () => {
     });
   };
 
+  const reportSubtitle = "Review revenue, cost of goods sold, operating expenses, and net result.";
+
   return (
     <>
       <NavigationBar />
       <div className="report-page-wrapper">
-        <button className="back-btn" style={{ marginTop: "40px" }} onClick={() => navigate("/reports")}>
-          <FaArrowLeft />
-        </button>
-
-        <div className="report-card" style={{ marginTop: "20px" }}>
+        <div className="report-card">
           <div className="report-header">
-            <h3 className="report-title">
-              <FaChartLine style={{ color: '#4caf50' }} /> Profit & Loss Statement
-            </h3>
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h3 className="report-title">
+                    <FaChartLine className="report-title-icon" /> Profit & Loss Statement
+                  </h3>
+                  <p className="report-description">{reportSubtitle}</p>
+                </div>
+              </div>
+
+              {report && (
+                <div className="export-btn-group">
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
+                </div>
+              )}
+            </div>
 
             <div className="filter-group">
               <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              
-              <button className="get-report-btn" onClick={fetchProfitLoss} disabled={loading}>
+              <button type="button" className="get-report-btn" onClick={fetchProfitLoss} disabled={loading}>
                 {loading ? "Loading..." : "Get Report"}
               </button>
-
-              {report && (
-                <div className="export-btn-group">
-                  <button className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
-                  <button className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
-                  <button className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
-                </div>
-              )}
             </div>
           </div>
 
           {report && (
-            <div ref={reportRef} className="pl-printable-container" style={{ padding: '30px', backgroundColor: '#fff', borderRadius: '8px' }}>
-              
-              {/* PROFESSIONAL REPORT HEADER */}
-              <div className="pl-header-section" style={{ textAlign: 'center', marginBottom: '25px', borderBottom: '2px solid #e2e8f0', pb: '15px' }}>
-                <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#1a202c', letterSpacing: '0.5px' }}>
-                  PROFIT & LOSS STATEMENT
-                </h2>
-                <p style={{ margin: '5px 0 0', color: '#4a5568', fontSize: '14px', fontWeight: '500' }}>
+            <div ref={reportRef} className="pl-printable-container">
+              <div className="pl-header-section">
+                <h2 className="pl-statement-title">PROFIT & LOSS STATEMENT</h2>
+                <p className="pl-statement-subtitle">
                   For the Period: <strong>{fromDate}</strong> to <strong>{toDate}</strong>
                 </p>
-                <p style={{ margin: '2px 0 0', color: '#a0aec0', fontSize: '12px' }}>
+                <p className="pl-statement-meta">
                   Generated on: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
               </div>
 
-              {/* ERP STATEMENT TABLE */}
-              <table className="pl-table" style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Inter, sans-serif' }}>
+              <table className="pl-table">
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #cbd5e0', backgroundColor: '#f8fafc' }}>
-                    <th style={{ textAlign: 'left', padding: '12px 10px', fontSize: '12px', textTransform: 'uppercase', color: '#4a5568' }}>Account Description</th>
-                    <th style={{ textAlign: 'right', padding: '12px 10px', fontSize: '12px', textTransform: 'uppercase', color: '#4a5568' }}>Amount</th>
+                  <tr>
+                    <th>Account Description</th>
+                    <th className="text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
-                  
-                  {/* REVENUE SECTION */}
-                  <tr className="row-section-head" style={{ backgroundColor: '#f1f5f9', fontWeight: 'bold' }}>
-                    <td colSpan="2" style={{ padding: '10px', fontSize: '13px', color: '#1e293b' }}>REVENUE</td>
+                  <tr className="row-section-head">
+                    <td colSpan="2">Revenue</td>
                   </tr>
                   {incomeItems.map(acc => (
-                    <tr key={acc.id || acc.name} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ paddingLeft: '35px', paddingY: '8px', color: '#334155', fontSize: '13px' }}>{acc.name}</td>
-                      <td className="text-right" style={{ padding: '8px 10px', fontSize: '13px' }}>{formatCurrency(acc.total)}</td>
+                    <tr key={acc.id || acc.name}>
+                      <td style={{ paddingLeft: '28px' }}>{acc.name}</td>
+                      <td className="text-right">{formatCurrency(acc.total)}</td>
                     </tr>
                   ))}
-                  <tr className="row-total-income" style={{ borderTop: '1px solid #cbd5e0', borderBottom: '1px solid #cbd5e0', fontWeight: '600' }}>
-                    <td style={{ padding: '10px 10px', fontSize: '13px' }}>TOTAL REVENUE</td>
-                    <td className="text-right" style={{ padding: '10px 10px', fontSize: '13px' }}>{formatCurrency(totalRevenue)}</td>
+                  <tr className="row-total-income">
+                    <td>Total Revenue</td>
+                    <td className="text-right">{formatCurrency(totalRevenue)}</td>
                   </tr>
 
-                  {/* COGS SECTION */}
-                  <tr className="row-section-head" style={{ backgroundColor: '#f1f5f9', fontWeight: 'bold' }}>
-                    <td colSpan="2" style={{ padding: '10px', paddingTop: '15px', fontSize: '13px', color: '#1e293b' }}>COST OF GOODS SOLD (COGS)</td>
+                  <tr className="row-section-head">
+                    <td colSpan="2">Cost Of Goods Sold (COGS)</td>
                   </tr>
                   {cogsItems.map(acc => (
-                    <tr key={acc.id || acc.name} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ paddingLeft: '35px', paddingY: '8px', color: '#334155', fontSize: '13px' }}>{acc.name}</td>
-                      <td className="text-right" style={{ padding: '8px 10px', fontSize: '13px' }}>{formatCurrency(acc.total, true)}</td>
+                    <tr key={acc.id || acc.name}>
+                      <td style={{ paddingLeft: '28px' }}>{acc.name}</td>
+                      <td className="text-right">{formatCurrency(acc.total, true)}</td>
                     </tr>
                   ))}
-                  <tr className="row-total-expense" style={{ borderTop: '1px solid #cbd5e0', borderBottom: '1px solid #cbd5e0', fontWeight: '600' }}>
-                    <td style={{ padding: '10px 10px', fontSize: '13px' }}>TOTAL COST OF GOODS SOLD</td>
-                    <td className="text-right" style={{ padding: '10px 10px', fontSize: '13px' }}>{formatCurrency(totalCogs, true)}</td>
+                  <tr className="row-total-expense">
+                    <td>Total Cost Of Goods Sold</td>
+                    <td className="text-right">{formatCurrency(totalCogs, true)}</td>
                   </tr>
 
-                  {/* GROSS PROFIT */}
-                  <tr className="row-gross-profit" style={{ backgroundColor: '#f0fdf4', borderTop: '2px solid #a7f3d0', borderBottom: '2px solid #a7f3d0' }}>
-                    <td style={{ padding: '12px 10px', fontSize: '14px', fontWeight: 'bold'}}>GROSS PROFIT</td>
-                    <td className="text-right" style={{ padding: '12px 10px', fontSize: '14px', fontWeight: 'bold'}}>
-                      {formatCurrency(grossProfit)}
-                    </td>
+                  <tr className="row-gross-profit">
+                    <td>Gross Profit</td>
+                    <td className="text-right">{formatCurrency(grossProfit)}</td>
                   </tr>
 
-                  {/* OPERATING EXPENSES */}
-                  <tr className="row-section-head" style={{ backgroundColor: '#f1f5f9', fontWeight: 'bold' }}>
-                    <td colSpan="2" style={{ padding: '10px', paddingTop: '15px', fontSize: '13px', color: '#1e293b' }}>OPERATING EXPENSES</td>
+                  <tr className="row-section-head">
+                    <td colSpan="2">Operating Expenses</td>
                   </tr>
                   {opexItems.map(acc => (
-                    <tr key={acc.id || acc.name} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ paddingLeft: '35px', paddingY: '8px', color: '#334155', fontSize: '13px' }}>{acc.name}</td>
-                      <td className="text-right" style={{ padding: '8px 10px', fontSize: '13px' }}>{formatCurrency(acc.total, true)}</td>
+                    <tr key={acc.id || acc.name}>
+                      <td style={{ paddingLeft: '28px' }}>{acc.name}</td>
+                      <td className="text-right">{formatCurrency(acc.total, true)}</td>
                     </tr>
                   ))}
-                  <tr className="row-total-expense" style={{ borderTop: '1px solid #cbd5e0', borderBottom: '1px solid #cbd5e0', fontWeight: '600' }}>
-                    <td style={{ padding: '10px 10px', fontSize: '13px' }}>TOTAL OPERATING EXPENSES</td>
-                    <td className="text-right" style={{ padding: '10px 10px', fontSize: '13px' }}>{formatCurrency(totalOpex, true)}</td>
+                  <tr className="row-total-expense">
+                    <td>Total Operating Expenses</td>
+                    <td className="text-right">{formatCurrency(totalOpex, true)}</td>
                   </tr>
 
-                  {/* CONDITIONAL NET PROFIT / LOSS ROW */}
                   <tr 
                     className="row-net-profit" 
                     style={{ 
@@ -312,14 +306,9 @@ const ProfitLoss = () => {
                       borderBottom: netProfit >= 0 ? '2px solid #a7f3d0' : '2px solid #b91c1c' 
                     }}
                   >
-                    <td style={{ padding: '14px 10px', fontSize: '15px', fontWeight: 'bold', }}>
-                      {netProfit >= 0 ? 'NET PROFIT' : 'NET LOSS'}
-                    </td>
-                    <td className="text-right" style={{ padding: '14px 10px', fontSize: '15px', fontWeight: 'bold'}}>
-                      {formatCurrency(netProfit)}
-                    </td>
+                    <td>{netProfit >= 0 ? 'NET PROFIT' : 'NET LOSS'}</td>
+                    <td className="text-right">{formatCurrency(netProfit)}</td>
                   </tr>
-
                 </tbody>
               </table>
             </div>

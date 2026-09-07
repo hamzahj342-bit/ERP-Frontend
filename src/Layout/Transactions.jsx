@@ -3,40 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import { 
     FaArrowRight,
     FaArrowLeft,
-    FaMoneyBillWave, // General Voucher Icon
-    FaWallet,        // Cash Voucher Icon
-    FaUniversity,    // Bank Voucher Icon
+    FaMoneyBillWave,
+    FaWallet,
+    FaUniversity,
 } from 'react-icons/fa';
-import '../FP_Production.css'; 
+import '../RM_CardLayout.css';
 import Footer from '../Components/Footer';
 import NavigationBar from '../Components/NavigationBar';
 
-// Reusable Card component for Transactions
-const TransactionTypeCard = ({ title, description, icon, path, color }) => {
-    const navigate = useNavigate();
-    
+const TransactionTypeCard = ({ title, description, icon, path, color, navigate }) => {
     return (
-        <div className="production-card" style={{ borderLeft: `5px solid ${color}` }}>
-            <div className="card-header-prod">
-                <span className="card-icon-prod" style={{ color: color }}>
+        <div className="tr-card" onClick={() => navigate(path)}>
+            <div className="tr-card-inner">
+                <div className="tr-icon-wrapper" style={{ backgroundColor: `${color}15`, color }}>
                     {icon}
-                </span>
-                <h3 className="card-title-prod">{title}</h3>
+                </div>
+                <div className="tr-content">
+                    <h4 className="tr-title">{title}</h4>
+                    <p className="tr-description">{description}</p>
+                </div>
+                <div className="tr-footer-link">
+                    <span style={{ color }}>Open <FaArrowRight /></span>
+                </div>
             </div>
-            
-            <div className="card-body-prod">
-                <p>{description}</p>
-            </div>
-            
-            <div className="card-footer-prod">
-                <button 
-                    className="action-btn" 
-                    style={{ backgroundColor: color }}
-                    onClick={() => navigate(path)}
-                >
-                    View Entries <FaArrowRight />
-                </button>
-            </div>
+            <div className="tr-accent-bar" style={{ backgroundColor: color }}></div>
         </div>
     );
 };
@@ -45,54 +35,54 @@ const Transactions = () => {
     const navigate = useNavigate();
 
     return (
-        <>
-            <NavigationBar/>
-            <div className="rm-page">
-                <button
-                    className="back-btn"
-                    style={{ marginTop: "30px" }}
-                    onClick={() => navigate('/dashboard')} 
-                >
-                    <FaArrowLeft/>
-                </button>
-                
-                <div className="fp-production-container"> 
-                    <h3>🔄 General Financial Transactions</h3>
-                    
-                    <div className="production-cards-grid">
-                        
-                        {/* 1. CASH VOUCHERS CARD */}
-                        <TransactionTypeCard 
-                            title="💵 Cash Vouchers"
-                            description="Manage Cash Payment Vouchers (CPV) and Cash Receipt Vouchers (CRV) for standard daily cash transactions."
-                            icon={<FaWallet size={40} />}
-                            path="/cash-vouchers-list" // 🌟 Apne react router path ke mutabiq name adjust kar lein
-                            color="#198754" // Green for Cash Management
-                        />
+        <div className="page-wrapper">
+            <NavigationBar />
+            <main className="rm-main-container">
+                <div className="rm-content-limit">
+                    <div className="erp-page-card">
+                        <div className="erp-page-header rm-header">
+                            <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/dashboard')}>
+                                <FaArrowLeft />
+                            </button>
+                            <div className="header-info">
+                                <h2 className="erp-page-title" style={{ color: '#0f172a' }}>Financial Transactions</h2>
+                                <p className="erp-page-subtitle">Manage cash, bank, and journal voucher entries</p>
+                            </div>
+                        </div>
 
-                        {/* 2. BANK VOUCHERS CARD */}
-                        <TransactionTypeCard 
-                            title="🏦 Bank Vouchers"
-                            description="Manage Bank Payment Vouchers (BPV) and Bank Receipt Vouchers (BRV) for cheque, online transfer, and bank ledger records."
-                            icon={<FaUniversity size={40} />}
-                            path="/bank-vouchers-list" // 🌟 Apne react router path ke mutabiq name adjust kar lein
-                            color="#0d6efd" // Blue for Corporate Bank Operations
-                        />
+                        <div className="tr-grid-row">
+                            <TransactionTypeCard 
+                                title="Cash Vouchers"
+                                description="Manage Cash Payment Vouchers (CPV) and Cash Receipt Vouchers (CRV) for standard daily cash transactions."
+                                icon={<FaWallet />}
+                                path="/cash-vouchers-list"
+                                color="#198754"
+                                navigate={navigate}
+                            />
 
-                        {/* 3. GENERAL VOUCHER (JOURNAL VOUCHER) CARD */}
-                        <TransactionTypeCard 
-                            title="💸 Journal Voucher (JV)"
-                            description="Record general operational journal entries, non-cash adjustments, and multi-ledger reconciliation entries."
-                            icon={<FaMoneyBillWave size={40} />}
-                            path="/payments-list" // Wahi path jo aap pehle use kar rahe thay (General Voucher List)
-                            color="#DC3545" // Red Color
-                        />
+                            <TransactionTypeCard 
+                                title="Bank Vouchers"
+                                description="Manage Bank Payment Vouchers (BPV) and Bank Receipt Vouchers (BRV) for cheque, online transfer, and bank ledger records."
+                                icon={<FaUniversity />}
+                                path="/bank-vouchers-list"
+                                color="#0d6efd"
+                                navigate={navigate}
+                            />
 
+                            <TransactionTypeCard 
+                                title="Journal Voucher (JV)"
+                                description="Record general operational journal entries, non-cash adjustments, and multi-ledger reconciliation entries."
+                                icon={<FaMoneyBillWave />}
+                                path="/payments-list"
+                                color="#DC3545"
+                                navigate={navigate}
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            </main>
             <Footer />
-        </>
+        </div>
     );
 };
 

@@ -93,67 +93,82 @@ const CustomerForm = () => {
     <>
     <NavigationBar />
     <div className="page-container">
-      <button className="back-btn" style={{marginTop:"30px"}}
-       onClick={() => navigate("/customers")}>
+      <button className="back-btn" type="button" onClick={() => navigate("/customers")}>
         <FaArrowLeft />
       </button>
 
       <div className="entity-card">
         <h2>Add Customer</h2>
-        <form className="form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            type="text"
-            name="address"
-            placeholder="Address"
-            value={formData.address}
-            onChange={handleChange}
-            required
-          />
-
-          <input
-            type="text"
-            name="contact"
-            placeholder="Contact (Optional)"
-            value={formData.contact}
-            onChange={handleChange}
-          />
-
-          <div className="linkage-card">
-            <label className="linkage-label">
+        <form className="form erp-form" onSubmit={handleSubmit}>
+          <div className="erp-form-grid">
+            <div className="erp-form-field">
+              <label htmlFor="customer-name">Full Name</label>
               <input
-                type="checkbox"
-                checked={isSupplierLinked}
-                onChange={(e) => {
-                  setIsSupplierLinked(e.target.checked);
-                  if (!e.target.checked) setSelectedSupplier(null);
-                }}
+                id="customer-name"
+                type="text"
+                name="name"
+                placeholder="Full Name"
+                value={formData.name}
+                onChange={handleChange}
+                required
               />
-              <span>Is this customer also an active Supplier?</span>
-            </label>
+            </div>
 
-            {isSupplierLinked && (
-              <Select
-                options={supplierOptions}
-                value={selectedSupplier}
-                onChange={setSelectedSupplier}
-                placeholder="Search & select Supplier..."
-                isClearable
-                isSearchable
-                className="linkage-select"
+            <div className="erp-form-field">
+              <label htmlFor="customer-address">Address</label>
+              <input
+                id="customer-address"
+                type="text"
+                name="address"
+                placeholder="Address"
+                value={formData.address}
+                onChange={handleChange}
+                required
               />
-            )}
+            </div>
+
+            <div className="erp-form-field">
+              <label htmlFor="customer-contact">Contact (Optional)</label>
+              <input
+                id="customer-contact"
+                type="text"
+                name="contact"
+                placeholder="Contact (Optional)"
+                value={formData.contact}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="linkage-card erp-form-field--full">
+              <label className="linkage-label">
+                <input
+                  type="checkbox"
+                  checked={isSupplierLinked}
+                  onChange={(e) => {
+                    setIsSupplierLinked(e.target.checked);
+                    if (!e.target.checked) setSelectedSupplier(null);
+                  }}
+                />
+                <span>Is this customer also an active Supplier?</span>
+              </label>
+
+              {isSupplierLinked && (
+                <Select
+                  options={supplierOptions}
+                  value={selectedSupplier}
+                  onChange={setSelectedSupplier}
+                  placeholder="Search & select Supplier..."
+                  isClearable
+                  isSearchable
+                  className="linkage-select"
+                />
+              )}
+            </div>
           </div>
 
-          <button type="submit" className="save-btn">Save Customer</button>
+          <div className="erp-form-actions">
+            <button type="submit" className="save-btn">Save Customer</button>
+          </div>
         </form>
       </div>
     </div>

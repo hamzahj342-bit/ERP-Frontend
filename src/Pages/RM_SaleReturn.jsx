@@ -105,23 +105,22 @@ const RM_SaleReturn = ({ channel = null }) => {
   return (
     <>
       <NavigationBar />
-      <div className="rm-page">
-        <div className="top-nav-container" style={{marginTop: '30px'}}>
-          <button className="back-btn" onClick={() => navigate(backPath)}>
-            <FaArrowLeft />
-          </button>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h3>{pageTitle}</h3>
-            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
+      <div className="erp-entity-page rm-page">
+        <div className="erp-page-card card">
+          <div className="erp-page-header card-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate(backPath)}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title">{pageTitle}</h2>
+            </div>
+            <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW SALE RETURN
             </button>
           </div>
 
-          <div className="table-container">
-            <table className="product-table">
+          <div className="erp-table-scroll">
+            <table className="product-table entity-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -133,7 +132,7 @@ const RM_SaleReturn = ({ channel = null }) => {
                   <th>ITEMS</th>
                   <th>GRAND TOTAL</th>
                   <th>INVOICE STATUS</th>
-                  <th style={{ textAlign: 'center' }}>ACTION</th>
+                  <th style={{ textAlign: 'right' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,17 +141,17 @@ const RM_SaleReturn = ({ channel = null }) => {
                 ) : saleReturns.length > 0 ? (
                   saleReturns.map((s) => (
                     <tr key={s.master_id}>
-                      <td style={{ color: '#94a3b8' }}>#{s.master_id}</td>
-                      <td style={{ fontWeight: '700' }}>{s.invoice_no}</td>
-                      <td>{s.createdat ? new Date(s.createdat).toLocaleDateString() : "-"}</td>
-                      <td>{s.date ? new Date(s.date).toLocaleDateString() : "-"}</td>
-                      <td><span className="user-tag">{s.createdby}</span></td>
-                      <td><span className="supplier-tag">{s.entity_name}</span></td>
-                      <td><span className="user-tag" style={{ whiteSpace: 'normal', maxWidth: '280px', display: 'inline-block' }}>{formatRmDetailsList(s.details)}</span></td>
-                      <td style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                      <td data-label="ID" style={{ color: '#94a3b8' }}>#{s.master_id}</td>
+                      <td data-label="INVOICE NO" style={{ fontWeight: '700' }}>{s.invoice_no}</td>
+                      <td data-label="CREATED AT">{s.createdat ? new Date(s.createdat).toLocaleDateString() : "-"}</td>
+                      <td data-label="DATE">{s.date ? new Date(s.date).toLocaleDateString() : "-"}</td>
+                      <td data-label="CREATED BY"><span className="user-tag">{s.createdby}</span></td>
+                      <td data-label="CUSTOMER"><span className="supplier-tag">{s.entity_name}</span></td>
+                      <td data-label="ITEMS"><span className="user-tag" style={{ whiteSpace: 'normal', maxWidth: '280px', display: 'inline-block' }}>{formatRmDetailsList(s.details)}</span></td>
+                      <td data-label="GRAND TOTAL" style={{ fontWeight: '700', color: '#2b6cb0' }}>
                         {parseFloat(s.grand_total).toLocaleString(undefined, {minimumFractionDigits: 2})}
                       </td>
-                      <td>
+                      <td data-label="INVOICE STATUS">
  <span className={`status-badge ${
   s.status === 'Approved' 
     ? 'status-approved' 
@@ -163,14 +162,15 @@ const RM_SaleReturn = ({ channel = null }) => {
   {s.status === 'Draft' || !s.status ? 'Unapproved' : s.status}
 </span>
                       </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                          <button onClick={() => navigate(`/rm-invoice/${s.invoice_no}`)} className="primary-btn">
+                      <td data-label="ACTION" className="erp-actions-cell">
+                        <div className="erp-actions-group">
+                          <button type="button" onClick={() => navigate(`/rm-invoice/${s.invoice_no}`)} className="primary-btn">
                             <FaEye /> VIEW
                           </button>
                           {s.status === 'Approved' ? (
                             <>
                               <button
+                                type="button"
                                 onClick={() => {
                                   setApprovedInvoiceId(s.master_id);
                                   setApprovedModalOpen(true);
@@ -183,10 +183,10 @@ const RM_SaleReturn = ({ channel = null }) => {
                             </>
                           ) : (
                             <>
-                              <button onClick={() => handleEditInvoice(s.master_id)} className="edit-btn-action">
+                              <button type="button" onClick={() => handleEditInvoice(s.master_id)} className="edit-btn-action">
                                 <FaEdit /> EDIT
                               </button>
-                              <button onClick={() => handleApproveInvoice(s.master_id, s.invoice_no)} className="approve-btn-action">
+                              <button type="button" onClick={() => handleApproveInvoice(s.master_id, s.invoice_no)} className="approve-btn-action">
                                 <FaCheckCircle /> APPROVE
                               </button>
                             </>
@@ -202,7 +202,7 @@ const RM_SaleReturn = ({ channel = null }) => {
             </table>
           </div>
 
-          <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+          <div className="erp-pagination-wrap">
             <Pagination page={page} totalPages={totalPages} onPageChange={(newPage) => setPage(newPage)} />
           </div>
         </div>

@@ -315,10 +315,10 @@ const GRN_Form = () => {
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate(-1)}>
+                    <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(-1)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">
+                    <h2 className="form-title erp-page-title">
                         {isEditMode ? `Modify GRN (${grnNo})` : "New Goods Receipt Note (GRN)"}
                     </h2>
                 </div>
@@ -360,6 +360,7 @@ const GRN_Form = () => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="rm-items-scroll">
                         <div className="items-table-header" style={{ display: 'grid', gridTemplateColumns: '4.5fr 1.5fr 2fr 1.5fr', gap: '12px', fontWeight: 'bold', paddingBottom: '10px' }}>
                             <span>Material</span>
                             <span>UOM</span>
@@ -419,10 +420,13 @@ const GRN_Form = () => {
                                 </div>
                             );
                         })}
+                        </div>
 
-                        <button type="submit" className="save-btn" style={{ marginTop: '20px' }}>
-                            {isEditMode ? "Update GRN" : "Save GRN"}
-                        </button>
+                        <div className="erp-form-actions">
+                            <button type="submit" className="save-btn">
+                                {isEditMode ? "Update GRN" : "Save GRN"}
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

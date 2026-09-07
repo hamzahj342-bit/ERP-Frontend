@@ -338,6 +338,10 @@ const Login = () => {
     const [showCpOld, setShowCpOld] = useState(false);
     const [showCpNew, setShowCpNew] = useState(false);
 
+    useEffect(() => {
+        document.body.classList.remove("erp-has-nav", "sidebar-open", "erp-dashboard-pinned");
+    }, []);
+
     // --- Fetch Companies ---
     useEffect(() => {
         const fetchCompanies = async () => {
@@ -397,7 +401,7 @@ const Login = () => {
                 title: 'Request Sent!',
                 text: res.data.message,
                 icon: 'success',
-                confirmButtonColor: '#0d6efd'
+                confirmButtonColor: '#0f172a'
             }).then(() => {
                 setView('login');
                 setRegData({ username: '', email: '', password: '', company_id: '' });
@@ -527,7 +531,7 @@ const Login = () => {
                             </span>
                         </div>
                         
-                        <h2 className="display-5 fw-extrabold mb-3 text-uppercase tracking-widest text-gradient-premium">
+                        <h2 className="display-5 fw-bold mb-3 text-uppercase text-gradient-premium">
                             Enterprise Portal
                         </h2>
                         <p className="lead text-muted-premium fs-6 mx-auto mb-5 max-w-450">
@@ -580,7 +584,7 @@ const Login = () => {
                                 </div>
                                 <div className="options premium-options my-3">
                                     <span className="forgot-link-premium" onClick={() => setView('forgot')}>Forgot Password?</span>
-                                    <span className="forgot-link-premium font-medium text-primary" onClick={openChangePassword}>Change Password</span>
+                                    <span className="forgot-link-premium" onClick={openChangePassword}>Change Password</span>
                                 </div>
                                 {/* <div className="options premium-options mb-3" style={{ justifyContent: 'center' }}>
                                     <span className="forgot-link-premium font-medium text-primary" onClick={() => setView('register')}>Create Corporate Account</span>

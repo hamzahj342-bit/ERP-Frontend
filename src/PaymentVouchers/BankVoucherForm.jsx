@@ -7,6 +7,30 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import api from "../../api";
+import "../Transactions.css";
+import "./PaymentVoucherForm.css";
+
+const entitySelectProps = {
+  classNamePrefix: "react-select",
+  isClearable: true,
+  menuPortalTarget: typeof document !== "undefined" ? document.body : null,
+  menuPosition: "fixed",
+  maxMenuHeight: 280,
+  styles: {
+    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+    menu: (base) => ({ ...base, zIndex: 9999 }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: 280,
+      paddingTop: 4,
+      paddingBottom: 4,
+    }),
+  },
+  classNames: {
+    menu: () => "voucher-select-menu",
+    menuList: () => "voucher-select-menu-list",
+  },
+};
 
 const BankVoucherForm = () => {
     const navigate = useNavigate();
@@ -289,10 +313,10 @@ const BankVoucherForm = () => {
 
     if (isEditMode && isLoadingVoucher) {
         return (
-            <div className="rm-page-wrapper">
+            <div className="rm-page-wrapper voucher-form-page">
                 <NavigationBar />
-                <div className="rm-content-container" style={{ padding: '60px', textAlign: 'center' }}>
-                    <h2>Loading voucher details...</h2>
+                <div className="rm-content-container voucher-loading">
+                    Loading voucher details...
                 </div>
                 <Footer />
             </div>
@@ -300,41 +324,38 @@ const BankVoucherForm = () => {
     }
 
     return (
-        <div className="rm-page-wrapper">
+        <div className="rm-page-wrapper voucher-form-page">
             <NavigationBar />
             <div className="rm-content-container">
-                {/* Original Header Section with Arrow Back Button */}
-                <div className="rm-header-section" style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "20px" }}>
+                <div className="rm-header-section">
                     <button 
-                        className="back-btn" 
+                        className="back-btn erp-back-btn" 
                         type="button" 
                         onClick={() => navigate(-1)}
-                        // style={{ background: "#fff", border: "1px solid #e0e0e0", borderRadius: "8px", padding: "8px 12px", cursor: "pointer" }}
                     >
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title" style={{ margin: 0, fontSize: "20px", fontWeight: "700" }}>
+                    <h2 className="form-title erp-page-title">
                         {voucherType === "BPV"
                             ? (isEditMode ? "Edit Bank Payment Voucher (BPV)" : "Bank Payment Voucher (BPV)")
                             : (isEditMode ? "Edit Bank Receipt Voucher (BRV)" : "Bank Receipt Voucher (BRV)")}
                     </h2>
                 </div>
 
-                <div className="rm-main-card" style={{ background: "#fff", padding: "25px", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+                <div className="rm-main-card">
                     <form onSubmit={handleSubmit}>
-                        {/* Top Header Controls Matching Exact Screenshot */}
-                        <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "15px", marginBottom: "25px" }}>
+                        <div className="info-grid voucher-info-4">
                             <div className="info-item">
-                                <label style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#6c757d", display: "block", marginBottom: "6px" }}>VOUCHER NO</label>
-                                <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #e2e8f0", background: "#f8f9fa" }} />
+                                <label>Voucher No</label>
+                                <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
                             </div>
                             <div className="info-item">
-                                <label style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#6c757d", display: "block", marginBottom: "6px" }}>TRANSACTION DATE</label>
-                                <input type="date" className="rm-input-field" value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} required style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                                <label>Transaction Date</label>
+                                <input type="date" className="rm-input-field" value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} required />
                             </div>
                             <div className="info-item">
-                                <label style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#6c757d", display: "block", marginBottom: "6px" }}>CORPORATE BANK ACCOUNT</label>
-                                <select className="rm-input-field" value={selectedBankAccount} onChange={(e) => setSelectedBankAccount(e.target.value)} required style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                                <label>Corporate Bank Account</label>
+                                <select className="rm-input-field" value={selectedBankAccount} onChange={(e) => setSelectedBankAccount(e.target.value)} required>
                                     <option value="">Select Bank Account</option>
                                     {renderBankAccounts().map(acc => (
                                         <option key={acc.id} value={acc.id}>
@@ -344,8 +365,8 @@ const BankVoucherForm = () => {
                                 </select>
                             </div>
                             <div className="info-item">
-                                <label style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#6c757d", display: "block", marginBottom: "6px" }}>PAYMENT / INSTRUMENT MODE</label>
-                                <select className="rm-input-field" value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                                <label>Payment / Instrument Mode</label>
+                                <select className="rm-input-field" value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
                                     <option value="Cheque">Cheque</option>
                                     <option value="Online / Pay Order">Online / Pay Order</option>
                                     <option value="Demand Draft">Demand Draft</option>
@@ -353,32 +374,30 @@ const BankVoucherForm = () => {
                             </div>
                         </div>
 
-                        {/* Optional Instrument Details Section with Dashed Outline */}
-                        <div style={{ marginBottom: "25px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "15px" }}>
-                            <div>
-                                <label style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#6c757d", display: "block", marginBottom: "6px" }}>CHEQUE NUMBER</label>
-                                <input type="text" className="rm-input-field" placeholder="e.g. CHQ-882910" value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                        <div className="info-grid voucher-info-3">
+                            <div className="info-item">
+                                <label>Cheque Number</label>
+                                <input type="text" className="rm-input-field" placeholder="e.g. CHQ-882910" value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} />
                             </div>
-                            <div>
-                                <label style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#6c757d", display: "block", marginBottom: "6px" }}>CHEQUE DATE</label>
-                                <input type="date" className="rm-input-field" value={chequeDate} onChange={(e) => setChequeDate(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                            <div className="info-item">
+                                <label>Cheque Date</label>
+                                <input type="date" className="rm-input-field" value={chequeDate} onChange={(e) => setChequeDate(e.target.value)} />
                             </div>
-                            <div>
-                                <label style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#6c757d", display: "block", marginBottom: "6px" }}>DEPOSIT SLIP NUMBER (IF ANY)</label>
-                                <input type="text" className="rm-input-field" placeholder="e.g. SLIP-1022" value={depositSlipNumber} onChange={(e) => setDepositSlipNumber(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                            <div className="info-item">
+                                <label>Deposit Slip Number (if any)</label>
+                                <input type="text" className="rm-input-field" placeholder="e.g. SLIP-1022" value={depositSlipNumber} onChange={(e) => setDepositSlipNumber(e.target.value)} />
                             </div>
                         </div>
 
-                        {/* Table Items Grid */}
                         <div className="voucher-table-wrapper">
-                            <table className="rm-transaction-table" style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px" }}>
+                            <table className="erp-voucher-table">
                                 <thead>
-                                    <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
-                                        <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "600", color: "#2d3748" }}>Account Head</th>
-                                        <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "600", color: "#2d3748" }}>Subsidiary / Entity Lookup</th>
-                                        <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "600", color: "#2d3748", width: "160px" }}>Amount</th>
-                                        <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "600", color: "#2d3748" }}>Narration Description</th>
-                                        <th style={{ padding: "10px 12px", fontSize: "13px", fontWeight: "600", color: "#2d3748", width: "90px", textAlign: "center" }}>Actions</th>
+                                    <tr>
+                                        <th>Account Head</th>
+                                        <th>Subsidiary / Entity</th>
+                                        <th style={{ width: "140px" }}>Amount</th>
+                                        <th>Narration Description</th>
+                                        <th style={{ width: "90px", textAlign: "center" }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -386,34 +405,33 @@ const BankVoucherForm = () => {
                                         const { list: entityList, label: entityLabel } = getEntityListAndLabel(row.account_id);
                                         return (
                                             <tr key={index}>
-                                                <td style={{ padding: "4px" }}>
-                                                    <select className="rm-input-field" value={row.account_id} onChange={(e) => handleRowChange(index, "account_id", e.target.value)} required style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                                                <td>
+                                                    <select className="rm-input-field" value={row.account_id} onChange={(e) => handleRowChange(index, "account_id", e.target.value)} required>
                                                         <option value="">Select Account Head</option>
                                                         {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.account_name}</option>)}
                                                     </select>
                                                 </td>
-                                                <td style={{ padding: "4px" }}>
+                                                <td>
                                                     {entityList.length > 0 ? (
                                                         <Select
-                                                            classNamePrefix="react-select"
+                                                            {...entitySelectProps}
                                                             options={getEntityOptions(entityList)}
                                                             value={getEntityOptions(entityList).find(opt => String(opt.value) === String(row.entity_id)) || null}
                                                             onChange={(selected) => handleEntitySelect(index, selected)}
                                                             placeholder={`Select ${entityLabel}`}
-                                                            isClearable
                                                         />
-                                                    ) : <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0", background: "#f8f9fa" }} />}
+                                                    ) : <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />}
                                                 </td>
-                                                <td style={{ padding: "4px" }}>
-                                                    <input type="number" step="any" className="rm-input-field" value={row.amount} onChange={(e) => handleRowChange(index, "amount", e.target.value)} required placeholder="Amount" style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                                                <td>
+                                                    <input type="number" step="any" className="rm-input-field" value={row.amount} onChange={(e) => handleRowChange(index, "amount", e.target.value)} required placeholder="Amount" />
                                                 </td>
-                                                <td style={{ padding: "4px" }}>
-                                                    <input type="text" className="rm-input-field" value={row.description} onChange={(e) => handleRowChange(index, "description", e.target.value)} placeholder="Narration" style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #e2e8f0" }} />
+                                                <td>
+                                                    <input type="text" className="rm-input-field" value={row.description} onChange={(e) => handleRowChange(index, "description", e.target.value)} placeholder="Narration" />
                                                 </td>
-                                                <td style={{ padding: "4px", textAlign: "center" }}>
-                                                    <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-                                                        <button type="button" onClick={addVoucherRow} style={{ background: "#ebf8ff", color: "#3182ce", border: "none", width: "34px", height: "34px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><FaPlus /></button>
-                                                        <button type="button" onClick={() => removeVoucherRow(index)} style={{ background: "#fff5f5", color: "#e53e3e", border: "none", width: "34px", height: "34px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><FaTrash /></button>
+                                                <td>
+                                                    <div className="voucher-actions-row">
+                                                        <button type="button" onClick={addVoucherRow} className="voucher-icon-btn" title="Add row"><FaPlus /></button>
+                                                        <button type="button" onClick={() => removeVoucherRow(index)} className="voucher-icon-btn is-danger" title="Remove row"><FaTrash /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -423,18 +441,14 @@ const BankVoucherForm = () => {
                             </table>
                         </div>
 
-                        {/* Total Net Balanced Amount Footer Matching Screenshot */}
-                        <div style={{ marginTop: "15px", background: "#f7fafc", padding: "14px", borderRadius: "6px", textAlign: "right" }}>
-                            <span style={{ fontWeight: "700", fontSize: "14px", color: "#2d3748" }}>
-                                Total Net Balanced Amount: <span style={{ color: "#3182ce" }}>{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </span>
+                        <div className="voucher-summary-total">
+                            Total Net Balanced Amount: <span>{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
-                        {/* Save Button Styled as Screenshot */}
                         <button 
                             type="submit" 
+                            className="save-btn"
                             disabled={isSubmitting} 
-                            style={{ marginTop: "20px", background: "#10b981", color: "#fff", border: "none", padding: "12px 24px", borderRadius: "6px", fontWeight: "600", cursor: "pointer" }}
                         >
                             {isSubmitting ? "Posting..." : (isEditMode ? `Update ${voucherType} Voucher` : `Save ${voucherType} Voucher`)}
                         </button>

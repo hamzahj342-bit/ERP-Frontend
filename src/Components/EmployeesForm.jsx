@@ -68,7 +68,7 @@ const EmployeesForm = () => {
 
         <button
           className="back-btn"
-          style={{ marginTop: "30px" }}
+          type="button"
           onClick={() => navigate("/employees")}
         >
           <FaArrowLeft />
@@ -77,47 +77,67 @@ const EmployeesForm = () => {
         <div className="entity-card">
           <h2>Add Employee</h2>
 
-          <form className="form" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              name="name"
-              placeholder="Full Name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
+          <form className="form erp-form" onSubmit={handleSubmit}>
+            <div className="erp-form-grid">
+              <div className="erp-form-field">
+                <label htmlFor="employee-name">Full Name</label>
+                <input
+                  id="employee-name"
+                  type="text"
+                  name="name"
+                  placeholder="Full Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-            <input
-              type="text"
-              name="address"
-              placeholder="Address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-            />
+              <div className="erp-form-field">
+                <label htmlFor="employee-address">Address</label>
+                <input
+                  id="employee-address"
+                  type="text"
+                  name="address"
+                  placeholder="Address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
 
-            <input
-              type="text"
-              name="contact"
-              placeholder="Contact (Optional)"
-              value={formData.contact}
-              onChange={handleChange}
-            />
+              <div className="erp-form-field">
+                <label htmlFor="employee-contact">Contact (Optional)</label>
+                <input
+                  id="employee-contact"
+                  type="text"
+                  name="contact"
+                  placeholder="Contact (Optional)"
+                  value={formData.contact}
+                  onChange={handleChange}
+                />
+              </div>
 
-            <input
-              type="number"
-              name="salary"
-              placeholder="Monthly Salary (Optional)"
-              value={formData.salary}
-              onChange={handleChange}
-            />
+              <div className="erp-form-field">
+                <label htmlFor="employee-salary">Monthly Salary (Optional)</label>
+                <input
+                  id="employee-salary"
+                  type="number"
+                  name="salary"
+                  placeholder="Monthly Salary (Optional)"
+                  value={formData.salary}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
 
-            <button
-              type="submit"
-              className="save-btn"
-            >
-              Add Employee
-            </button>
+            <div className="erp-form-actions">
+              <button
+                type="submit"
+                className="save-btn"
+              >
+                Add Employee
+              </button>
+            </div>
           </form>
         </div>
       </div>

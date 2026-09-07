@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; 
-import MainLayout from '../Layout/MainLayout';
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import api from '../../api';
 import { FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaCalendarAlt, FaBookOpen, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import '../Profitloss.css';
 import { toast } from 'react-toastify';
 
 // Export Libraries
@@ -10,12 +12,13 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
+import { localToday, localYearStart } from '../utils/localDate';
 
 const TrialBalanceReport = () => {
   const navigate = useNavigate();
   const reportRef = useRef();
-  const today = new Date().toISOString().split('T')[0];
-  const currentYearStart = `${new Date().getFullYear()}-01-01`;
+  const today = localToday();
+  const currentYearStart = localYearStart();
 
   // --- States ---
   const [fromDate, setFromDate] = useState(currentYearStart);
@@ -244,240 +247,119 @@ const TrialBalanceReport = () => {
   };
 
   return (
-    <div className="vw-100 min-vh-100 bg-light">
-      <MainLayout />
-      
-      <style>{`
-        @media (max-width: 768px) {
-          .mobile-column-stack { flex-direction: column !important; align-items: flex-start !important; }
-          .mobile-w-100 { width: 100% !important; justify-content: space-between !important; }
-          .desktop-table-container { display: none !important; }
-          .mobile-cards-container { display: block !important; }
-          .mobile-filter-box { width: 100% !important; flex-grow: 1; }
-        }
-        @media (min-width: 769px) {
-          .mobile-cards-container { display: none !important; }
-          .desktop-table-container { display: block !important; }
-        }
-      `}</style>
-
-      <div className="p-2 p-md-4 mx-auto" style={{ width: '98%' }}>
-        
-        {/* --- Top Layout Panel --- */}
-        <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3 mobile-column-stack">
-          <div className="d-flex align-items-center gap-2 gap-md-3">
-            <button onClick={() => navigate(-1)} className='back-btn'>
-              <FaArrowLeft /> 
-            </button>
-            <h2 className="m-0 font-bold text-dark h5 d-flex align-items-center gap-2">
-              <FaBookOpen className="text-secondary" /> Detailed Trial Balance Matrix
-            </h2>
-          </div>
-          
-          {/* Controls Filters Grid */}
-          <div className="d-flex gap-2 gap-md-3 align-items-center bg-white p-2 rounded shadow-sm flex-wrap border mobile-w-100">
-            <div className="d-flex align-items-center gap-2 mobile-filter-box justify-content-between">
-              <span className="text-dark fw-normal m-0" style={{ fontSize: '15px' }}>From:</span>
-              <div className="position-relative d-flex align-items-center">
-                <FaCalendarAlt className="position-absolute text-muted d-none d-sm-block" style={{ left: '12px', pointerEvents: 'none' }} />
-                <input 
-                  type="date" 
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="form-control form-control-sm bg-light border-0 ps-2 ps-sm-5 text-dark"
-                  style={{ width: '140px', height: '36px', borderRadius: '6px', fontSize: '13px' }}
-                />
-              </div>
-            </div>
-
-            <div className="text-muted opacity-50 px-1 d-none d-md-block">|</div>
-
-            <div className="d-flex align-items-center gap-2 mobile-filter-box justify-content-between">
-              <span className="text-dark fw-normal m-0" style={{ fontSize: '15px' }}>To:</span>
-              <div className="position-relative d-flex align-items-center">
-                <FaCalendarAlt className="position-absolute text-muted d-none d-sm-block" style={{ left: '12px', pointerEvents: 'none' }} />
-                <input 
-                  type="date" 
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="form-control form-control-sm bg-light border-0 ps-2 ps-sm-5 text-dark"
-                  style={{ width: '140px', height: '36px', borderRadius: '6px', fontSize: '13px' }}
-                />
-              </div>
-            </div>
-
-            <div className="text-muted opacity-50 px-1 mobile-w-100 d-block d-md-none my-1" style={{ height: '1px', backgroundColor: '#e0e0e0' }}></div>
-
-            {/* Square Export Controls */}
-            <div className="d-flex gap-2 justify-content-end mobile-w-100 mt-2 mt-md-0">
-               <button onClick={exportToPDF} title="Export PDF" className="btn btn-danger d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm" style={{ width: '36px', height: '36px', borderRadius: '8px' }}><FaFilePdf /></button>
-               <button onClick={exportToExcel} title="Export Excel" className="btn btn-success d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm" style={{ width: '36px', height: '36px', borderRadius: '8px' }}><FaFileExcel /></button>
-               <button onClick={exportToPNG} title="Export Image" className="btn d-flex align-items-center justify-content-center p-0 border-0 text-white shadow-sm" style={{ width: '36px', height: '36px', backgroundColor: '#ff9100', borderRadius: '8px' }}><FaImage /></button>
-            </div>
-          </div>
-        </div>
-
-        {/* --- Trial Balance Dynamic Status Quick Summary Card --- */}
-        <div className="row g-3 mb-4">
-          <div className="col-12">
-            <div className={`card border-0 shadow-sm rounded-3 border-start border-4 p-3 ${totals.is_balanced ? 'bg-success-subtle border-success' : 'bg-danger-subtle border-danger'}`}>
-              <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mobile-column-stack">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0" style={{ width: '42px', height: '42px', backgroundColor: totals.is_balanced ? '#198754' : '#dc3545', fontSize: '18px' }}>
-                    {totals.is_balanced ? <FaCheckCircle /> : <FaExclamationTriangle />}
-                  </div>
-                  <div>
-                    <h6 className="m-0 text-dark fw-bold" style={{ fontSize: '1rem' }}>
-                      {totals.is_balanced ? "Ledger Book Integrity: Balanced" : "Ledger Book Integrity: Out of Balance Variance"}
-                    </h6>
-                    <p className="m-0 text-secondary small d-none d-sm-block">
-                      Double-entry records reconcile smoothly across structural ledger matrices.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="d-flex align-items-center gap-3 gap-sm-4 mobile-w-100 border-top pt-2 pt-md-0 border-md-0 justify-content-around">
-                  <div className="text-start text-md-end">
-                    <span className="text-muted text-uppercase font-monospace" style={{ fontSize: '10px', display: 'block' }}>Total Debits</span>
-                    <h6 className="m-0 text-success fw-bold font-monospace mt-1">
-                      {Number(totals.total_closing_debit).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="small text-muted" style={{ fontSize: '10px' }}>Rs</span>
-                    </h6>
-                  </div>
-                  <div className="text-muted opacity-25 fs-5">|</div>
-                  <div className="text-end">
-                    <span className="text-muted text-uppercase font-monospace" style={{ fontSize: '10px', display: 'block' }}>Total Credits</span>
-                    <h6 className="m-0 text-danger fw-bold font-monospace mt-1">
-                      {Number(totals.total_closing_credit).toLocaleString(undefined, { minimumFractionDigits: 2 })} <span className="small text-muted" style={{ fontSize: '10px' }}>Rs</span>
-                    </h6>
-                  </div>
+    <>
+      <NavigationBar />
+      <div className="report-page-wrapper">
+        <div className="report-card">
+          <div className="report-header">
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h3 className="report-title">
+                    <FaBookOpen className="report-title-icon" /> Detailed Trial Balance
+                  </h3>
+                  <p className="report-description">Opening, period transactions, and closing balances matrix.</p>
                 </div>
               </div>
+              {rows.length > 0 && (
+                <div className="export-btn-group">
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
 
-        {/* --- Dynamic Conditional Output Viewport --- */}
-        {loading ? (
-          <div className="text-center bg-white rounded shadow-sm p-5 text-muted small">
-            <div className="spinner-border text-secondary spinner-border-sm me-2" role="status"></div>
-            Syncing ledger matrix architecture...
+            <div className="filter-group">
+              <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            </div>
+
+            {rows.length > 0 && (
+              <div className="pl-meta-row" style={{ marginTop: '8px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  {totals.is_balanced ? <FaCheckCircle style={{ color: '#2e7d32' }} /> : <FaExclamationTriangle style={{ color: '#dc3545' }} />}
+                  {totals.is_balanced ? 'Balanced' : 'Out of Balance'}
+                </span>
+                <span>Closing Dr: <strong style={{ color: '#2e7d32' }}>{renderAmount(totals.total_closing_debit)}</strong></span>
+                <span>Closing Cr: <strong style={{ color: '#c62828' }}>{renderAmount(totals.total_closing_credit)}</strong></span>
+              </div>
+            )}
           </div>
-        ) : (
-          <>
-            {/* 🖥️ VIEW 1: DESKTOP SHEET TABLE ENGINE */}
-            <div ref={reportRef} className="bg-white rounded shadow-sm p-4 desktop-table-container">
-              <div className="table-responsive">
-                <table className="table table-bordered align-middle m-0 text-center">
-                  <thead className="table-dark">
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Syncing ledger matrix...</div>
+          ) : (
+            <div ref={reportRef} className="pl-table-container">
+              <div className="pl-header-section">
+                <h3 className="pl-statement-title">TRIAL BALANCE STATEMENT</h3>
+                <p className="pl-statement-subtitle">For the Period: {fromDate} to {toDate}</p>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table className="pl-table" style={{ minWidth: '900px' }}>
+                  <thead>
                     <tr>
-                      <th rowSpan="2" className="align-middle" style={{ width: '110px' }}>A/C Code</th>
-                      <th rowSpan="2" className="align-middle text-start">Account Title</th>
-                      <th rowSpan="2" className="align-middle">Classification Group</th>
-                      <th colSpan="2" className="py-1" style={{ backgroundColor: '#4a5568', color: '#fff' }}>Opening Balance</th>
-                      <th colSpan="2" className="py-1" style={{ backgroundColor: '#2b6cb0', color: '#fff' }}>Transactions (Period)</th>
-                      <th colSpan="2" className="py-1" style={{ backgroundColor: '#1a202c', color: '#e2e8f0' }}>Closing Balance</th>
+                      <th rowSpan="2" style={{ width: '100px' }}>A/C Code</th>
+                      <th rowSpan="2">Account Title</th>
+                      <th rowSpan="2">Classification</th>
+                      <th colSpan="2" className="text-center" style={{ backgroundColor: '#4a5568', color: '#fff' }}>Opening Balance</th>
+                      <th colSpan="2" className="text-center" style={{ backgroundColor: '#2b6cb0', color: '#fff' }}>Transactions</th>
+                      <th colSpan="2" className="text-center" style={{ backgroundColor: '#1a202c', color: '#e2e8f0' }}>Closing Balance</th>
                     </tr>
                     <tr>
-                      <th style={{ width: '120px', backgroundColor: '#718096', color: '#fff' }}>Debit</th>
-                      <th style={{ width: '120px', backgroundColor: '#718096', color: '#fff' }}>Credit</th>
-                      <th style={{ width: '120px', backgroundColor: '#63b3ed', color: '#1a202c' }}>Debit</th>
-                      <th style={{ width: '120px', backgroundColor: '#63b3ed', color: '#1a202c' }}>Credit</th>
-                      <th style={{ width: '120px', backgroundColor: '#2d3748', color: '#fff' }}>Debit</th>
-                      <th style={{ width: '120px', backgroundColor: '#2d3748', color: '#fff' }}>Credit</th>
+                      <th className="text-right" style={{ width: '100px', backgroundColor: '#718096', color: '#fff' }}>Debit</th>
+                      <th className="text-right" style={{ width: '100px', backgroundColor: '#718096', color: '#fff' }}>Credit</th>
+                      <th className="text-right" style={{ width: '100px', backgroundColor: '#63b3ed', color: '#1a202c' }}>Debit</th>
+                      <th className="text-right" style={{ width: '100px', backgroundColor: '#63b3ed', color: '#1a202c' }}>Credit</th>
+                      <th className="text-right" style={{ width: '110px', backgroundColor: '#2d3748', color: '#fff' }}>Debit</th>
+                      <th className="text-right" style={{ width: '110px', backgroundColor: '#2d3748', color: '#fff' }}>Credit</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.length > 0 ? rows.map((row, idx) => (
                       <tr key={`dt-row-${idx}`}>
-                        <td className="font-monospace text-muted small">{row.account_code}</td>
-                        <td className="text-start fw-medium text-dark">{row.account_name}</td>
-                        <td><span className="badge bg-light text-secondary border px-2 py-1">{row.category_name}</span></td>
-                        <td className="text-end text-success font-monospace">{renderAmount(row.opening_debit)}</td>
-                        <td className="text-end text-danger font-monospace">{renderAmount(row.opening_credit)}</td>
-                        <td className="text-end text-success font-monospace">{renderAmount(row.current_debit)}</td>
-                        <td className="text-end text-danger font-monospace">{renderAmount(row.current_credit)}</td>
-                        <td className="text-end text-success font-monospace fw-bold" style={{ backgroundColor: '#f7fafc' }}>{renderAmount(row.closing_debit)}</td>
-                        <td className="text-end text-danger font-monospace fw-bold" style={{ backgroundColor: '#f7fafc' }}>{renderAmount(row.closing_credit)}</td>
+                        <td style={{ color: '#94a3b8', fontFamily: 'monospace', fontSize: '11px' }}>{row.account_code}</td>
+                        <td>{row.account_name}</td>
+                        <td style={{ color: '#94a3b8', fontSize: '11px' }}>{row.category_name}</td>
+                        <td className="text-right" style={{ color: '#2e7d32' }}>{renderAmount(row.opening_debit)}</td>
+                        <td className="text-right" style={{ color: '#c62828' }}>{renderAmount(row.opening_credit)}</td>
+                        <td className="text-right" style={{ color: '#2e7d32' }}>{renderAmount(row.current_debit)}</td>
+                        <td className="text-right" style={{ color: '#c62828' }}>{renderAmount(row.current_credit)}</td>
+                        <td className="text-right font-bold" style={{ color: '#2e7d32', backgroundColor: '#f8fafc' }}>{renderAmount(row.closing_debit)}</td>
+                        <td className="text-right font-bold" style={{ color: '#c62828', backgroundColor: '#f8fafc' }}>{renderAmount(row.closing_credit)}</td>
                       </tr>
                     )) : (
-                      <tr><td colSpan="9" className="text-center p-5 text-muted italic">No records mapped.</td></tr>
+                      <tr><td colSpan="9" className="text-center" style={{ padding: '40px', color: '#94a3b8' }}>No records found.</td></tr>
                     )}
-                    <tr className="table-secondary fw-bold" style={{ fontSize: '14px' }}>
-                      <td colSpan="3" className="text-end pe-3 fw-bold">Grand Aggregates Summary:</td>
-                      <td className="text-end text-success font-monospace">{renderAmount(totals.total_opening_debit)}</td>
-                      <td className="text-end text-danger font-monospace">{renderAmount(totals.total_opening_credit)}</td>
-                      <td className="text-end text-success font-monospace">{renderAmount(totals.total_current_debit)}</td>
-                      <td className="text-end text-danger font-monospace">{renderAmount(totals.total_current_credit)}</td>
-                      <td className="text-end text-success font-monospace border-bottom border-2 border-dark">{renderAmount(totals.total_closing_debit)}</td>
-                      <td className="text-end text-danger font-monospace border-bottom border-2 border-dark">{renderAmount(totals.total_closing_credit)}</td>
+                    <tr className="font-bold" style={{ background: '#f1f5f9' }}>
+                      <td colSpan="3" className="text-right">Grand Totals:</td>
+                      <td className="text-right" style={{ color: '#2e7d32' }}>{renderAmount(totals.total_opening_debit)}</td>
+                      <td className="text-right" style={{ color: '#c62828' }}>{renderAmount(totals.total_opening_credit)}</td>
+                      <td className="text-right" style={{ color: '#2e7d32' }}>{renderAmount(totals.total_current_debit)}</td>
+                      <td className="text-right" style={{ color: '#c62828' }}>{renderAmount(totals.total_current_credit)}</td>
+                      <td className="text-right" style={{ color: '#2e7d32' }}>{renderAmount(totals.total_closing_debit)}</td>
+                      <td className="text-right" style={{ color: '#c62828' }}>{renderAmount(totals.total_closing_credit)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-            </div>
 
-            {/* 📱 VIEW 2: SMART MOBILE COMPACT CARD DISPLAY LAYOUT */}
-            <div className="mobile-cards-container d-none">
-              <div className="text-muted small mb-2 px-1 fw-bold text-uppercase">Account Parameters Ledger Rows ({rows.length})</div>
-              {rows.length > 0 ? rows.map((row, index) => (
-                <div key={`mob-card-${index}`} className="card border-0 shadow-sm p-3 mb-3 bg-white rounded-3">
-                  <div className="d-flex justify-content-between align-items-start border-bottom pb-2 mb-2">
-                    <div>
-                      <div className="font-monospace text-muted small" style={{ fontSize: '11px' }}>{row.account_code}</div>
-                      <div className="fw-bold text-dark" style={{ fontSize: '15px', marginTop: '1px' }}>{row.account_name}</div>
-                    </div>
-                    <span className="badge bg-secondary-subtle text-secondary border px-2 py-1" style={{ fontSize: '11px' }}>{row.category_name}</span>
-                  </div>
-
-                  <div className="row g-2 pt-1 text-center" style={{ fontSize: '12px' }}>
-                    <div className="col-4 border-end">
-                      <div className="text-muted fw-bold mb-1" style={{ fontSize: '10px' }}>OPENING</div>
-                      <div className="text-success font-monospace">Dr: {renderAmount(row.opening_debit)}</div>
-                      <div className="text-danger font-monospace">Cr: {renderAmount(row.opening_credit)}</div>
-                    </div>
-                    <div className="col-4 border-end">
-                      <div className="text-muted fw-bold mb-1" style={{ fontSize: '10px' }}>PERIOD MOV</div>
-                      <div className="text-success font-monospace">Dr: {renderAmount(row.current_debit)}</div>
-                      <div className="text-danger font-monospace">Cr: {renderAmount(row.current_credit)}</div>
-                    </div>
-                    <div className="col-4 bg-light-subtle rounded py-1">
-                      <div className="text-dark fw-bold mb-1" style={{ fontSize: '10px' }}>NET CLOSING</div>
-                      <div className="text-success font-monospace fw-bold">Dr: {renderAmount(row.closing_debit)}</div>
-                      <div className="text-danger font-monospace fw-bold">Cr: {renderAmount(row.closing_credit)}</div>
-                    </div>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center bg-white p-4 rounded text-muted small">No sub-ledger details available.</div>
-              )}
-
-              {/* Sticky Mobile Totals Footer Block */}
-              <div className="card border-0 bg-dark text-light p-3 shadow-lg rounded-3 mt-4">
-                <div className="fw-bold border-bottom border-secondary pb-2 mb-2 text-uppercase font-monospace text-center" style={{ fontSize: '11px', letterSpacing: '1px' }}>
-                  Grand Aggregate Accumulations
-                </div>
-                <div className="d-flex justify-content-between font-monospace py-1" style={{ fontSize: '13px' }}>
-                  <span className="text-muted">Opening:</span>
-                  <span>Dr: {renderAmount(totals.total_opening_debit)} | Cr: {renderAmount(totals.total_opening_credit)}</span>
-                </div>
-                <div className="d-flex justify-content-between font-monospace py-1" style={{ fontSize: '13px' }}>
-                  <span className="text-muted">Period Trans:</span>
-                  <span>Dr: {renderAmount(totals.total_current_debit)} | Cr: {renderAmount(totals.total_current_credit)}</span>
-                </div>
-                <div className="d-flex justify-content-between font-monospace border-top border-secondary pt-2 mt-1 fw-bold" style={{ fontSize: '14px' }}>
-                  <span className="text-info">Net Closing:</span>
-                  <div>
-                    <span className="text-success">Dr: {renderAmount(totals.total_closing_debit)}</span>
-                    <span className="text-muted mx-1">/</span>
-                    <span className="text-danger">Cr: {renderAmount(totals.total_closing_credit)}</span>
-                  </div>
-                </div>
+              <div className="pl-summary-bar">
+                <strong>{totals.is_balanced ? 'Balanced' : 'Out of Balance'}</strong>
+                <span className="pl-summary-value">
+                  Dr: {renderAmount(totals.total_closing_debit)} | Cr: {renderAmount(totals.total_closing_credit)}
+                </span>
               </div>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 

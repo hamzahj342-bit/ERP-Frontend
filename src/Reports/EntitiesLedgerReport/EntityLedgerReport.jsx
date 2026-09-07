@@ -9,7 +9,8 @@ import Select from "react-select";
 import NavigationBar from "../../Components/NavigationBar";
 import Footer from "../../Components/Footer";
 import api from "../../../api";
-import "../../Profitloss.css"; 
+import "./EntityLedgerReport.css";
+import { localToday, localYearStart } from "../../utils/localDate";
 
 const EntityLedgerReport = ({
   pageTitle = "Entity Ledger Report",
@@ -36,10 +37,8 @@ const EntityLedgerReport = ({
   // 1. --- Default Dates Auto-Setup ---
   useEffect(() => {
     if (!fromDate || !toDate) {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const startOfYear = `${new Date().getFullYear()}-01-01`;
-      setFromDate(startOfYear);
-      setToDate(todayStr);
+      setFromDate(localYearStart());
+      setToDate(localToday());
     }
   }, []);
 
@@ -190,29 +189,80 @@ const EntityLedgerReport = ({
   const customSelectStyles = {
     control: (provided) => ({
       ...provided,
-      minWidth: "260px",
+      minWidth: "220px",
+      minHeight: "32px",
+      height: "32px",
       borderRadius: "6px",
-      borderColor: "#cbd5e1",
-      fontSize: "14px",
+      borderColor: "#e2e8f0",
+      fontSize: "12px",
       boxShadow: "none"
     }),
-    menu: (provided) => ({ ...provided, zIndex: 9999 })
+    valueContainer: (provided) => ({
+      ...provided,
+      padding: "0 8px",
+      height: "30px"
+    }),
+    indicatorsContainer: (provided) => ({
+      ...provided,
+      height: "30px"
+    }),
+    input: (provided) => ({
+      ...provided,
+      margin: 0,
+      padding: 0
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      fontSize: "12px",
+      color: "#334155"
+    }),
+    placeholder: (provided) => ({
+      ...provided,
+      fontSize: "12px",
+      color: "#94a3b8"
+    }),
+    menu: (provided) => ({ ...provided, zIndex: 9999, fontSize: "12px" }),
+    option: (provided) => ({
+      ...provided,
+      fontSize: "12px",
+      padding: "6px 10px"
+    })
   };
 
   return (
     <>
       <NavigationBar />
-      <div className="report-page-wrapper">
-        <button className="back-btn" onClick={() => navigate(backPath)} style={{marginTop: "50px"}}><FaArrowLeft /></button>
-        <div className="report-card" style={{marginTop: "15px"}}>
-          <div className="report-header">
-            <h3 className="report-title mt-3">
-              <FaBook className="mr-2"/> 
-              {dynamicHasRelation ? `Dual Role Statement Ledger` : pageTitle}
-            </h3>
-            
-            <div className="filter-group" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              
+      <div className="elr-page">
+        <div className="elr-card">
+          <div className="elr-header">
+            <div className="elr-header-top">
+              <div className="elr-header-left">
+                <button
+                  type="button"
+                  className="back-btn erp-back-btn"
+                  onClick={() => navigate(backPath)}
+                >
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h2 className="elr-title">
+                    <FaBook />
+                    {dynamicHasRelation ? "Dual Role Statement Ledger" : pageTitle}
+                  </h2>
+                  <p className="elr-subtitle">{description}</p>
+                </div>
+              </div>
+
+              {report && (
+                <div className="elr-export-group">
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToPNG} title="Capture Image"><FaImage /></button>
+                </div>
+              )}
+            </div>
+
+            <div className="elr-filters">
               <Select
                 options={entities}
                 value={entities.find(option => option.value === selectedEntity) || null}
@@ -225,89 +275,79 @@ const EntityLedgerReport = ({
 
               <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
               <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-              <button className="get-report-btn" onClick={fetchLedger}>{loading ? "..." : "Get Report"}</button>
-              
-              <div style={{ display: "flex", gap: "5px", padding: "0 10px" }}>
+              <button type="button" className="elr-get-btn" onClick={fetchLedger}>{loading ? "..." : "Get Report"}</button>
+
+              <div className="elr-tax-group">
                 {['all', 'taxable', 'non-taxable'].map(filter => (
                   <button
+                    type="button"
                     key={filter}
                     onClick={() => setTaxFilter(filter)}
-                    style={{
-                      padding: "8px 14px",
-                      borderRadius: "6px",
-                      border: "1px solid #cbd5e1",
-                      backgroundColor: taxFilter === filter ? "#3b82f6" : "#f8fafc",
-                      color: taxFilter === filter ? "#ffffff" : "#475569",
-                      fontSize: "13px"
-                    }}
+                    className={`elr-tax-btn${taxFilter === filter ? " active" : ""}`}
                   >
                     {filter === 'all' ? 'All' : filter}
                   </button>
                 ))}
               </div>
-              
-              {report && (
-                <div className="export-btn-group">
-                  <button className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
-                  <button className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
-                  <button className="icon-button bg-png" onClick={exportToPNG} title="Capture Image"><FaImage /></button>
-                </div>
-              )}
             </div>
 
-            {/* Visual alert for dynamic mutual relations */}
             {(dynamicHasRelation || report?.entity?.entity_relation_id) && (
-              <div style={{ background: "#f0fdf4", borderLeft: "4px solid #16a34a", padding: "10px 15px", margin: "10px 0", borderRadius: "0 6px 6px 0", display: "flex", alignItems: "center", gap: "10px" }}>
-                <FaExchangeAlt style={{ color: "#16a34a" }} />
-                <span style={{ fontSize: "13.5px", color: "#14532d", fontWeight: "500" }}>
+              <div className="elr-alert">
+                <FaExchangeAlt />
+                <span>
                   <strong>Cross-Linked Account:</strong> entity_relation_id detected. System unified statement processing for combined Customer/Supplier ledgers.
                 </span>
               </div>
             )}
-            <p className="text-muted mb-3">{description}</p>
           </div>
 
           {report && (
-            <div ref={reportRef} className="pl-table-container bg-white p-3">
-              <h3 className="text-xl font-bold mb-2" style={{color: '#2c3e50'}}>
+            <div ref={reportRef} className="elr-result">
+              <h3 className="elr-result-title">
                 Statement Analysis: {report.entity.name}
               </h3>
-              
-              <div className="d-flex justify-content-between mb-3">
-                <span><strong>Opening Position:</strong> <span className="text-blue-700">{Number(report.openingBalance).toLocaleString()}</span></span>
-                <span><strong>Date Period:</strong> {fromDate} to {toDate}</span>
+
+              <div className="elr-meta">
+                <span>
+                  <strong>Opening Position:</strong>{" "}
+                  <span className="elr-meta-value">{Number(report.openingBalance).toLocaleString()}</span>
+                </span>
+                <span>
+                  <strong>Date Period:</strong> {fromDate} to {toDate}
+                </span>
               </div>
 
-              <table className="pl-table">
-                <thead>
-                  <tr className="row-section-head">
-                    <th className="border p-2">Transaction Date</th>
-                    <th className="border p-2">Particulars / Description</th>
-                    <th className="border p-2 text-right">Debit (+)</th>
-                    <th className="border p-2 text-right">Credit (-)</th>
-                    <th className="border p-2 text-right">Net Running Balance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.transactions.map((t, index) => {
-                    const rb = calculateRunningBalance(index, report.transactions, report.openingBalance);
-                    return (
-                      <tr key={index}>
-                        <td className="border p-2">{t.transaction_date}</td>
-                        <td className="border p-2">{t.description}</td>
-                        <td className="border p-2 text-right">{t.debit > 0 ? Number(t.debit).toLocaleString() : "-"}</td>
-                        <td className="border p-2 text-right">{t.credit > 0 ? Number(t.credit).toLocaleString() : "-"}</td>
-                        <td className="border p-2 text-right font-bold">{Number(rb).toLocaleString()}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="elr-table-scroll">
+                <table className="elr-table">
+                  <thead>
+                    <tr>
+                      <th>Transaction Date</th>
+                      <th>Particulars / Description</th>
+                      <th className="text-right">Debit (+)</th>
+                      <th className="text-right">Credit (-)</th>
+                      <th className="text-right">Net Running Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.transactions.map((t, index) => {
+                      const rb = calculateRunningBalance(index, report.transactions, report.openingBalance);
+                      return (
+                        <tr key={index}>
+                          <td>{t.transaction_date}</td>
+                          <td>{t.description}</td>
+                          <td className="text-right">{t.debit > 0 ? Number(t.debit).toLocaleString() : "-"}</td>
+                          <td className="text-right">{t.credit > 0 ? Number(t.credit).toLocaleString() : "-"}</td>
+                          <td className="text-right font-bold">{Number(rb).toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-              <div className="mt-4 p-3" style={{ background: '#f0fdf4', borderRadius: '6px', textAlign: 'right' }}>
-                <span className="text-xl"><strong>Net Closing Balance: </strong> 
-                  <span style={{ color: '#15803d', fontWeight: '800' }}>PKR {Number(report.closingBalance).toLocaleString()}</span>
-                </span>
+              <div className="elr-closing">
+                <strong>Net Closing Balance: </strong>
+                <span className="elr-closing-value">PKR {Number(report.closingBalance).toLocaleString()}</span>
               </div>
             </div>
           )}

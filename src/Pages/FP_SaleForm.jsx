@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
 import api from "../../api";
+import Select from "react-select";
 import '../Model.css';
 import '../Transactions.css';
 
@@ -41,6 +42,12 @@ const FP_SaleForm = () => {
     const [taxMode, setTaxMode] = useState('exclusive');
     const [taxRate, setTaxRate] = useState(0);
     const [taxId, setTaxId] = useState(null);
+
+    const customerOptions = customers.map((customer) => ({ value: customer.id, label: customer.name }));
+    const productOptions = products.map((product) => ({
+        value: product.recipe_id,
+        label: product.display_name || product.product_name,
+    }));
 
     const fetchInvoiceNo = useCallback(async () => {
         if (isEditMode) return;
@@ -418,10 +425,10 @@ const FP_SaleForm = () => {
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate("/fp-sale-list")}>
+                    <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/fp-sale-list")}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">{isEditMode ? `Modify Sale Draft (${invoiceNo})` : "Finished Goods Sale"}</h2>
+                    <h2 className="form-title erp-page-title">{isEditMode ? `Modify Sale Draft (${invoiceNo})` : "Finished Goods Sale"}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -433,10 +440,16 @@ const FP_SaleForm = () => {
                         <div className="info-item">
                             <label>Customer</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <select className="rm-input-field" value={selectedCustomer} onChange={(e) => setSelectedCustomer(e.target.value)} disabled={!!selectedSourceDoc}>
-                                    <option value="">Select Customer</option>
-                                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
+                                <Select
+                                    className="rm-input-field"
+                                    classNamePrefix="react-select"
+                                    options={customerOptions}
+                                    value={customerOptions.find((option) => String(option.value) === String(selectedCustomer)) || null}
+                                    onChange={(selectedOption) => setSelectedCustomer(selectedOption?.value || "")}
+                                    isSearchable
+                                    isClearable
+                                    isDisabled={!!selectedSourceDoc}
+                                />
                                 <button type="button" className="quick-add-btn" onClick={() => setShowCustomerModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
                             </div>
                         </div>
@@ -459,6 +472,7 @@ const FP_SaleForm = () => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="rm-items-scroll">
                         <div className="items-table-header">
                             <span>Product Selection</span>
                             <span>UOM</span>
@@ -469,14 +483,18 @@ const FP_SaleForm = () => {
                         </div>
 
                         {rows.map((row, index) => (
-                            <div className="item-row" key={index}>
+                            <div className="item-row" key={index} style={{ alignItems: 'center' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <select
+                                    <Select
                                         className="rm-input-field"
-                                        value={row.recipe_id}
-                                        disabled={!!selectedSourceDoc}
-                                        onChange={(e) => {
-                                            const selectedValue = e.target.value;
+                                        classNamePrefix="react-select"
+                                        options={productOptions}
+                                        value={productOptions.find((option) => String(option.value) === String(row.recipe_id)) || null}
+                                        isSearchable
+                                        isClearable
+                                        isDisabled={!!selectedSourceDoc}
+                                        onChange={(selectedOption) => {
+                                            const selectedValue = selectedOption?.value || "";
                                             const selected = products.find(p => String(p.recipe_id) === String(selectedValue));
                                             const updated = [...rows];
 
@@ -515,11 +533,8 @@ const FP_SaleForm = () => {
                                                 calculateTotals(updated, globalDiscount, deliveryCharges, isTaxable, taxMode, taxRate);
                                             }
                                         }}
-                                        style={{ marginTop : "20px"}}
-                                    >
-                                        <option value="">Select Product</option>
-                                        {products.map((p) => <option key={p.recipe_id} value={p.recipe_id}>{p.display_name || p.product_name}</option>)}
-                                    </select>
+                                        styles={{ container: (base) => ({ ...base, marginTop: "20px" }) }}
+                                    />
                                     <small className="text-success" style={{fontSize: '11px', paddingLeft: '2px' }}>Available: {row.stock}</small>
                                 </div>
 
@@ -528,7 +543,7 @@ const FP_SaleForm = () => {
                                 <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
                                 <input type="text" className="rm-input-field readonly-input" placeholder="Total" value={row.total} readOnly />
 
-                                <div style={{ display: 'flex', gap: '5px' }}>
+                                <div className="erp-row-actions">
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow} disabled={!!selectedSourceDoc}><FaPlus /></button>
                                     {rows.length > 1 && (
                                         <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)} disabled={!!selectedSourceDoc}><FaTrash /></button>
@@ -536,6 +551,7 @@ const FP_SaleForm = () => {
                                 </div>
                             </div>
                         ))}
+                        </div>
 
                         <div className="summary-container">
                             <div className="summary-row">
@@ -578,7 +594,9 @@ const FP_SaleForm = () => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn">{isEditMode ? "Update Sale Draft" : "Save Sale Transaction"}</button>
+                        <div className="erp-form-actions">
+                            <button type="submit" className="save-btn">{isEditMode ? "Update Sale Draft" : "Save Sale Transaction"}</button>
+                        </div>
                     </form>
                 </div>
             </div>

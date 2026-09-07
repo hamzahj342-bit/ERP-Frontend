@@ -57,23 +57,23 @@ const ProductBatchList = () => {
             <div className="batch-list-wrapper">
                 <div className="batch-container">
                     
-                    <div className="batch-header-area" style={{marginTop: '30px'}}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                            <button className="back-btn" onClick={() => navigate('/dashboard')}>
+                    <div className="erp-page-card batch-card">
+                    <div className="erp-page-header batch-header-area">
+                        <div className="erp-page-header-left">
+                            <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/dashboard')}>
                                 <FaArrowLeft />
                             </button>
-                            <h2><FaLayerGroup style={{ color: '#3b82f6', marginRight: '10px' }} /> Finished Goods Batches</h2>
+                            <h2 className="erp-page-title"><FaLayerGroup style={{ color: '#475569', marginRight: '10px' }} /> Finished Goods Batches</h2>
                         </div>
                     </div>
 
-                    <div className="batch-card">
                         {batches.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                                 <FaHistory size={40} style={{ marginBottom: '10px', opacity: 0.5 }} />
                                 <p>No production batches found in records.</p>
                             </div>
                         ) : (
-                            <div className="batch-table-container">
+                            <div className="erp-table-scroll batch-table-container">
                                 <table className="batch-table">
                                     <thead>
                                         <tr>
@@ -92,25 +92,25 @@ const ProductBatchList = () => {
                                             const cost = parseFloat(batch.unit_cost || 0);
                                             return (
                                                 <tr key={batch.id}>
-                                                    <td><span className="batch-id-tag">BATCH-{batch.id}</span></td>
-                                                    <td style={{ fontWeight: '600', color: '#1e293b' }}>
+                                                    <td data-label="Batch ID"><span className="batch-id-tag">BATCH-{batch.id}</span></td>
+                                                    <td data-label="Product Name" style={{ fontWeight: '600', color: '#1e293b' }}>
                                                         {batch.product?.name || 'Unknown Product'}
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Remaining Qty">
                                                         <span className={`qty-pill ${remaining > 0 ? 'qty-active' : 'qty-empty'}`}>
                                                             {remaining.toFixed(3)}
                                                         </span>
                                                     </td>
-                                                    <td style={{ color: '#64748b' }}>{cost.toFixed(2)}</td>
-                                                    <td style={{ fontWeight: 'bold' }}>
+                                                    <td data-label="Unit Cost" style={{ color: '#64748b' }}>{cost.toFixed(2)}</td>
+                                                    <td data-label="Batch Valuation" style={{ fontWeight: 'bold' }}>
                                                         {(remaining * cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Created By">
                                                         <span style={{ fontSize: '0.85rem', color: '#475569' }}>
                                                             {batch.createdby || 'System'}
                                                         </span>
                                                     </td>
-                                                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(batch.createdat)}</td>
+                                                    <td data-label="Production Date" style={{ whiteSpace: 'nowrap' }}>{formatDate(batch.createdat)}</td>
                                                 </tr>
                                             );
                                         })}

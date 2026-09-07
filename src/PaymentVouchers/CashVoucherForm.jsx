@@ -372,6 +372,30 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import api from "../../api";
+import "../Transactions.css";
+import "./PaymentVoucherForm.css";
+
+const entitySelectProps = {
+  classNamePrefix: "react-select",
+  isClearable: true,
+  menuPortalTarget: typeof document !== "undefined" ? document.body : null,
+  menuPosition: "fixed",
+  maxMenuHeight: 280,
+  styles: {
+    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+    menu: (base) => ({ ...base, zIndex: 9999 }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: 280,
+      paddingTop: 4,
+      paddingBottom: 4,
+    }),
+  },
+  classNames: {
+    menu: () => "voucher-select-menu",
+    menuList: () => "voucher-select-menu-list",
+  },
+};
 
 const CashVoucherForm = () => {
     const navigate = useNavigate();
@@ -655,10 +679,10 @@ const CashVoucherForm = () => {
 
     if (isEditMode && isLoadingVoucher) {
         return (
-            <div className="rm-page-wrapper">
+            <div className="rm-page-wrapper voucher-form-page">
                 <NavigationBar />
-                <div className="rm-content-container" style={{ padding: '60px', textAlign: 'center' }}>
-                    <h2>Loading voucher details...</h2>
+                <div className="rm-content-container voucher-loading">
+                    Loading voucher details...
                 </div>
                 <Footer />
             </div>
@@ -666,12 +690,12 @@ const CashVoucherForm = () => {
     }
 
     return (
-        <div className="rm-page-wrapper">
+        <div className="rm-page-wrapper voucher-form-page">
             <NavigationBar />
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" type="button" onClick={() => navigate(-1)}><FaArrowLeft /></button>
-                    <h2 className="form-title">
+                    <button className="back-btn erp-back-btn" type="button" onClick={() => navigate(-1)}><FaArrowLeft /></button>
+                    <h2 className="form-title erp-page-title">
                         {voucherType === "CPV" 
                             ? (isEditMode ? "Edit Cash Payment Voucher (CPV)" : "Cash Payment Voucher (CPV)") 
                             : (isEditMode ? "Edit Cash Receipt Voucher (CRV)" : "Cash Receipt Voucher (CRV)")}
@@ -679,7 +703,7 @@ const CashVoucherForm = () => {
                 </div>
                 <div className="rm-main-card">
                     <form onSubmit={handleSubmit}>
-                        <div className="info-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
+                        <div className="info-grid voucher-info-3">
                             <div className="info-item">
                                 <label>Voucher No</label>
                                 <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
@@ -701,51 +725,49 @@ const CashVoucherForm = () => {
                             </div>
                         </div>
 
-                        {/* Matrix Grid */}
-                        <div className="voucher-table-wrapper" style={{ marginTop: "30px" }}>
-                            <table className="rm-transaction-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <div className="voucher-table-wrapper">
+                            <table className="erp-voucher-table">
                                 <thead>
-                                    <tr style={{ background: "#f1f3f5" }}>
-                                        <th style={{ padding: "12px" }}>Account Head</th>
-                                        <th style={{ padding: "12px" }}>Subsidiary / Entity</th>
-                                        <th style={{ padding: "12px", width: "180px" }}>Amount</th>
-                                        <th style={{ padding: "12px" }}>Narration</th>
-                                        <th style={{ padding: "12px", width: "95px", textAlign: "center" }}>Actions</th>
+                                    <tr>
+                                        <th>Account Head</th>
+                                        <th>Subsidiary / Entity</th>
+                                        <th style={{ width: "160px" }}>Amount</th>
+                                        <th>Narration</th>
+                                        <th style={{ width: "90px", textAlign: "center" }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {voucherRows.map((row, index) => {
                                         const { list: entityList, label: entityLabel } = getEntityListAndLabel(row.account_id);
                                         return (
-                                            <tr key={index} style={{ borderBottom: "1px solid #dee2e6" }}>
-                                                <td style={{ padding: "8px" }}>
+                                            <tr key={index}>
+                                                <td>
                                                     <select className="rm-input-field" value={row.account_id} onChange={(e) => handleRowChange(index, "account_id", e.target.value)} required>
                                                         <option value="">Select Account Head</option>
                                                         {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.account_name}</option>)}
                                                     </select>
                                                 </td>
-                                                <td style={{ padding: "8px" }}>
+                                                <td>
                                                     {entityList.length > 0 ? (
                                                         <Select
-                                                            classNamePrefix="react-select"
+                                                            {...entitySelectProps}
                                                             options={getEntityOptions(entityList)}
                                                             value={getEntityOptions(entityList).find(opt => String(opt.value) === String(row.entity_id)) || null}
                                                             onChange={(selected) => handleEntitySelect(index, selected)}
                                                             placeholder={`Select ${entityLabel}`}
-                                                            isClearable
                                                         />
                                                     ) : <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />}
                                                 </td>
-                                                <td style={{ padding: "8px" }}>
+                                                <td>
                                                     <input type="number" step="any" className="rm-input-field" value={row.amount} onChange={(e) => handleRowChange(index, "amount", e.target.value)} required placeholder="Enter amount"/>
                                                 </td>
-                                                <td style={{ padding: "8px" }}>
+                                                <td>
                                                     <input type="text" className="rm-input-field" value={row.description} onChange={(e) => handleRowChange(index, "description", e.target.value)} placeholder="Enter description"/>
                                                 </td>
-                                                <td style={{ padding: "8px", textAlign: "center" }}>
-                                                    <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
-                                                        <button type="button" onClick={addVoucherRow} style={{ background: "#edf2f9", color: "#0d6efd", border: "1px solid #d2e3f7", width: "38px", height: "38px", borderRadius: "6px", cursor: "pointer" }}><FaPlus /></button>
-                                                        <button type="button" onClick={() => removeVoucherRow(index)} style={{ background: "#fdebee", color: "#dc3545", border: "1px solid #fbcacf", width: "38px", height: "38px", borderRadius: "6px", cursor: "pointer" }}><FaTrash /></button>
+                                                <td>
+                                                    <div className="voucher-actions-row">
+                                                        <button type="button" onClick={addVoucherRow} className="voucher-icon-btn" title="Add row"><FaPlus /></button>
+                                                        <button type="button" onClick={() => removeVoucherRow(index)} className="voucher-icon-btn is-danger" title="Remove row"><FaTrash /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -754,10 +776,10 @@ const CashVoucherForm = () => {
                                 </tbody>
                             </table>
                         </div>
-                        <div style={{ marginTop: "20px", background: "#f8f9fa", padding: "15px", borderRadius: "6px", textAlign: "right" }}>
-                            <strong>Total Net Amount: <span style={{ color: "#0d6efd" }}>{totalAmount.toFixed(2)}</span></strong>
+                        <div className="voucher-summary-total">
+                            Total Net Amount: <span>{totalAmount.toFixed(2)}</span>
                         </div>
-                        <button type="submit" className="save-btn" disabled={isSubmitting} style={{ marginTop: "20px" }}>
+                        <button type="submit" className="save-btn" disabled={isSubmitting}>
                             {isSubmitting ? "Posting..." : (isEditMode ? `Update ${voucherType} Voucher` : `Save ${voucherType} Voucher`)}
                         </button>
                     </form>

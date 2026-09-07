@@ -190,26 +190,25 @@ const FP_SaleList = () => {
     <>
       <NavigationBar />
 
-      <div className="rm-page">
-        <div className="top-nav-container" style={{ marginTop: '30px' }}>
-          <button className="back-btn" onClick={() => navigate('/fp-transactions')}>
-            <FaArrowLeft />
-          </button>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h3>Finished Goods Sales List</h3>
-            <button className="add-sale-btn" onClick={() => setIsInvoiceModalOpen(true)}>
+      <div className="erp-entity-page rm-page">
+        <div className="erp-page-card card">
+          <div className="erp-page-header card-header header-flex">
+            <div className="erp-page-header-left">
+              <button className="back-btn erp-back-btn" type="button" onClick={() => navigate('/fp-transactions')}>
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title">Finished Goods Sales List</h2>
+            </div>
+            <button className="add-sale-btn erp-btn-primary" type="button" onClick={() => setIsInvoiceModalOpen(true)}>
               <FaPlus /> ADD NEW FG SALE
             </button>
           </div>
 
-          <div className="table-container">
+          <div className="erp-table-scroll">
             {loading ? (
               <div className="loading-state">Loading sales data...</div>
             ) : (
-              <table className="product-table">
+              <table className="product-table entity-table">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -220,7 +219,7 @@ const FP_SaleList = () => {
                     <th>GRAND TOTAL</th>
                     <th>PAYMENT STATUS</th>
                     <th><FaUserAlt /> CREATED BY</th>
-                    <th style={{ textAlign: 'center' }}>ACTION</th>
+                    <th style={{ textAlign: 'right' }}>ACTION</th>
                   </tr>
                 </thead>
 
@@ -231,17 +230,17 @@ const FP_SaleList = () => {
 
                       return (
                         <tr key={sale.id}>
-                          <td className="id-cell" style={{ color: '#94a3b8' }}>#{sale.id}</td>
-                          <td className="invoice-cell" style={{ fontWeight: '700' }}>{sale.invoice_no}</td>
-                          <td>{sale.createdat ? new Date(sale.createdat).toLocaleDateString() : "-"}</td>
-                          <td>{sale.date ? new Date(sale.date).toLocaleDateString() : "-"}</td>
-                          <td><span className="supplier-tag">{sale.customer?.name || sale.entity_name || "N/A"}</span></td>
-                          <td className="total-cell" style={{ fontWeight: '700', color: '#2b6cb0' }}>
+                          <td data-label="ID" className="id-cell" style={{ color: '#94a3b8' }}>#{sale.id}</td>
+                          <td data-label="INVOICE NO" className="invoice-cell" style={{ fontWeight: '700' }}>{sale.invoice_no}</td>
+                          <td data-label="CREATED AT">{sale.createdat ? new Date(sale.createdat).toLocaleDateString() : "-"}</td>
+                          <td data-label="DATE">{sale.date ? new Date(sale.date).toLocaleDateString() : "-"}</td>
+                          <td data-label="CUSTOMER"><span className="supplier-tag">{sale.customer?.name || sale.entity_name || "N/A"}</span></td>
+                          <td data-label="GRAND TOTAL" className="total-cell" style={{ fontWeight: '700', color: '#2b6cb0' }}>
                             {parseFloat(sale.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
                           
                           {/* 💳 Payment Status Badge (Clickable for Status Updates) */}
-                          <td>
+                          <td data-label="PAYMENT STATUS">
                             <span 
                               className={`status-badge ${getPaymentStatusBadgeClass(currentPaymentStatus)}`}
                               onClick={() => handlePaymentStatusChange(sale.id, currentPaymentStatus)}
@@ -252,10 +251,11 @@ const FP_SaleList = () => {
                             </span>
                           </td>
 
-                          <td><span className="user-tag">{sale.createdby || "—"}</span></td>
-                          <td className="action-cell" style={{ textAlign: 'center' }}>
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                          <td data-label="CREATED BY"><span className="user-tag">{sale.createdby || "—"}</span></td>
+                          <td data-label="ACTION" className="erp-actions-cell">
+                            <div className="erp-actions-group">
                               <button 
+                                type="button"
                                 onClick={() => handleViewDetails(sale.invoice_no)} 
                                 className="primary-btn"
                               >
@@ -265,6 +265,7 @@ const FP_SaleList = () => {
                               {sale.status === 'Approved' ? (
                                 <>
                                   <button
+                                    type="button"
                                     onClick={() => {
                                       setApprovedInvoiceId(sale.id);
                                       setApprovedModalOpen(true);
@@ -280,12 +281,14 @@ const FP_SaleList = () => {
                               ) : (
                                 <>
                                   <button 
+                                    type="button"
                                     onClick={() => handleEditInvoice(sale.id)} 
                                     className="edit-btn-action"
                                   >
                                     <FaEdit /> EDIT
                                   </button>
                                   <button 
+                                    type="button"
                                     onClick={() => handleApproveInvoice(sale.id, sale.invoice_no)} 
                                     className="approve-btn-action"
                                   >
@@ -310,7 +313,7 @@ const FP_SaleList = () => {
             )}
           </div>
 
-          <div className="pagination-footer" style={{ marginTop: '25px', display: 'flex', justifyContent: 'center' }}>
+          <div className="erp-pagination-wrap">
             <Pagination
               page={page}
               totalPages={totalPages}
@@ -318,28 +321,28 @@ const FP_SaleList = () => {
             />
           </div>
         </div>
+
+        <InvoiceTypeModal
+          open={isInvoiceModalOpen}
+          onClose={() => setIsInvoiceModalOpen(false)}
+          onSelect={(type) => {
+            setIsInvoiceModalOpen(false);
+            navigate(`/fp-sale-form?invoiceType=${type}`);
+          }}
+          title="FG Sale Invoice Type"
+        />
+
+        <ApprovedInvoiceEditModal
+          open={approvedModalOpen}
+          onClose={() => {
+            setApprovedModalOpen(false);
+            setApprovedInvoiceId(null);
+          }}
+          invoiceId={approvedInvoiceId}
+          invoiceCategory="fp"
+          onSaved={fetchSales}
+        />
       </div>
-
-      <InvoiceTypeModal
-        open={isInvoiceModalOpen}
-        onClose={() => setIsInvoiceModalOpen(false)}
-        onSelect={(type) => {
-          setIsInvoiceModalOpen(false);
-          navigate(`/fp-sale-form?invoiceType=${type}`);
-        }}
-        title="FG Sale Invoice Type"
-      />
-
-      <ApprovedInvoiceEditModal
-        open={approvedModalOpen}
-        onClose={() => {
-          setApprovedModalOpen(false);
-          setApprovedInvoiceId(null);
-        }}
-        invoiceId={approvedInvoiceId}
-        invoiceCategory="fp"
-        onSaved={fetchSales}
-      />
 
       <Footer />
     </>

@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import Select from 'react-select';
 import '../Model.css';
 import '../Transactions.css';
 
@@ -51,6 +52,12 @@ const RM_PurchaseForm = ({ channel = null }) => {
     // --- State Controlled Modal Variables for flawless UI Sync ---
 const [newMaterialName, setNewMaterialName] = useState("");
 const [newMaterialUom, setNewMaterialUom] = useState("");
+
+    const supplierOptions = suppliers.map((supplier) => ({ value: supplier.id, label: supplier.name }));
+    const materialOptions = materials.map((material) => ({
+        value: material.rm_id,
+        label: material.name || material.rm_name || "Material",
+    }));
 
     // Normalize pack sizes coming from /add-materials (association shape)
     const normalizePackSizes = (material) =>
@@ -491,10 +498,10 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
 
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate(listPath)}>
+                    <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Purchase Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Purchase` : "Raw Material Purchase")}</h2>
+                    <h2 className="form-title erp-page-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Purchase Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Purchase` : "Raw Material Purchase")}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -505,11 +512,17 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                         </div>
                         <div className="info-item">
                             <label>Supplier</label>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <select className="rm-input-field" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)} disabled={!!selectedSourceDoc}>
-                                    <option value="">Select Supplier</option>
-                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <Select
+                                    className="rm-input-field"
+                                    classNamePrefix="react-select"
+                                    options={supplierOptions}
+                                    value={supplierOptions.find((option) => String(option.value) === String(selectedSupplier)) || null}
+                                    onChange={(selectedOption) => setSelectedSupplier(selectedOption?.value || "")}
+                                    isSearchable
+                                    isClearable
+                                    isDisabled={!!selectedSourceDoc}
+                                />
                                 <button type="button" className="quick-add-btn" onClick={() => setShowSupplierModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
                             </div>
                         </div>
@@ -520,7 +533,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                         {!isPos && (
                         <div className="info-item">
                             <label>Source GRN</label>
-                            <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <select className="rm-input-field" value={selectedSourceDoc} onChange={(e) => handleSourceDocumentSelection(e.target.value)}>
                                     <option value="">Select GRN (optional)</option>
                                     {sourceDocuments.map(doc => (
@@ -534,6 +547,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="rm-items-scroll">
                         <div className="items-table-header" style={gridColumns ? { gridTemplateColumns: gridColumns } : undefined}>
                             <span>{isPos ? 'Product' : 'Material'}</span>
                             <span>UOM</span>
@@ -547,14 +561,19 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                         {rows.map((row, index) => (
                             <div className="item-row" key={index} style={gridColumns ? { gridTemplateColumns: gridColumns } : undefined}>
                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                    <select
+                                    <Select
                                         className="rm-input-field"
-                                        value={row.rm_id}
-                                        disabled={!!selectedSourceDoc}
-                                        onChange={(e) => {
-                                            const selected = materials.find(m => m.rm_id === parseInt(e.target.value));
+                                        classNamePrefix="react-select"
+                                        options={materialOptions}
+                                        value={materialOptions.find((option) => String(option.value) === String(row.rm_id)) || null}
+                                        isSearchable
+                                        isClearable
+                                        isDisabled={!!selectedSourceDoc}
+                                        onChange={(selectedOption) => {
+                                            const selectedValue = selectedOption?.value || "";
+                                            const selected = materials.find(m => m.rm_id === parseInt(selectedValue));
                                             const meta = getMaterialMeta(selected);
-                                            handleChange(index, "rm_id", e.target.value);
+                                            handleChange(index, "rm_id", selectedValue);
                                             handleChange(index, "rm_name", meta.rm_name);
                                             handleChange(index, "uom_id", meta.uom_id);
                                             handleChange(index, "uom_name", meta.uom_name);
@@ -562,10 +581,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                             handleChange(index, "factor", 1);
                                             if (isPos) handleChange(index, "salePrice", meta.sale_price ?? "");
                                         }}
-                                    >
-                                        <option value="">{isPos ? 'Select Product' : 'Select Material'}</option>
-                                        {materials.map(m => <option key={m.rm_id} value={m.rm_id}>{m.name}</option>)}
-                                    </select>
+                                    />
                                     {isPos ? (
                                         <button type="button" className="quick-add-btn" title="Manage POS products" onClick={() => navigate('/pos/products')}><FaPlus /></button>
                                     ) : (
@@ -609,7 +625,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                 )}
                                 <input type="text" className="rm-input-field readonly-input" placeholder='Total' value={row.total} readOnly />
 
-                                <div style={{ display: 'flex', gap: '5px' }}>
+                                <div className="erp-row-actions">
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow} disabled={!!selectedSourceDoc}><FaPlus /></button>
                                     {rows.length > 1 && (
                                         <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)} disabled={!!selectedSourceDoc}><FaTrash /></button>
@@ -617,6 +633,7 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                                 </div>
                             </div>
                         ))}
+                        </div>
 
                         <div className="summary-container">
                             <div className="summary-row">
@@ -659,7 +676,9 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn">{isEditMode ? "Update Draft" : "Save Draft"}</button>
+                        <div className="erp-form-actions">
+                            <button type="submit" className="save-btn">{isEditMode ? "Update Draft" : "Save Draft"}</button>
+                        </div>
                     </form>
                 </div>
             </div>

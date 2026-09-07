@@ -370,10 +370,10 @@ const RM_SaleReturnForm = ({ channel = null }) => {
 
             <div className="rm-content-container">
                 <div className="rm-header-section">
-                    <button className="back-btn" onClick={() => navigate(listPath)}>
+                    <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
                     </button>
-                    <h2 className="form-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Sale Return Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Sale Return` : "Raw Material Sale Return")}</h2>
+                    <h2 className="form-title erp-page-title">{isEditMode ? `Modify ${channelLabel ? channelLabel + ' ' : ''}Sale Return Draft (${invoiceNo})` : (channelLabel ? `${channelLabel} Sale Return` : "Raw Material Sale Return")}</h2>
                 </div>
 
                 <div className="rm-main-card">
@@ -404,6 +404,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
                     </div>
 
                     <form onSubmit={handleSubmit}>
+                        <div className="rm-items-scroll">
                         <div className="items-table-header">
                             <span>Material - Supplier</span>
                             <span>UOM</span>
@@ -485,7 +486,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
                                 <input type="number" className="rm-input-field" placeholder="Price" value={row.unitPrice} onChange={(e) => handleChange(index, "unitPrice", e.target.value)} />
                                 <input type="text" className="rm-input-field readonly-input" value={row.total} readOnly />
 
-                                <div style={{ display: 'flex', gap: '5px' }}>
+                                <div className="erp-row-actions">
                                     <button type="button" className="quick-add-btn" style={{ color: '#3182ce' }} onClick={addRow}><FaPlus /></button>
                                     {rows.length > 1 && (
                                         <button type="button" className="quick-add-btn" style={{ color: '#e53e3e' }} onClick={() => deleteRow(index)}><FaTrash /></button>
@@ -493,6 +494,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
                                 </div>
                             </div>
                         ))}
+                        </div>
 
                         <div className="summary-container">
                             <div className="summary-row">
@@ -532,7 +534,9 @@ const RM_SaleReturnForm = ({ channel = null }) => {
                             </div>
                         </div>
 
-                        <button type="submit" className="save-btn">Save</button>
+                        <div className="erp-form-actions">
+                            <button type="submit" className="save-btn">Save</button>
+                        </div>
                     </form>
                 </div>
             </div>

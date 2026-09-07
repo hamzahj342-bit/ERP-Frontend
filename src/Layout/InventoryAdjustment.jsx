@@ -1,9 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-    FaSlidersH,      // Main Adjustment Icon
-    FaBoxOpen,       // Icon for Raw Materials
-    FaCheckDouble,   // Icon for Finished Products
+    FaBoxOpen,
+    FaCheckDouble,
     FaArrowRight, 
     FaArrowLeft,
 } from 'react-icons/fa';
@@ -11,7 +10,6 @@ import '../FP_Production.css';
 import Footer from '../Components/Footer';
 import NavigationBar from '../Components/NavigationBar';
 
-// Reusable Card Component (Wahi style jo Reports mein tha)
 const AdjustmentCard = ({ title, description, icon, path, color }) => {
     const navigate = useNavigate();
     
@@ -30,6 +28,7 @@ const AdjustmentCard = ({ title, description, icon, path, color }) => {
             
             <div className="card-footer-prod">
                 <button 
+                    type="button"
                     className="action-btn" 
                     style={{ backgroundColor: color }}
                     onClick={() => navigate(path)}
@@ -47,42 +46,37 @@ const InventoryAdjustment = () => {
     return (
         <>
         <NavigationBar/>
-        <div className="rm-page">
-            <button
-                className="back-btn"
-                style={{ marginTop: "30px" }}
-                onClick={() => navigate('/dashboard')}
-            >
-                <FaArrowLeft/>
-            </button>
-
+        <div className="rm-page fp-hub-page">
             <div className="fp-production-container">
-                <div style={{ alignItems: 'center', gap: '10px', marginBottom: '20px', textAlign: 'center' }}>
-                    <h3 style={{ margin: 0,  }}>Inventory Adjustment & Wastage</h3>
-                </div>
+                <div className="fp-hub-card">
+                    <div className="fp-hub-header">
+                        <button
+                            className="back-btn erp-back-btn"
+                            type="button"
+                            onClick={() => navigate('/dashboard')}
+                        >
+                            <FaArrowLeft/>
+                        </button>
+                        <h2>Inventory Adjustment & Wastage</h2>
+                    </div>
 
-                <hr style={{ margin: '20px 0' }} />
-                
-                <div className="production-cards-grid">
-                    
-                    {/* 1. RAW MATERIAL ADJUSTMENT CARD */}
-                    <AdjustmentCard 
-                        title="Raw Material Adjustment"
-                        description="Adjust stock for Raw Materials. Use this for wastage, leakage, or manual inventory corrections of RM batches."
-                        icon={<FaBoxOpen size={40} />}
-                        path="/rm-adjustment" // Is path pe RM form bnega
-                        color="#2c3e50" // Dark blue-grey for industrial feel
-                    />
+                    <div className="production-cards-grid">
+                        <AdjustmentCard 
+                            title="Raw Material Adjustment"
+                            description="Adjust stock for Raw Materials. Use this for wastage, leakage, or manual inventory corrections of RM batches."
+                            icon={<FaBoxOpen size={20} />}
+                            path="/rm-adjustment"
+                            color="#2c3e50"
+                        />
 
-                    {/* 2. FINISHED PRODUCT ADJUSTMENT CARD */}
-                    <AdjustmentCard 
-                        title="Finished Product Adjustment"
-                        description="Modify stock for Finished Goods. Record damages, samples, or production count corrections for FP batches."
-                        icon={<FaCheckDouble size={40} />}
-                        path="/fp-adjustment" // Is path pe FP form bnega
-                        color="#8e44ad" // Purple for finished goods
-                    />
-
+                        <AdjustmentCard 
+                            title="Finished Product Adjustment"
+                            description="Modify stock for Finished Goods. Record damages, samples, or production count corrections for FP batches."
+                            icon={<FaCheckDouble size={20} />}
+                            path="/fp-adjustment"
+                            color="#8e44ad"
+                        />
+                    </div>
                 </div>
             </div>
         </div>

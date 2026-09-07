@@ -171,30 +171,24 @@ const getLogoUrl = () => {
                     <div className="invoice-container">
                         <div id="invoice-detail" className="invoice-box shadow-lg">
                             <header className="invoice-header">
-                                <div className="company-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    {/* ✅ Dynamic Logo */}
+                                <div className="company-info">
                                    {user?.profile_image ? (
-            <img 
-                src={getLogoUrl()} 
-                alt="Logo" 
-                style={{ width: '70px', height: '70px', borderRadius: '5px', objectFit: 'cover' }} 
-                crossOrigin="anonymous" 
+            <img
+                className="invoice-logo"
+                src={getLogoUrl()}
+                alt="Logo"
+                crossOrigin="anonymous"
             />
         ) : (
-            <div style={{ width: '70px', height: '70px', background: '#eee', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#888', border: '1px solid #ddd' }}>
-                NO LOGO
-            </div>
+            <div className="invoice-logo-fallback">NO LOGO</div>
         )}
                                     <div>
-                                        {/* ✅ Dynamic Company Name */}
-                                        <p className="title text" style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '1.1rem', margin: 0 }}>
-                                            {currentCompanyName}
-                                        </p>
-                                        <h4 className="subtitle">{invoice.type} INVOICE</h4>
+                                        <p className="title text">{currentCompanyName}</p>
+                                        <h4 className="subtitle">{invoice.type} Invoice</h4>
                                     </div>
                                 </div>
                                 <div className="invoice-id">
-                                    <p className="title">INVOICE NO.</p>
+                                    <p className="title">Invoice No.</p>
                                     <h1 className="id-number">#{invoice.invoice_no}</h1>
                                 </div>
                             </header>

@@ -2,25 +2,28 @@
 .footer {
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
     color: #333;
-    padding: 8px 0; /* Bohat slim padding */
+    padding: 8px 0;
     text-align: center;
     font-size: 12px;
     width: 100%;
-    margin-top: auto; 
+    margin-top: auto;
     border-top: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.02);
     transition: all 0.3s ease;
     z-index: 100;
-}
-.brand-name {
-  font-weight: 700;
-  color: #1a73e8; /* Blue color ya jo aapki theme ho */
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
-/* Dashboard footer ke liye agar light text chahiye ho */
+.brand-name {
+  font-weight: 700;
+  color: #1a73e8;
+}
+
 .footer-dashboard .powered-by {
   color: #5e5e5e;
 }
+
 .footer-dashboard .brand-name {
   color: #1a73e8;
 }
@@ -32,7 +35,9 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    padding: 0 30px;
+    padding: 0 16px;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .footer-content p {
@@ -42,7 +47,9 @@
 
 .footer-links {
     display: flex;
-    gap: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .footer-links a {
@@ -53,7 +60,6 @@
     transition: all 0.3s ease;
 }
 
-/* Unique Underline Effect */
 .footer-links a::after {
     content: '';
     position: absolute;
@@ -73,33 +79,17 @@
     width: 100%;
 }
 
-/* ✅ DASHBOARD SIDEBAR FIX (Desktop) */
-@media (min-width: 769px) {
-    /* Jab footer par footer-dashboard class ho */
-    .footer.footer-dashboard {
-        width: calc(100% - 260px); 
-        margin-left: 260px;
-    }
-}
-
-/* 📱 RESPONSIVE (Mobile) */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
     .footer {
-        padding: 10px 15px;
+        padding: 10px 12px;
     }
 
     .footer-content {
-        flex-direction: column-reverse; /* Mobile par stack ho jayega */
+        flex-direction: column-reverse;
         gap: 6px;
     }
 
     .footer-links {
-        gap: 15px;
-    }
-
-    /* Mobile par sidebar band hota hai isliye hamesha full width */
-    .footer.footer-dashboard {
-        width: 100%;
-        margin-left: 0;
+        gap: 12px;
     }
 }

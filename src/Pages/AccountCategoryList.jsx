@@ -92,21 +92,20 @@ const AccountCategoryList = () => {
 
       <div className="acc-category-wrapper">
         <div className="acc-category-container">
-          
-          {/* Top Actions */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '30px 0px 25px 0px' }}>
-            <button className="back-btn" onClick={() => navigate("/accounts-setting")}>
-              <FaArrowLeft />
-            </button>
-            <button className="add-sale-btn" onClick={() => navigate("/create-category")} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FaPlus /> Add Category
-            </button>
-          </div>
-
-          <div className="category-card">
-            <h2 style={{ margin: '0 0 20px 0', fontSize: '1.4rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FaFolderOpen style={{ color: '#3b82f6' }} /> Account Categories
-            </h2>
+          <div className="category-card erp-page-card">
+            <div className="erp-page-header">
+              <div className="erp-page-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/accounts-setting")}>
+                  <FaArrowLeft />
+                </button>
+                <h2 className="erp-page-title">
+                  <FaFolderOpen style={{ color: '#475569' }} /> Account Categories
+                </h2>
+              </div>
+              <button type="button" className="add-sale-btn" onClick={() => navigate("/create-category")}>
+                <FaPlus /> Add Category
+              </button>
+            </div>
 
             {/* Edit Modal */}
             {onUpdate && (
@@ -152,7 +151,7 @@ const AccountCategoryList = () => {
             {loading ? (
               <div style={{ textAlign: "center", padding: "40px" }}><div className="loader"></div></div>
             ) : (
-              <div className="prod-table-container">
+              <div className="erp-table-scroll prod-table-container">
                 <table className="entity-table">
                   <thead>
                     <tr>
@@ -165,10 +164,10 @@ const AccountCategoryList = () => {
                   <tbody>
                     {categories.map((cat, index) => (
                       <tr key={cat.id}>
-                        <td>{index + 1}</td>
-                        <td style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#3b82f6' }}>{cat.category_code}</td>
-                        <td style={{ fontWeight: '500' }}>{cat.category_name}</td>
-                        <td>
+                        <td data-label="#">{index + 1}</td>
+                        <td data-label="Code" style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#0f172a' }}>{cat.category_code}</td>
+                        <td data-label="Category Name" style={{ fontWeight: '500' }}>{cat.category_name}</td>
+                        <td data-label="Actions">
                           <div className="action-btns-gap" style={{ justifyContent: 'center' }}>
                             <button className="edit-btn-action" onClick={() => handleEdit(cat)} title="Edit">
                               <FaEdit />

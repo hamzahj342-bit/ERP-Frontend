@@ -112,113 +112,107 @@ const PaymentTransactionInvoice = () => {
     <div className="invoice-container">
       <div id="payment-invoice-detail" className="invoice-box shadow-lg">
         <header className="invoice-header">
-          <div className="company-info" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          <div className="company-info">
             {user?.profile_image ? (
               <img
+                className="invoice-logo"
                 src={getLogoUrl()}
                 alt="Logo"
-                style={{ width: "80px", height: "80px", borderRadius: "8px", objectFit: "cover" }}
                 crossOrigin="anonymous"
               />
             ) : (
-              <div style={{ width: "80px", height: "80px", background: "#eee", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#888", border: "1px solid #ddd" }}>
-                NO LOGO
-              </div>
+              <div className="invoice-logo-fallback">NO LOGO</div>
             )}
             <div>
-              <p className="title text" style={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "1.2rem", margin: 0 }}>
-                {currentCompanyName}
-              </p>
-              <h4 className="subtitle">PAYMENT TRANSACTION VOUCHER</h4>
+              <p className="title text">{currentCompanyName}</p>
+              <h4 className="subtitle">Payment Transaction Voucher</h4>
             </div>
           </div>
 
           <div className="invoice-id">
-            <p className="title">VOUCHER NO.</p>
+            <p className="title">Voucher No.</p>
             <h1 className="id-number">#{mainInvoiceNo}</h1>
           </div>
         </header>
 
-        {/* SUMMARY SECTION: TOTAL AMOUNT, DATE & CREATED BY SIDE-BY-SIDE */}
-        <section className="voucher-summary" style={{ display: "flex", gap: "15px", flexWrap: "wrap", margin: "20px 0" }}>
-          <div className="voucher-card amount-card" style={{ flex: 1, minWidth: "200px" }}>
+        <section className="voucher-summary payment-voucher-summary">
+          <div className="voucher-card amount-card">
             <span>Total Payment Amount</span>
-            <h2>Rs. {Number(totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
+            <h2>Rs. {Number(totalAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
           </div>
 
-          <div className="voucher-card" style={{ flex: 1, minWidth: "150px" }}>
+          <div className="voucher-card">
             <span>Transaction Date</span>
-            <p style={{ fontSize: "1.1rem", fontWeight: "bold", margin: "5px 0 0" }}>{formatDate(transactionDate)}</p>
+            <p>{formatDate(transactionDate)}</p>
           </div>
 
-          <div className="voucher-card" style={{ flex: 1, minWidth: "150px" }}>
+          <div className="voucher-card">
             <span>Created By</span>
-            <p style={{ fontSize: "1.1rem", fontWeight: "bold", margin: "5px 0 0" }}>{createdBy}</p>
+            <p>{createdBy}</p>
           </div>
         </section>
 
-        {/* TRANSACTION BREAKDOWN TABLE */}
         <section className="payment-detail-box">
           <h5 className="section-title">Journal Entries Breakdown</h5>
 
-          <table className="payment-table" style={{ width: "100%", marginBottom: "15px", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f8f9fa", textAlign: "left" }}>
-                <th style={{ padding: "10px", borderBottom: "2px solid #dee2e6" }}>Account & Party Name</th>
-                <th style={{ padding: "10px", borderBottom: "2px solid #dee2e6" }}>Description</th>
-                <th style={{ padding: "10px", borderBottom: "2px solid #dee2e6", textAlign: "right" }}>Debit</th>
-                <th style={{ padding: "10px", borderBottom: "2px solid #dee2e6", textAlign: "right" }}>Credit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, index) => {
-                const accName = row.account_name || row.account?.name || row.account_title || `Account ID: ${row.account_id}`;
-                const partyName = row.entity_name || row.entity?.name || null;
+          <div className="table-responsive">
+            <table className="payment-table item-table">
+              <thead>
+                <tr>
+                  <th className="product-col">Account & Party Name</th>
+                  <th>Description</th>
+                  <th className="text-right">Debit</th>
+                  <th className="text-right">Credit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => {
+                  const accName = row.account_name || row.account?.name || row.account_title || `Account ID: ${row.account_id}`;
+                  const partyName = row.entity_name || row.entity?.name || null;
 
-                return (
-                  <tr key={index}>
-                    <td style={{ padding: "10px", borderBottom: "1px solid #eee" }}>
-                      <strong style={{ fontSize: "0.95rem", color: "#2c3e50" }}>{accName}</strong>
-                      {partyName && (
-                        <span style={{ color: "#666", fontSize: "0.85rem", display: "block", marginTop: "2px" }}>
-                          Party: {partyName}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: "10px", borderBottom: "1px solid #eee" }}>{row.description || description}</td>
-                    <td style={{ padding: "10px", borderBottom: "1px solid #eee", textAlign: "right" }}>
-                      {Number(row.debit) > 0 ? `${Number(row.debit).toLocaleString()}` : "-"}
-                    </td>
-                    <td style={{ padding: "10px", borderBottom: "1px solid #eee", textAlign: "right" }}>
-                      {Number(row.credit) > 0 ? `${Number(row.credit).toLocaleString()}` : "-"}
-                    </td>
-                  </tr>
-                );
-              })}
-              <tr className="amount-row" style={{ fontWeight: "bold", background: "#fafafa" }}>
-                <td colSpan="2" style={{ padding: "10px" }}>Total Amount</td>
-                <td style={{ padding: "10px", textAlign: "right" }}>
-                  Rs. {Number(totalDebit).toLocaleString()}
-                </td>
-                <td style={{ padding: "10px", textAlign: "right" }}>
-                  Rs. {Number(totalCredit).toLocaleString()}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  return (
+                    <tr key={index}>
+                      <td className="product-col">
+                        <strong className="voucher-account-name">{accName}</strong>
+                        {partyName && (
+                          <span className="voucher-party-name">Party: {partyName}</span>
+                        )}
+                      </td>
+                      <td>{row.description || description}</td>
+                      <td className="text-right">
+                        {Number(row.debit) > 0 ? `${Number(row.debit).toLocaleString()}` : "-"}
+                      </td>
+                      <td className="text-right">
+                        {Number(row.credit) > 0 ? `${Number(row.credit).toLocaleString()}` : "-"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr className="amount-row">
+                  <td colSpan="2">Total Amount</td>
+                  <td className="text-right">
+                    Rs. {Number(totalDebit).toLocaleString()}
+                  </td>
+                  <td className="text-right">
+                    Rs. {Number(totalCredit).toLocaleString()}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <footer className="invoice-footer">
           <div className="note-section">
             <p className="note">Thank you. This invoice represents the payment transaction entry.</p>
-            <div className="action-buttons-group no-print" style={{ display: "flex", gap: "10px", marginTop: "20px", justifyContent: "center" }}>
-              <button onClick={() => navigate(-1)} className="back-button" style={{ padding: "10px 20px", cursor: "pointer" }}>
+            <div className="action-buttons-group no-print">
+              <button type="button" onClick={() => navigate(-1)} className="back-button">
                 ← Back
               </button>
-              <button onClick={handleDownloadImage} className="download-button bg-png">
+              <button type="button" onClick={handleDownloadImage} className="download-button bg-png" title="Download PNG">
                 <FaImage />
               </button>
-              <button onClick={handleDownloadPDF} className="download-button bg-pdf">
+              <button type="button" onClick={handleDownloadPDF} className="download-button bg-pdf" title="Download PDF">
                 <FaFilePdf />
               </button>
             </div>

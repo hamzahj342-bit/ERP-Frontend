@@ -1,22 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MainLayout from '../Layout/MainLayout';
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import api from '../../api';
 import { FaArrowLeft, FaSearch, FaFilter, FaFileExcel, FaFilePdf, FaImage } from 'react-icons/fa';
 import { MdScience, MdPrecisionManufacturing } from 'react-icons/md';
 import { toast } from 'react-toastify';
+import '../Profitloss.css';
 
 // Export Libraries
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
+import { localToday, localFirstOfMonth } from '../utils/localDate';
 
 const ProductionReport = () => {
   const navigate = useNavigate();
   const reportRef = useRef(); // PNG capture ke liye reference
-  const today = new Date().toISOString().split('T')[0];
-  const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const today = localToday();
+  const firstDay = localFirstOfMonth();
 
   const [fromDate, setFromDate] = useState(firstDay);
   const [toDate, setToDate] = useState(today);
@@ -120,78 +123,76 @@ const ProductionReport = () => {
   };
 
   return (
-    <div style={{ width: '100vw', minHeight: '100vh', background: '#f4f7f6' }}>
-      <MainLayout />
-      <div style={{ padding: '20px', width: '98%', margin: '0 auto' }}>
-        
-        {/* Header Section */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <button onClick={() => navigate('/reports')} className='back-btn'><FaArrowLeft /></button>
-            <h2 style={{ margin: 0, color: '#2c3e50' }}>Production Analytics</h2>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '10px', background: '#fff', padding: '10px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', flexWrap: 'wrap', alignItems: 'center' }}>
-            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
-            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }} />
-            <button onClick={fetchReport} style={{ padding: '8px 15px', background: '#2196f3', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}> <FaFilter /> Filter</button>
-            
-            {/* Export Buttons Section */}
-            <div style={{ display: 'flex', gap: '5px', borderLeft: '1px solid #eee', paddingLeft: '10px' }}>
-              <button onClick={exportToExcel} title="Excel" style={{ padding: '8px 12px', background: '#2e7d32', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaFileExcel /></button>
-              <button onClick={exportToPDF} title="PDF" style={{ padding: '8px 12px', background: '#c62828', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaFilePdf /></button>
-              <button onClick={exportToPNG} title="PNG" style={{ padding: '8px 12px', background: '#ef6c00', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}><FaImage /></button>
+    <>
+      <NavigationBar />
+      <div className="report-page-wrapper">
+        <div className="report-card">
+          <div className="report-header">
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h3 className="report-title">
+                    <MdPrecisionManufacturing className="report-title-icon" /> Production Analytics
+                  </h3>
+                  <p className="report-description">View production summary and material consumption data.</p>
+                </div>
+              </div>
+              {filteredData.length > 0 && (
+                <div className="export-btn-group">
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToPNG} title="PNG"><FaImage /></button>
+                </div>
+              )}
+            </div>
+
+            <div className="filter-group">
+              <input type="text" className="date-input" placeholder={reportType === 'summary' ? "Search Product..." : "Search Material..."} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ minWidth: '160px' }} />
+              <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <button type="button" className="get-report-btn" onClick={fetchReport}>
+                <FaFilter /> Filter
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Search Bar */}
-        <div style={{ marginBottom: '20px', maxWidth: '400px', position: 'relative' }}>
-          <FaSearch style={{ position: 'absolute', left: '15px', top: '12px', color: '#999' }} />
-          <input 
-            type="text" 
-            placeholder={reportType === 'summary' ? "Search Product..." : "Search Material..."} 
-            value={searchTerm} 
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: '10px 40px', borderRadius: '30px', border: '1px solid #ddd', outline: 'none' }}
-          />
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #ddd' }}>
-          <button onClick={() => setReportType('summary')} style={{ padding: '12px 25px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: reportType === 'summary' ? '4px solid #4caf50' : 'none', color: reportType === 'summary' ? '#4caf50' : '#666', fontWeight: 'bold' }}><MdPrecisionManufacturing /> Summary</button>
-          {/* Note: In future you can enable consumption tab here */}
-        </div>
-
-        {/* Data Table Area - Reference for PNG Export */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '50px' }}>Loading Production Data...</div>
-        ) : (
-          <div ref={reportRef} style={{ background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f8f9fa', textAlign: 'left' }}>
-                  <th style={{ padding: '15px', borderBottom: '2px solid #eee' }}>{reportType === 'summary' ? 'Product Name' : 'Material Name'}</th>
-                  <th style={{ padding: '15px', borderBottom: '2px solid #eee' }}>{reportType === 'summary' ? 'Total Batches' : 'Qty Used'}</th>
-                  <th style={{ padding: '15px', borderBottom: '2px solid #eee', textAlign: 'right' }}>{reportType === 'summary' ? 'Produced Qty' : 'Value (Rs)'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredData.map((row, index) => (
-                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '15px' }}>{reportType === 'summary' ? row.productName : row.materialName}</td>
-                    <td style={{ padding: '15px' }}>{reportType === 'summary' ? row.batchCount : Number(row.usedQty).toFixed(2)}</td>
-                    <td style={{ padding: '15px', textAlign: 'right', fontWeight: 'bold' }}>
-                      {Number(reportType === 'summary' ? row.totalQty : row.totalCost).toLocaleString()}
-                    </td>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Loading Production Data...</div>
+          ) : (
+            <div ref={reportRef} className="pl-table-container">
+              <div className="pl-header-section">
+                <h3 className="pl-statement-title">Production {reportType === 'summary' ? 'Summary' : 'Consumption'} Report</h3>
+                <p className="pl-statement-subtitle">{fromDate} to {toDate}</p>
+              </div>
+              <table className="pl-table">
+                <thead>
+                  <tr>
+                    <th>{reportType === 'summary' ? 'Product Name' : 'Material Name'}</th>
+                    <th className="text-right">{reportType === 'summary' ? 'Total Batches' : 'Qty Used'}</th>
+                    <th className="text-right">{reportType === 'summary' ? 'Produced Qty' : 'Value (Rs)'}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {filteredData.map((row, index) => (
+                    <tr key={index}>
+                      <td>{reportType === 'summary' ? row.productName : row.materialName}</td>
+                      <td className="text-right">{reportType === 'summary' ? row.batchCount : Number(row.usedQty).toFixed(2)}</td>
+                      <td className="text-right font-bold">
+                        {Number(reportType === 'summary' ? row.totalQty : row.totalCost).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 

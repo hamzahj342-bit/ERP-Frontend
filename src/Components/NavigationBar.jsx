@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  FaBars, FaUserCircle, FaSignOutAlt, FaHome, FaTruck, FaUserTie,
+  FaBars, FaTimes, FaUserCircle, FaSignOutAlt, FaHome, FaTruck, FaUserTie,
   FaFileAlt, FaSeedling, FaCubes, FaMoneyBillAlt, FaTools, FaHistory,
   FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus, FaFileInvoice, FaBuilding,
   FaStore, FaWarehouse, FaCashRegister, FaUndo, FaShoppingCart, FaBarcode
@@ -10,41 +10,57 @@ import { MdScience } from "react-icons/md";
 import { hasPermission, hasAnyPermission, REPORT_PERMISSION_KEYS } from "../permissions";
 import "../Bar.css";
 
+const DESKTOP_BREAKPOINT = 769;
+
 const NavigationBar = () => {
   const navigate = useNavigate();
-
-   // ✅ Vite Environment Variable for Image Base URL
-  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
-  // ✅ Smart Image Logic: Cloudinary vs Local
-const getProfileImage = () => {
-  if (!user?.profile_image) return null;
-  console.log("Current Profile Image State:", user.profile_image);
-
-
-  if (user.profile_image.startsWith("http")) {
-    return user.profile_image;
-  }
-
-
-    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
-
-    const finalUrl = `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
-
-    console.log("Fixed URL:", finalUrl); 
-    return finalUrl;
-};
-
   const location = useLocation();
+
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || "http://localhost:5000";
+
+  const isDashboard = location.pathname === "/dashboard";
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= DESKTOP_BREAKPOINT
+  );
+  const isDashboardPinned = isDashboard && isDesktop;
   const sidebarRef = useRef(null);
 
- 
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
-  const isDashboard = location.pathname === "/dashboard";
+  const getProfileImage = () => {
+    if (!user?.profile_image) return null;
+
+    if (user.profile_image.startsWith("http")) {
+      return user.profile_image;
+    }
+
+    const cleanFileName = user.profile_image.replace("uploads\\", "").replace("uploads/", "");
+    return `${IMAGE_BASE_URL}/uploads/${cleanFileName}`.replace(/\\/g, "/");
+  };
+
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  useEffect(() => {
+    document.body.classList.add("erp-has-nav");
+    return () => {
+      document.body.classList.remove("erp-has-nav");
+      document.body.classList.remove("sidebar-open");
+      document.body.classList.remove("erp-dashboard-pinned");
+    };
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("erp-dashboard-pinned", isDashboardPinned);
+  }, [isDashboardPinned]);
+
+  useEffect(() => {
+    document.body.classList.toggle("sidebar-open", sidebarOpen && !isDashboardPinned);
+  }, [sidebarOpen, isDashboardPinned]);
 
   useEffect(() => {
     const updateUserData = () => {
@@ -55,7 +71,7 @@ const getProfileImage = () => {
     };
 
     window.addEventListener("storage", updateUserData);
-    const interval = setInterval(updateUserData, 2000); 
+    const interval = setInterval(updateUserData, 2000);
 
     return () => {
       window.removeEventListener("storage", updateUserData);
@@ -63,22 +79,47 @@ const getProfileImage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+      setIsDesktop(desktop);
+      if (desktop && location.pathname !== "/dashboard") {
+        setSidebarOpen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isDashboardPinned) {
+      closeSidebar();
+    }
+  }, [location.pathname, isDashboardPinned, closeSidebar]);
+
+  useEffect(() => {
+    if (!sidebarOpen || isDashboardPinned) return;
+
+    const handler = (e) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        closeSidebar();
+      }
+    };
+
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [sidebarOpen, isDashboardPinned, closeSidebar]);
+
   const logOut = () => {
     localStorage.clear();
     navigate("/");
   };
-
-  // Sidebar outside click
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const handler = (e) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
-        setSidebarOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [sidebarOpen]);
 
   const menuSections = [
     { type: "link", icon: <FaHome />, label: "Dashboard", path: "/dashboard", perm: "dashboard" },
@@ -95,7 +136,7 @@ const getProfileImage = () => {
         { icon: <FaFileInvoice />, label: "Goods Received Note", path: "/grn-list", perm: "rm.grn" },
         { icon: <FaFileInvoice />, label: "Delivery Challan", path: "/dc-list", perm: "rm.delivery_challan" },
         { icon: <FaExchangeAlt />, label: "RM Transactions", path: "/rm-transactions", perm: "rm.transactions" },
-      ], 
+      ],
     },
     {
       type: "heading", label: "RETAIL", icon: <FaStore />,
@@ -132,7 +173,7 @@ const getProfileImage = () => {
       children: [
         { icon: <FaTools />, label: "FP Production", path: "/fp-production", perm: "fp.production" },
         { icon: <FaExchangeAlt />, label: "FP Transactions", path: "/fp-transactions", perm: "fp.transactions" },
-            { icon: <FaFileInvoice />, label: "FP Delivery Challan", path: "/dc-fp-list", perm: "fp.delivery_challan" },
+        { icon: <FaFileInvoice />, label: "FP Delivery Challan", path: "/dc-fp-list", perm: "fp.delivery_challan" },
         { icon: <FaLayerGroup />, label: "Product Batches", path: "/product-batches", perm: "fp.product_batches" },
         { icon: <FaHistory />, label: "FP History", path: "/finished-products", perm: "fp.history" },
       ],
@@ -154,8 +195,6 @@ const getProfileImage = () => {
     },
   ];
 
-  // A menu entry is visible if the user has its required permission
-  // (or any of anyPerm, used for the aggregate "Reports" tab).
   const canSee = (item) => {
     if (item.anyPerm) return hasAnyPermission(item.anyPerm);
     return hasPermission(item.perm);
@@ -165,7 +204,11 @@ const getProfileImage = () => {
     if (item.type === "link") {
       if (!canSee(item)) return null;
       return (
-        <li key={item.label} onClick={() => { navigate(item.path); setSidebarOpen(false); }} className={location.pathname === item.path ? "active" : ""}>
+        <li
+          key={item.label}
+          onClick={() => { navigate(item.path); closeSidebar(); }}
+          className={location.pathname === item.path ? "active" : ""}
+        >
           <span className="icon">{item.icon}</span>
           <span className="label">{item.label}</span>
         </li>
@@ -173,12 +216,16 @@ const getProfileImage = () => {
     }
     if (item.type === "heading") {
       const visibleChildren = item.children.filter(canSee);
-      if (visibleChildren.length === 0) return null; // hide empty group heading
+      if (visibleChildren.length === 0) return null;
       return (
         <React.Fragment key={item.label}>
           <li className="sidebar-heading"><span><b>{item.label}</b></span></li>
           {visibleChildren.map((child) => (
-            <li key={child.label} onClick={() => { navigate(child.path); setSidebarOpen(false); }} className={`nested-link ${location.pathname === child.path ? "active" : ""}`}>
+            <li
+              key={child.label}
+              onClick={() => { navigate(child.path); closeSidebar(); }}
+              className={`nested-link ${location.pathname === child.path ? "active" : ""}`}
+            >
               <span className="icon">{child.icon}</span>
               <span className="label">{child.label}</span>
             </li>
@@ -189,43 +236,49 @@ const getProfileImage = () => {
     return null;
   };
 
+  const handleUserMenuChange = (e) => {
+    if (e.target.value === "logout") logOut();
+    if (e.target.value === "profile") navigate("/profile");
+  };
+
   return (
     <>
       <div className="topbar">
         <div className="left-section">
-          <div className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            <FaBars size={22} />
-          </div>
+          <button
+            type="button"
+            className="hamburger"
+            onClick={() => setSidebarOpen((open) => !open)}
+            aria-label="Toggle menu"
+          >
+            <FaBars size={15} />
+          </button>
+          <span className="topbar-brand">ERP Menu</span>
         </div>
 
         <div className="user-info">
-          {/* ✅ Dynamic Image Path with Fallback Logic */}
-          <div className="avatar-wrapper" onClick={() => navigate("/profile")} style={{ cursor: 'pointer' }}>
+          <div className="avatar-wrapper" onClick={() => navigate("/profile")} style={{ cursor: "pointer" }}>
             {user?.profile_image ? (
-              <img 
-  src={getProfileImage()} 
-  alt="Profile" 
-  className="user-avatar" 
-  style={{ width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }}
-  onError={(e) => {
-    e.target.onerror = null; 
-    e.target.src = "https://via.placeholder.com/35?text=U"; 
-  }}
-/>
+              <img
+                src={getProfileImage()}
+                alt="Profile"
+                className="user-avatar"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://via.placeholder.com/32?text=U";
+                }}
+              />
             ) : (
-              <FaUserCircle size={28} className="user-icon" style={{ color: 'white' }} />
+              <FaUserCircle size={22} className="user-icon" style={{ color: "white" }} />
             )}
           </div>
 
-          <select 
-            className="select-arrow" 
-            value="" 
-            onChange={(e) => { 
-              if (e.target.value === "logout") logOut(); 
-              if (e.target.value === "profile") navigate("/profile"); 
-            }}
+          <select
+            className="select-arrow"
+            value=""
+            onChange={handleUserMenuChange}
+            aria-label="User menu"
           >
-            {/* ✅ Priority: username > name > default "User" */}
             <option value="" disabled hidden>
               {user?.username || user?.name || "User"}
             </option>
@@ -235,17 +288,34 @@ const getProfileImage = () => {
         </div>
       </div>
 
-      <div ref={sidebarRef} className={`sidebar ${isDashboard ? "sidebar-static" : ""} ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-header"><h2>ERP Menu</h2></div>
+      <div
+        ref={sidebarRef}
+        className={`sidebar ${isDashboardPinned ? "sidebar-static" : ""} ${sidebarOpen ? "open" : ""}`}
+        aria-hidden={!isDashboardPinned && !sidebarOpen}
+      >
+        <div className="sidebar-header">
+          <h2>ERP Menu</h2>
+          <button
+            type="button"
+            className="sidebar-close"
+            onClick={closeSidebar}
+            aria-label="Close menu"
+          >
+            <FaTimes />
+          </button>
+        </div>
         <ul className="sidebar-menu">
           {menuSections.map(renderMenuItem)}
-          <li onClick={logOut} style={{marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.2)'}}>
+          <li className="sidebar-logout" onClick={logOut}>
             <span className="icon"><FaSignOutAlt /></span>
             <span className="label">Logout</span>
           </li>
         </ul>
       </div>
-      {sidebarOpen && <div className="overlay" onClick={() => setSidebarOpen(false)}></div>}
+
+      {sidebarOpen && !isDashboardPinned && (
+        <div className="overlay" onClick={closeSidebar} aria-hidden="true" />
+      )}
     </>
   );
 };

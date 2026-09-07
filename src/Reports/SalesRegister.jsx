@@ -1,21 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import MainLayout from '../Layout/MainLayout';
+import NavigationBar from '../Components/NavigationBar';
+import Footer from '../Components/Footer';
 import api from '../../api';
-import { FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaSync } from 'react-icons/fa';
+import { FaArrowLeft, FaFileExcel, FaFilePdf, FaImage, FaSync, FaCashRegister } from 'react-icons/fa';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx-js-style';
 import html2canvas from 'html2canvas';
-import '../downloads-btn.css';
+import '../Profitloss.css';
+import { localToday, localFirstOfMonth } from '../utils/localDate';
 
 const SalesRegister = () => {
   const navigate = useNavigate();
   const reportRef = useRef();
 
-  const today = new Date().toISOString().split('T')[0];
-  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const today = localToday();
+  const firstOfMonth = localFirstOfMonth();
 
   // Active Tab: 'FP' (Finished Goods) | 'RM' (Raw Material)
   const [activeTab, setActiveTab] = useState('RM');
@@ -185,200 +187,170 @@ const SalesRegister = () => {
   };
 
   return (
-    <div style={{ width: '100vw', minHeight: '100vh', background: '#f8fafc' }}>
-      <MainLayout />
-      <div style={{ padding: '20px', width: '98%', margin: '0 auto' }}>
-        
-        {/* Header Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <button onClick={() => navigate(-1)} className='back-btn'><FaArrowLeft /></button>
-            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#1e293b' }}>
-              Sales Register ({activeTab === 'RM' ? 'Raw Material' : 'Finished Goods'})
-            </h2>
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
-            <input type='date' value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-            <input type='date' value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-            
-            {/* Taxable Type Filter */}
-            <select 
-              value={taxableType} 
-              onChange={(e) => setTaxableType(e.target.value)}
-              style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px', backgroundColor: '#fff', cursor: 'pointer', fontWeight: '500' }}
-            >
-              <option value="ALL">All Invoices</option>
-              <option value="NON_TAXABLE">Non-Taxable Only</option>
-              <option value="TAXABLE">Taxable Only</option>
-            </select>
-
-            {/* Search Input Box */}
-            <input 
-              type='text' 
-              placeholder='Search Invoice/Customer...' 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px' }} 
-            />
-            
-            <button onClick={fetchSalesRegister} style={{ padding: '7px 14px', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}><FaSync /> Refresh</button>
-            
-            <div style={{ display: 'flex', gap: '8px', borderLeft: '1px solid #e2e8f0', paddingLeft: '8px' }}>
-              <button className="download-button bg-excel" onClick={exportToExcel} title="Export Excel"><FaFileExcel size={14} /></button>
-              <button className="download-button bg-pdf" onClick={exportToPDF} title="Export PDF"><FaFilePdf size={14} /></button>
-              <button className="download-button bg-png" onClick={exportToImage} title="Export Image"><FaImage size={14} /></button>
+    <>
+      <NavigationBar />
+      <div className="report-page-wrapper">
+        <div className="report-card">
+          <div className="report-header">
+            <div className="report-header-top">
+              <div className="report-header-left">
+                <button type="button" className="back-btn erp-back-btn" onClick={() => navigate("/reports")}>
+                  <FaArrowLeft />
+                </button>
+                <div>
+                  <h3 className="report-title">
+                    <FaCashRegister className="report-title-icon" /> Sales Register
+                  </h3>
+                  <p className="report-description">View sales invoices, revenue, COGS, and profitability by product type.</p>
+                </div>
+              </div>
+              {filteredRegister.length > 0 && (
+                <div className="export-btn-group">
+                  <button type="button" className="icon-button bg-pdf" onClick={exportToPDF} title="PDF"><FaFilePdf /></button>
+                  <button type="button" className="icon-button bg-excel" onClick={exportToExcel} title="Excel"><FaFileExcel /></button>
+                  <button type="button" className="icon-button bg-png" onClick={exportToImage} title="PNG"><FaImage /></button>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
 
-        {/* Tab Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #cbd5e1', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '5px' }}>
-            <button 
-              onClick={() => setActiveTab('RM')} 
-              style={{ 
-                padding: '8px 16px', 
-                border: 'none', 
-                background: 'none', 
-                cursor: 'pointer', 
-                borderBottom: activeTab === 'RM' ? '3px solid #334155' : 'none', 
-                color: activeTab === 'RM' ? '#1e293b' : '#64748b', 
-                fontWeight: '600' 
-              }}>
-              Raw Material
-            </button>
-            <button 
-              onClick={() => setActiveTab('FP')} 
-              style={{ 
-                padding: '8px 16px', 
-                border: 'none', 
-                background: 'none', 
-                cursor: 'pointer', 
-                borderBottom: activeTab === 'FP' ? '3px solid #334155' : 'none', 
-                color: activeTab === 'FP' ? '#1e293b' : '#64748b', 
-                fontWeight: '600' 
-              }}>
-              Finished Product
-            </button>
-          </div>
-        </div>
+            <div className="filter-group">
+              <input type="date" className="date-input" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+              <input type="date" className="date-input" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+              <select className="date-input" value={taxableType} onChange={(e) => setTaxableType(e.target.value)}>
+                <option value="ALL">All Invoices</option>
+                <option value="NON_TAXABLE">Non-Taxable Only</option>
+                <option value="TAXABLE">Taxable Only</option>
+              </select>
+              <input type="text" className="date-input" placeholder="Search Invoice/Customer..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <button type="button" className="get-report-btn" onClick={fetchSalesRegister}>
+                <FaSync /> Refresh
+              </button>
+            </div>
 
-        {/* Printable Container */}
-        <div ref={reportRef} style={{ background: '#fff', borderRadius: '8px', padding: '20px', border: '1px solid #e2e8f0' }}>
-          
-          {/* Quick Metrics Bar */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'center', marginBottom: '20px' }}>
-            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-              <strong>Invoices Count:</strong> {filteredRegister.length}
-            </div>
-            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-              <strong>Total Revenue:</strong> {formatCurrency(totals.total_revenue)}
-            </div>
-            <div style={{ padding: '8px 12px', borderRadius: '4px', background: '#f8fafc', border: '1px solid #cbd5e1', fontSize: '13px' }}>
-              <strong>Total COGS:</strong> {formatCurrency(totals.total_cogs)}
-            </div>
-            <div style={{ padding: '8px 12px', borderRadius: '4px', background: totals.net_profit >= 0 ? '#f0fdf4' : '#fef2f2', border: `1px solid ${totals.net_profit >= 0 ? '#bbf7d0' : '#fecaca'}`, fontSize: '13px' }}>
-              <strong style={{ color: totals.net_profit >= 0 ? '#16a34a' : '#dc2626' }}>
-                {totals.net_profit >= 0 ? 'Net Profit:' : 'Net Loss:'} {formatCurrency(totals.net_profit)}
-              </strong>
+            <div className="filter-group" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button type="button" onClick={() => setActiveTab('RM')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'RM' ? '3px solid #334155' : 'none', color: activeTab === 'RM' ? '#1e293b' : '#64748b', fontWeight: '600' }}>Raw Material</button>
+                <button type="button" onClick={() => setActiveTab('FP')} style={{ padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer', borderBottom: activeTab === 'FP' ? '3px solid #334155' : 'none', color: activeTab === 'FP' ? '#1e293b' : '#64748b', fontWeight: '600' }}>Finished Product</button>
+              </div>
             </div>
           </div>
 
-          {/* Data Table */}
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading Sales Register...</div>
-          ) : (
-            <div style={{ overflowX: 'auto', marginBottom: '25px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
-                    {['Date', 'Invoice No.', 'Customer Name', 'Tax Status', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit'].map(h => (
-                      <th key={h} style={{ padding: '10px', textAlign: 'left', fontSize: '13px', color: '#334155' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRegister.length === 0 ? (
+          <div ref={reportRef} className="pl-table-container">
+            <div className="pl-header-section">
+              <h3 className="pl-statement-title">SALES REGISTER ({activeTab === 'RM' ? 'RAW MATERIAL' : 'FINISHED GOODS'})</h3>
+              <p className="pl-statement-subtitle">Period: <strong>{fromDate}</strong> to <strong>{toDate}</strong></p>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'center', marginBottom: '15px' }}>
+              <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
+                <strong>Invoices:</strong> <span className="pl-summary-value">{filteredRegister.length}</span>
+              </div>
+              <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
+                <strong>Revenue:</strong> <span className="pl-summary-value">{formatCurrency(totals.total_revenue)}</span>
+              </div>
+              <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
+                <strong>COGS:</strong> <span className="pl-summary-value">{formatCurrency(totals.total_cogs)}</span>
+              </div>
+              <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px', background: totals.net_profit >= 0 ? '#f0fdf4' : '#fef2f2' }}>
+                <strong style={{ color: totals.net_profit >= 0 ? '#16a34a' : '#dc2626' }}>
+                  {totals.net_profit >= 0 ? 'Net Profit:' : 'Net Loss:'}
+                </strong> <span className="pl-summary-value" style={{ color: totals.net_profit >= 0 ? '#16a34a' : '#dc2626' }}>{formatCurrency(totals.net_profit)}</span>
+              </div>
+            </div>
+
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>Loading Sales Register...</div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="pl-table">
+                  <thead>
                     <tr>
-                      <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
-                        No matching sales register entries found.
-                      </td>
+                      {['Date', 'Invoice No.', 'Customer Name', 'Tax Status', 'Invoice Type', 'Revenue', 'COGS', 'Net Profit'].map(h => (
+                        <th key={h}>{h}</th>
+                      ))}
                     </tr>
-                  ) : (
-                    filteredRegister.map((row, idx) => {
-                      const link = getInvoiceDetailLink(row);
-                      return (
-                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#f8fafc' }}>
-                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.date ? new Date(row.date).toISOString().split('T')[0] : ''}</td>
-                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '600' }}>
-                            {link ? <Link to={link} style={{ color: '#0284c7' }}>{row.invoice_no}</Link> : row.invoice_no || 'N/A'}
-                          </td>
-                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.customer_name || 'N/A'}</td>
-                          <td style={{ padding: '10px', fontSize: '12px' }}>
-                            <span style={{ 
-                              padding: '2px 8px', 
-                              borderRadius: '12px', 
-                              fontSize: '11px', 
-                              fontWeight: '600',
-                              backgroundColor: row.is_taxable ? '#e0f2fe' : '#f1f5f9',
-                              color: row.is_taxable ? '#0369a1' : '#475569'
-                            }}>
-                              {row.is_taxable ? 'Taxable' : 'Non-Taxable'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '10px', fontSize: '13px' }}>{row.invoice_type}</td>
-                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '600', color: row.revenue < 0 ? '#dc2626' : '#1e293b' }}>
-                            {formatCurrency(row.revenue)}
-                          </td>
-                          <td style={{ padding: '10px', fontSize: '13px', color: '#0284c7', fontWeight: '600' }}>
-                            {formatCurrency(row.cogs)}
-                          </td>
-                          <td style={{ padding: '10px', fontSize: '13px', fontWeight: '700', color: row.net_profit >= 0 ? '#16a34a' : '#dc2626' }}>
-                            {formatCurrency(row.net_profit)}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {filteredRegister.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="text-center" style={{ padding: '20px', color: '#64748b' }}>
+                          No matching sales register entries found.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredRegister.map((row, idx) => {
+                        const link = getInvoiceDetailLink(row);
+                        return (
+                          <tr key={idx}>
+                            <td>{row.date ? new Date(row.date).toISOString().split('T')[0] : ''}</td>
+                            <td className="font-bold">
+                              {link ? <Link to={link} style={{ color: '#0284c7' }}>{row.invoice_no}</Link> : row.invoice_no || 'N/A'}
+                            </td>
+                            <td>{row.customer_name || 'N/A'}</td>
+                            <td>
+                              <span style={{ 
+                                padding: '2px 8px', 
+                                borderRadius: '12px', 
+                                fontSize: '11px', 
+                                fontWeight: '600',
+                                backgroundColor: row.is_taxable ? '#e0f2fe' : '#f1f5f9',
+                                color: row.is_taxable ? '#0369a1' : '#475569'
+                              }}>
+                                {row.is_taxable ? 'Taxable' : 'Non-Taxable'}
+                              </span>
+                            </td>
+                            <td>{row.invoice_type}</td>
+                            <td className="text-right font-bold" style={{ color: row.revenue < 0 ? '#dc2626' : '#1e293b' }}>
+                              {formatCurrency(row.revenue)}
+                            </td>
+                            <td className="text-right font-bold" style={{ color: '#0284c7' }}>
+                              {formatCurrency(row.cogs)}
+                            </td>
+                            <td className="text-right font-bold" style={{ color: row.net_profit >= 0 ? '#16a34a' : '#dc2626' }}>
+                              {formatCurrency(row.net_profit)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-          {/* Financial Summary */}
-          <div style={{ borderTop: '2px solid #cbd5e1', paddingTop: '15px', background: '#f8fafc', padding: '15px', borderRadius: '6px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', fontWeight: '700' }}>
-              FINANCIAL REGISTER SUMMARY ({activeTab === 'RM' ? 'RAW MATERIAL' : 'FINISHED GOODS'})
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-              <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>TOTAL REVENUE</span>
-                <span style={{ fontSize: '16px', fontWeight: '700', color: '#0284c7' }}>{formatCurrency(totals.total_revenue)}</span>
-              </div>
-              <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>TOTAL COGS</span>
-                <span style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626' }}>{formatCurrency(totals.total_cogs)}</span>
-              </div>
-              <div style={{ 
-                padding: '10px', 
-                background: totals.net_profit >= 0 ? '#f0fdf4' : '#fef2f2', 
-                border: `1px solid ${totals.net_profit >= 0 ? '#16a34a' : '#dc2626'}`, 
-                borderRadius: '4px' 
-              }}>
-                <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
-                  {totals.net_profit >= 0 ? 'NET PROFIT' : 'NET LOSS'}
-                </span>
-                <span style={{ fontSize: '18px', fontWeight: '700', color: totals.net_profit >= 0 ? '#16a34a' : '#dc2626' }}>
-                  {formatCurrency(totals.net_profit)}
-                </span>
+            <div style={{ borderTop: '2px solid #cbd5e1', paddingTop: '15px', background: '#f8fafc', padding: '15px', borderRadius: '6px', marginTop: '15px' }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#1e293b', fontWeight: '700' }}>
+                FINANCIAL REGISTER SUMMARY ({activeTab === 'RM' ? 'RAW MATERIAL' : 'FINISHED GOODS'})
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>TOTAL REVENUE</span>
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#0284c7' }}>{formatCurrency(totals.total_revenue)}</span>
+                </div>
+                <div style={{ padding: '10px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>TOTAL COGS</span>
+                  <span style={{ fontSize: '16px', fontWeight: '700', color: '#dc2626' }}>{formatCurrency(totals.total_cogs)}</span>
+                </div>
+                <div style={{ 
+                  padding: '10px', 
+                  background: totals.net_profit >= 0 ? '#f0fdf4' : '#fef2f2', 
+                  border: `1px solid ${totals.net_profit >= 0 ? '#16a34a' : '#dc2626'}`, 
+                  borderRadius: '4px' 
+                }}>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
+                    {totals.net_profit >= 0 ? 'NET PROFIT' : 'NET LOSS'}
+                  </span>
+                  <span style={{ fontSize: '18px', fontWeight: '700', color: totals.net_profit >= 0 ? '#16a34a' : '#dc2626' }}>
+                    {formatCurrency(totals.net_profit)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 
