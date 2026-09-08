@@ -326,6 +326,21 @@
   color: #0f172a;
 }
 
+.stock-ledger-table {
+  table-layout: auto;
+  width: 100%;
+}
+
+.stock-ledger-table th,
+.stock-ledger-table td {
+  box-sizing: border-box;
+}
+
+.stock-ledger-table th.text-right,
+.stock-ledger-table td.text-right {
+  text-align: right !important;
+}
+
 @media (max-width: 768px) {
   .report-page-wrapper {
     padding: 8px;

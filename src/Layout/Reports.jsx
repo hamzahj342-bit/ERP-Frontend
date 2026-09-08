@@ -9,7 +9,8 @@ import {
     FaBookOpen,
     FaChartBar,
     FaHistory,
-    FaMoneyBillWave
+    FaMoneyBillWave,
+    FaWarehouse
 } from 'react-icons/fa';
 import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../RM_CardLayout.css';
@@ -115,6 +116,16 @@ const Reports = () => {
                                 path="/stock-report" 
                                 color="#10b981"
                                 perm="reports.stock"
+                                navigate={navigate}
+                            />
+
+                            <ReportCard 
+                                title="Stock Ledger Report"
+                                description="Item-wise stock ledger with opening, in, out and running balance. Filter by RM / FP and search a material or product."
+                                icon={<FaWarehouse />}
+                                path="/stock-ledger" 
+                                color="#0f172a"
+                                perm="reports.stock_ledger"
                                 navigate={navigate}
                             />
 
