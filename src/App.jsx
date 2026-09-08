@@ -99,6 +99,7 @@ import SalesRegister from './Reports/SalesRegister';
 import PurchaseRegister from './Reports/PurchaseRegister';
 import ReceivableRegister from './Reports/ReceivableRegister';
 import CashReport from './Reports/CashReport';
+import StockLedgerReport from './Reports/StockLedgerReport';
 import NavigationBar from './Components/NavigationBar';
 import { FaArrowLeft } from 'react-icons/fa';
 import PermissionRoute from './Components/PermissionRoute';
@@ -264,6 +265,7 @@ const App = () => {
         <Route path='/purchase-register' element={<PermissionRoute permission="reports.purchase_register"> <PurchaseRegister /> </PermissionRoute>} />
         <Route path='/receivable-register' element={<PermissionRoute permission="reports.receivable_register"> <ReceivableRegister /> </PermissionRoute>} />
         <Route path='/cash-report' element={<PermissionRoute permission="reports.cash_report"> <CashReport /> </PermissionRoute>} />
+        <Route path='/stock-ledger' element={<PermissionRoute permission="reports.stock_ledger"> <StockLedgerReport /> </PermissionRoute>} />
         {/* Administration — roles.manage (Full Access) or users.manage (Super Admin) */}
         <Route path='/user-management' element={<PermissionRoute anyPermission={['roles.manage', 'users.manage']}> <UserList /> </PermissionRoute>} />
         <Route path='/user-management/new' element={<PermissionRoute permission="users.manage"> <UserForm /> </PermissionRoute>} />

@@ -77,6 +77,7 @@ export const PERMISSION_GROUPS = [
       { key: "reports.purchase_register", label: "Purchase Register Report" },
       { key: "reports.receivable_register", label: "Receivable Register Report" },
       { key: "reports.cash_report", label: "Cash / Voucher Report" },
+      { key: "reports.stock_ledger", label: "Stock Ledger Report" },
     ],
   },
   {
