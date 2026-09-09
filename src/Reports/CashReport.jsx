@@ -29,6 +29,8 @@ const CashReport = () => {
     count: 0,
     voucher_count: 0,
     total_amount: 0,
+    payable_amount: 0,
+    receivable_amount: 0,
     by_type: { JV: 0, CPV: 0, CRV: 0, BPV: 0, BRV: 0 },
   });
 
@@ -52,6 +54,8 @@ const CashReport = () => {
           count: 0,
           voucher_count: 0,
           total_amount: 0,
+          payable_amount: 0,
+          receivable_amount: 0,
           by_type: { JV: 0, CPV: 0, CRV: 0, BPV: 0, BRV: 0 },
         }
       );
@@ -80,13 +84,26 @@ const CashReport = () => {
     );
   });
 
+  const rowTouchesPayable = (row) => {
+    if (row.is_payable) return true;
+    return /payable/i.test(`${row.from_display || ''} ${row.to_display || ''}`);
+  };
+
+  const rowTouchesReceivable = (row) => {
+    if (row.is_receivable) return true;
+    return /receivable/i.test(`${row.from_display || ''} ${row.to_display || ''}`);
+  };
+
   const totals = filteredRegister.reduce(
     (acc, row) => {
+      const amt = Number(row.amount || 0);
       acc.count += 1;
-      acc.total_amount += Number(row.amount || 0);
+      acc.total_amount += amt;
+      if (rowTouchesPayable(row)) acc.payable_amount += amt;
+      if (rowTouchesReceivable(row)) acc.receivable_amount += amt;
       return acc;
     },
-    { count: 0, total_amount: 0 }
+    { count: 0, total_amount: 0, payable_amount: 0, receivable_amount: 0 }
   );
 
   const formatCurrency = (amount) => {
@@ -105,7 +122,7 @@ const CashReport = () => {
     const wb = XLSX.utils.book_new();
     const titleRow = ['CASH / VOUCHER REPORT'];
     const dateRow = [
-      `Period: ${fromDate} to ${toDate} | Filter: ${voucherType} | Total: ${formatCurrency(totals.total_amount)}`,
+      `Period: ${fromDate} to ${toDate} | Filter: ${voucherType} | Total: ${formatCurrency(totals.total_amount)} | Payable: ${formatCurrency(totals.payable_amount)} | Receivable: ${formatCurrency(totals.receivable_amount)}`,
     ];
     const header = [
       'Date',
@@ -139,7 +156,11 @@ const CashReport = () => {
     doc.setFontSize(14);
     doc.text('Cash / Voucher Report', 14, 14);
     doc.setFontSize(10);
-    doc.text(`Period: ${fromDate} to ${toDate} | Filter: ${voucherType}`, 14, 20);
+    doc.text(
+      `Period: ${fromDate} to ${toDate} | Filter: ${voucherType} | Payable: ${formatCurrency(totals.payable_amount)} | Receivable: ${formatCurrency(totals.receivable_amount)}`,
+      14,
+      20
+    );
     autoTable(doc, {
       startY: 26,
       head: [['Date', 'Voucher No', 'Type', 'Description', 'From', 'To', 'Amount']],
@@ -289,6 +310,14 @@ const CashReport = () => {
                 <strong>Total Amount:</strong>{' '}
                 <span className="pl-summary-value">{formatCurrency(totals.total_amount)}</span>
               </div>
+              <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
+                <strong>Payable:</strong>{' '}
+                <span className="pl-summary-value">{formatCurrency(totals.payable_amount)}</span>
+              </div>
+              <div className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
+                <strong>Receivable:</strong>{' '}
+                <span className="pl-summary-value">{formatCurrency(totals.receivable_amount)}</span>
+              </div>
               {['JV', 'CPV', 'CRV', 'BPV', 'BRV'].map((t) => (
                 <div key={t} className="pl-summary-bar" style={{ flex: 'unset', padding: '6px 12px' }}>
                   <strong>{t}:</strong>{' '}
@@ -363,6 +392,14 @@ const CashReport = () => {
                           Total
                         </td>
                         <td className="text-right font-bold">{formatCurrency(totals.total_amount)}</td>
+                      </tr>
+                      <tr className="amount-row">
+                        <td colSpan="6">
+                          Payable: {formatCurrency(totals.payable_amount)}
+                          {'  ·  '}
+                          Receivable: {formatCurrency(totals.receivable_amount)}
+                        </td>
+                        <td />
                       </tr>
                     </tfoot>
                   )}

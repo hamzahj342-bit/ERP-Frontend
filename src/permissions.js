@@ -78,6 +78,9 @@ export const PERMISSION_GROUPS = [
       { key: "reports.receivable_register", label: "Receivable Register Report" },
       { key: "reports.cash_report", label: "Cash / Voucher Report" },
       { key: "reports.stock_ledger", label: "Stock Ledger Report" },
+      { key: "reports.inventory_adjustment", label: "Inventory Adjustment Report" },
+      { key: "reports.payable_receivable", label: "Payable & Receivable Report" },
+      { key: "reports.balance_sheet", label: "Balance Sheet" },
     ],
   },
   {

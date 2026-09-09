@@ -140,6 +140,26 @@ const Reports = () => {
                             />
 
                             <ReportCard 
+                                title="Payable & Receivable Report"
+                                description="Current outstanding Accounts Receivable and Accounts Payable as of a date. Party-wise balances with totals."
+                                icon={<FaBalanceScale />} 
+                                path="/payable-receivable-report" 
+                                color="#b45309" 
+                                perm="reports.payable_receivable"
+                                navigate={navigate}
+                            />
+
+                            <ReportCard 
+                                title="Balance Sheet"
+                                description="Statement of financial position as of a date. Assets, Liabilities and Equity, with accumulated profit so the sheet balances."
+                                icon={<FaBalanceScale />} 
+                                path="/balance-sheet" 
+                                color="#0f766e" 
+                                perm="reports.balance_sheet"
+                                navigate={navigate}
+                            />
+
+                            <ReportCard 
                                 title="Capital & Net Worth Report"
                                 description="Comprehensive statement of owner's equity using the structural balance equation (Assets - Liabilities). Monitor real-time enterprise net worth and capital reserves."
                                 icon={<FaBalanceScale />}
@@ -216,6 +236,16 @@ const Reports = () => {
                                 path="/cash-report" 
                                 color="#0f172a" 
                                 perm="reports.cash_report"
+                                navigate={navigate}
+                            />
+
+                            <ReportCard 
+                                title="Inventory Adjustment Report"
+                                description="Add and deduct stock adjustments for raw materials and finished products, with qty, cost, reason and user."
+                                icon={<FaBalanceScale />}
+                                path="/inventory-adjustment-report" 
+                                color="#7c3aed" 
+                                perm="reports.inventory_adjustment"
                                 navigate={navigate}
                             />
                         </div>

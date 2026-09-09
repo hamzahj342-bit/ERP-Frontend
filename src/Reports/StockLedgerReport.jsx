@@ -252,7 +252,7 @@ const StockLedgerReport = () => {
   const getReferenceLink = (row) => {
     const invoiceNo = row.reference_no;
     if (!invoiceNo || row.isOpening) return null;
-    if (String(invoiceNo).startsWith('RECIPE-') || String(invoiceNo).startsWith('BATCH-')) return null;
+    if (String(invoiceNo).startsWith('RECIPE-') || String(invoiceNo).startsWith('BATCH-') || String(invoiceNo).startsWith('ADJ-')) return null;
     if (activeTab === 'RM') return `/rm-invoice/${invoiceNo}`;
     return `/fp-invoice-detail/${invoiceNo}`;
   };
