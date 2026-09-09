@@ -240,13 +240,10 @@ const StockLedgerReport = () => {
   }, [singleItem, register, apiTotals.opening_qty, apiTotals.opening_value, fromDate]);
 
   const closingQty = Number(apiTotals.closing_qty || 0);
-  const periodInVal = ledgerRows
-    .filter((r) => !r.isOpening)
-    .reduce((s, r) => s + Number(r.in_qty || 0) * Number(r.unit_price || 0), 0);
-  const periodOutVal = ledgerRows
-    .filter((r) => !r.isOpening)
-    .reduce((s, r) => s + Number(r.out_qty || 0) * Number(r.unit_price || 0), 0);
-  const closingVal = Number(apiTotals.opening_value || 0) + periodInVal - periodOutVal;
+  // Trust backend closing_value (aligned to rm_stock). Do NOT rebuild from line
+  // display prices — that leaves leftover Rs when qty is already 0.
+  const closingVal =
+    Math.abs(closingQty) < 1e-9 ? 0 : Number(apiTotals.closing_value || 0);
   const closingAvg = closingQty > 0 ? closingVal / closingQty : 0;
 
   const getReferenceLink = (row) => {
