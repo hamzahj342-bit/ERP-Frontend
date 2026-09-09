@@ -97,39 +97,58 @@ const Product_HistoryReport = () => {
     fetchHistoryReport();
   }, [activeTab, txGroup, fromDate, toDate, selectedItem]);
 
-  // --- Fixed Sale & Profit Calculations ---
-  const isSaleRow = (type = '') => {
+  // --- Sale vs Return (returns must subtract, not add) ---
+  const isSaleReturn = (type = '') => {
     const t = (type || '').toLowerCase();
-    return t.includes('sale') || t.includes('invoice') || t.includes('dispatch');
+    return t.includes('sale return') || t === 'salereturn' || t === 'fp sale return';
   };
 
-  const isReturnRow = (type = '') => {
+  const isSaleOnly = (type = '') => {
     const t = (type || '').toLowerCase();
-    return t.includes('return');
+    if (isSaleReturn(t)) return false;
+    return t === 'sale' || t === 'fp sale' || t.includes('invoice') || t.includes('dispatch');
   };
 
-  const getSignedValueByQuantity = (row, fieldName) => {
-    const rawValue = Number(row?.[fieldName] || 0);
-    const qtySign = Math.sign(Number(row?.quantity || 0));
-    if (qtySign === 0) {
-      return isReturnRow(row?.transaction_type) ? -Math.abs(rawValue) : Math.abs(rawValue);
-    }
-    return Math.abs(rawValue) * qtySign;
-  };
+  const saleSign = (type) => (isSaleReturn(type) ? -1 : 1);
 
-  const saleRows = reportData.filter(r => isSaleRow(r.transaction_type));
-  const netSaleQty = saleRows.reduce((sum, r) => sum + Number(r.quantity || 0), 0);
-  const netSaleRevenue = saleRows.reduce((sum, r) => sum + getSignedValueByQuantity(r, 'total_price'), 0);
+  const saleRows = reportData.filter(
+    (r) => isSaleOnly(r.transaction_type) || isSaleReturn(r.transaction_type)
+  );
 
-  const totalSaleCost = saleRows.reduce((sum, r) => {
-    const signedQty = Number(r.quantity || 0);
-    return sum + signedQty * Number(r.unit_cost || 0);
-  }, 0);
-
+  const netSaleQty = saleRows.reduce(
+    (sum, r) => sum + saleSign(r.transaction_type) * Math.abs(Number(r.quantity || 0)),
+    0
+  );
+  const netSaleRevenue = saleRows.reduce(
+    (sum, r) => sum + saleSign(r.transaction_type) * Math.abs(Number(r.total_price || 0)),
+    0
+  );
+  const totalSaleCost = saleRows.reduce(
+    (sum, r) =>
+      sum +
+      saleSign(r.transaction_type) *
+        Math.abs(Number(r.quantity || 0)) *
+        Number(r.unit_cost || 0),
+    0
+  );
   const netProfit = netSaleRevenue - totalSaleCost;
 
-  const totalQuantity = reportData.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
-  const totalValue = reportData.reduce((sum, row) => sum + Number(row.total_price || 0), 0);
+  const totalQuantity = reportData.reduce((sum, row) => {
+    const t = (row.transaction_type || '').toLowerCase();
+    const qty = Math.abs(Number(row.quantity || 0));
+    if (t.includes('return')) return sum - qty;
+    if (t.includes('sale')) return sum + qty;
+    if (t === 'purchase' || t === 'production') return sum + qty;
+    return sum;
+  }, 0);
+
+  const totalValue = reportData.reduce((sum, row) => {
+    const t = (row.transaction_type || '').toLowerCase();
+    const val = Math.abs(Number(row.total_price || 0));
+    if (t.includes('return')) return sum - val;
+    if (t.includes('sale') || t === 'purchase' || t === 'production') return sum + val;
+    return sum;
+  }, 0);
   const uniqueItemsCount = new Set(reportData.map((row) => row.item_id)).size;
 
   const getReferenceLink = (row) => {
@@ -140,12 +159,25 @@ const Product_HistoryReport = () => {
       return `/rm-invoice/${invoiceNo}`;
     }
     if (row.item_type === 'Finished Product') {
-      if (isSaleRow(row.transaction_type)) {
+      if (isSaleOnly(row.transaction_type) || isSaleReturn(row.transaction_type)) {
         return `/fp-invoice-detail/${invoiceNo}`;
       }
       return null;
     }
     return null;
+  };
+
+  const formatRowDate = (d) => {
+    if (!d) return '';
+    const s = String(d);
+    const m = s.match(/(\d{4}-\d{2}-\d{2})/);
+    if (m) {
+      const [y, mo, day] = m[1].split('-');
+      return `${day}/${mo}/${y}`;
+    }
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return '';
+    return dt.toLocaleDateString('en-GB');
   };
 
   const formatCurrency = (amount) => {
@@ -181,7 +213,7 @@ const Product_HistoryReport = () => {
 
     // 3. Table Data
     const bodyRows = reportData.map((row) => [
-      row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : '',
+      formatRowDate(row.transaction_date),
       row.item_name || '',
       row.transaction_type || '',
       row.reference_no || '',
@@ -264,7 +296,7 @@ const Product_HistoryReport = () => {
 
     const tableHeaders = [['Date', 'Item Name', 'Type', 'Ref No.', 'Party', 'Qty', 'Unit Price', 'Cost Price', 'Total']];
     const tableData = reportData.map(row => [
-      row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : '',
+      formatRowDate(row.transaction_date),
       row.item_name || '',
       row.transaction_type || '',
       row.reference_no || '',
@@ -408,7 +440,7 @@ const Product_HistoryReport = () => {
                           const refLink = getReferenceLink(row);
                           return (
                             <tr key={idx}>
-                              <td>{row.transaction_date ? new Date(row.transaction_date).toISOString().split('T')[0] : ''}</td>
+                              <td>{formatRowDate(row.transaction_date)}</td>
                               <td className="font-bold">{row.item_name}</td>
                               <td>{row.transaction_type}</td>
                               <td>

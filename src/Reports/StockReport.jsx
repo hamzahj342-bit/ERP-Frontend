@@ -68,7 +68,10 @@ const StockReport = () => {
   const totalRMConsumed = filteredRM.reduce((acc, i) => acc + Number(i.total_consumed), 0);
 
   const totalFGQty = filteredFG.reduce((acc, i) => acc + Number(i.total_qty_remaining), 0);
-  const totalFGValue = filteredFG.reduce((acc, i) => acc + (Number(i.unit_cost) * Number(i.total_qty_remaining)), 0);
+  const totalFGValue = filteredFG.reduce((acc, i) => {
+    if (i.total_stock_value != null) return acc + Number(i.total_stock_value);
+    return acc + Number(i.unit_cost) * Number(i.total_qty_remaining);
+  }, 0);
   const totalFGConsumed = filteredFG.reduce((acc, i) => acc + Number(i.total_consumed), 0);
 
   // --- EXPORT FUNCTIONS ---
@@ -108,7 +111,12 @@ const StockReport = () => {
       XLSX.utils.book_append_sheet(wb, ws, "Raw Materials");
     } else {
       const headers = ["Product Name", "Remaining Qty", "Unit Cost", "Total Value"].map(h => ({ v: h, s: headerStyle }));
-      const rows = filteredFG.map(i => [i['product.name'], Number(i.total_qty_remaining), Number(i.unit_cost), (Number(i.unit_cost) * Number(i.total_qty_remaining))]);
+      const rows = filteredFG.map(i => [
+        i['product.name'] || i.product_name,
+        Number(i.total_qty_remaining),
+        Number(i.unit_cost),
+        Number(i.total_stock_value != null ? i.total_stock_value : Number(i.unit_cost) * Number(i.total_qty_remaining))
+      ]);
       rows.push(["", "", "", ""]);
       rows.push([{v: "GRAND TOTAL", s: {font: {bold: true}}}, totalFGQty, "", totalFGValue]);
       const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -177,7 +185,7 @@ const StockReport = () => {
           i['product.name'] || 'N/A', 
           Number(i.total_qty_remaining).toLocaleString(), 
           Number(i.unit_cost).toFixed(2), 
-          (Number(i.unit_cost) * Number(i.total_qty_remaining)).toLocaleString(),
+          (Number(i.total_stock_value != null ? i.total_stock_value : Number(i.unit_cost) * Number(i.total_qty_remaining))).toLocaleString(),
           Number(i.total_consumed || 0).toLocaleString() // Consumed Column
         ]);
 
@@ -336,7 +344,7 @@ const StockReport = () => {
                         <td className="text-center">{Number(row.unit_cost).toFixed(2)}</td>
                         <td className="text-center">
                           <span style={{ color: '#2196f3', background: '#ebf3ff', padding: '2px 8px', borderRadius: '10px', fontSize: '0.85em', fontWeight: 'bold' }}>
-                            {(Number(row.unit_cost) * Number(row.total_qty_remaining)).toLocaleString()}
+                            {(Number(row.total_stock_value != null ? row.total_stock_value : Number(row.unit_cost) * Number(row.total_qty_remaining))).toLocaleString()}
                           </span>
                         </td>
                         <td className="text-center">
