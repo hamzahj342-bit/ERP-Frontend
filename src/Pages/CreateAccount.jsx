@@ -151,6 +151,7 @@ const AccountForm = () => {
                   required
                 >
                   <option value="General">General</option>
+                  <option value="General">Journal</option>
                   <option value="Payable">Payable</option>
                   <option value="Receivable">Receivable</option>
                   <option value="Bank">Bank</option>

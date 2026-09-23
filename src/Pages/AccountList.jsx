@@ -177,6 +177,7 @@ const AccountList = () => {
                         style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                       >
                         <option value="General">General</option>
+                        <option value="Journal">Journal</option>
                         <option value="Payable">Payable</option>
                         <option value="Receivable">Receivable</option>
                         <option value="Bank">Bank</option>
