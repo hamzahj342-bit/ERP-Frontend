@@ -59,10 +59,10 @@ const BankVoucherList = () => {
               <h2 className="erp-page-title" style={{ color: '#0f172a' }}>Bank Vouchers (BPV / BRV)</h2>
             </div>
             <div className="erp-header-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button className="add-sale-btn" onClick={() => navigate("/bank-voucher-form?type=BPV")}>
+              <button className="add-sale-btn" onClick={() => navigate("/bank-voucher-form?prefix=BPV")}>
                 <FaPlus /> NEW BANK PAYMENT
               </button>
-              <button className="add-sale-btn" onClick={() => navigate("/bank-voucher-form?type=BRV")}>
+              <button className="add-sale-btn" onClick={() => navigate("/bank-voucher-form?prefix=BRV")}>
                 <FaPlus /> NEW BANK RECEIPT
               </button>
             </div>
