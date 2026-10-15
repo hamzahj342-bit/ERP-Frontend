@@ -5,6 +5,7 @@ import {
     FaUsers,
     FaIdCard,
     FaLink,
+    FaFileInvoice,
     FaArrowLeft, 
     FaArrowRight 
 } from 'react-icons/fa';
@@ -82,6 +83,14 @@ const EntityLedgerMenu = () => {
                                 icon={<FaLink />}
                                 path="/ledgers/linked-entities"
                                 color="#6f42c1"
+                                navigate={navigate}
+                            />
+                            <MenuCard 
+                                title="Entity Ledger With Invoice"
+                                description="Same party ledger with invoice line details — item name, qty, rate and amount under each purchase/sale document."
+                                icon={<FaFileInvoice />}
+                                path="/ledgers/with-invoice"
+                                color="#0f766e"
                                 navigate={navigate}
                             />
                         </div>

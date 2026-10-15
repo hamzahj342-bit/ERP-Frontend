@@ -317,6 +317,79 @@
   font-size: 15px;
 }
 
+/* Entity Ledger With Invoice — larger type for client readability */
+.elr-invoice-table {
+  font-size: 14px;
+  line-height: 1.45;
+  min-width: 900px;
+}
+
+.elr-invoice-table th {
+  font-size: 12px;
+  padding: 10px 12px;
+}
+
+.elr-invoice-table td {
+  font-size: 14px;
+  padding: 9px 12px;
+}
+
+.elr-invoice-table th:nth-child(4),
+.elr-invoice-table td:nth-child(4) {
+  min-width: 160px;
+}
+
+.elr-result:has(.elr-invoice-table) .elr-result-title {
+  font-size: 16px;
+}
+
+.elr-result:has(.elr-invoice-table) .elr-meta {
+  font-size: 14px;
+}
+
+.elr-result:has(.elr-invoice-table) .elr-closing {
+  font-size: 15px;
+}
+
+.elr-result:has(.elr-invoice-table) .elr-closing-value {
+  font-size: 17px;
+}
+
+.elr-opening-row td {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+.elr-txn-row td {
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.elr-line-row td {
+  background: #fafbfc;
+  color: #475569;
+  font-size: 13px;
+  padding: 7px 12px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.elr-doc-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.elr-muted {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
 @media (max-width: 768px) {
   .elr-page {
     padding: 8px;

@@ -59,6 +59,7 @@ import SupplierLedgerReport from './Reports/EntitiesLedgerReport/SupplierLedgerR
 import CustomerLedgerReport from './Reports/EntitiesLedgerReport/CustomerLedgerReport';
 import EmployeeLedgerReport from './Reports/EntitiesLedgerReport/EmployeeLedgerReport';
 import LinkedEntityLedgerReport from './Reports/EntitiesLedgerReport/LinkedEntityLedgerReport';
+import EntityLedgerWithInvoiceReport from './Reports/EntitiesLedgerReport/EntityLedgerWithInvoiceReport';
 import Reports from './Layout/Reports';
 import ProfitLoss from './Components/ProfitLoss';
 import AccountLedger from './Components/AccountsLedger';
@@ -253,6 +254,7 @@ const App = () => {
         <Route path='/ledgers/customers' element={<PermissionRoute permission="reports.entity_ledger"> <CustomerLedgerReport /> </PermissionRoute>} />
         <Route path='/ledgers/employees' element={<PermissionRoute permission="reports.entity_ledger"> <EmployeeLedgerReport /> </PermissionRoute>} />
         <Route path='/ledgers/linked-entities' element={<PermissionRoute permission="reports.entity_ledger"> <LinkedEntityLedgerReport /> </PermissionRoute>} />
+        <Route path='/ledgers/with-invoice' element={<PermissionRoute permission="reports.entity_ledger"> <EntityLedgerWithInvoiceReport /> </PermissionRoute>} />
         <Route path='/profit-loss' element={<PermissionRoute permission="reports.profit_loss"> <ProfitLoss /> </PermissionRoute>} />
         <Route path='/accounts-report' element={<PermissionRoute permission="reports.accounts"> <AccountLedger /> </PermissionRoute>} />
         <Route path='/ledger/:accountId' element={<PermissionRoute permission="reports.accounts"> <AccountLedger /> </PermissionRoute>} />
