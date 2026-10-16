@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx-js-style";
 import { FaArrowLeft, FaFileExcel, FaFileInvoice, FaFilePdf, FaImage } from "react-icons/fa";
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import html2canvas from "html2canvas";
 import Select from "react-select";
 import NavigationBar from "../../Components/NavigationBar";
@@ -17,6 +18,87 @@ const formatMoney = (n) =>
 
 const formatQty = (n) =>
   Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+
+/** Build flat table rows (txn + invoice lines) for PDF / exports */
+function buildLedgerTableBody(report) {
+  const body = [
+    [
+      { content: "Opening Balance", colSpan: 9, styles: { fontStyle: "bold", fillColor: [241, 245, 249] } },
+      { content: formatMoney(report.openingBalance), styles: { fontStyle: "bold", halign: "right", fillColor: [241, 245, 249] } },
+    ],
+  ];
+
+  (report.transactions || []).forEach((t) => {
+    body.push([
+      t.transaction_date || "",
+      t.invoice_no || "-",
+      t.description || "-",
+      "",
+      "",
+      "",
+      t.invoice?.grand_total != null && (t.invoice?.lines || []).length
+        ? formatMoney(t.invoice.grand_total)
+        : "-",
+      t.debit > 0 ? formatMoney(t.debit) : "-",
+      t.credit > 0 ? formatMoney(t.credit) : "-",
+      formatMoney(t.balance),
+    ]);
+
+    (t.invoice?.lines || []).forEach((line) => {
+      body.push([
+        "",
+        "",
+        "",
+        line.item_name || "",
+        formatQty(line.qty),
+        formatMoney(line.unit_price),
+        formatMoney(line.amount),
+        "",
+        "",
+        "",
+      ]);
+    });
+  });
+
+  body.push([
+    { content: "Closing Balance", colSpan: 9, styles: { fontStyle: "bold", fillColor: [220, 252, 231] } },
+    {
+      content: formatMoney(report.closingBalance),
+      styles: { fontStyle: "bold", halign: "right", fillColor: [220, 252, 231] },
+    },
+  ]);
+
+  return body;
+}
+
+/** Slice a tall canvas into landscape-ish page PNGs and download each */
+async function downloadCanvasAsPages(canvas, baseName) {
+  // ~A4 landscape height relative to capture width (keeps each image readable)
+  const pageHeightPx = Math.max(900, Math.floor((canvas.width * 210) / 297));
+  const totalH = canvas.height;
+  const pages = Math.max(1, Math.ceil(totalH / pageHeightPx));
+
+  for (let i = 0; i < pages; i++) {
+    const sy = i * pageHeightPx;
+    const sh = Math.min(pageHeightPx, totalH - sy);
+    const pageCanvas = document.createElement("canvas");
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = sh;
+    const ctx = pageCanvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+    ctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
+
+    const link = document.createElement("a");
+    link.href = pageCanvas.toDataURL("image/png");
+    link.download = pages === 1 ? `${baseName}.png` : `${baseName}_page${i + 1}.png`;
+    link.click();
+    // Stagger so browser does not block multi-file downloads
+    if (i < pages - 1) await new Promise((r) => setTimeout(r, 350));
+  }
+
+  return pages;
+}
 
 const EntityLedgerWithInvoiceReport = () => {
   const navigate = useNavigate();
@@ -191,24 +273,90 @@ const EntityLedgerWithInvoiceReport = () => {
   };
 
   const exportToPNG = async () => {
-    if (!reportRef.current) return;
-    const canvas = await html2canvas(reportRef.current, { scale: 2 });
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = `${report.entity.name}_Ledger_With_Invoice.png`;
-    link.click();
+    if (!report || !reportRef.current) return toast.warning("No report to export.");
+    try {
+      toast.info("Preparing image(s)...");
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 1.5,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        windowWidth: reportRef.current.scrollWidth,
+        windowHeight: reportRef.current.scrollHeight,
+      });
+      const base = `${report.entity.name}_Ledger_With_Invoice`;
+      const pages = await downloadCanvasAsPages(canvas, base);
+      toast.success(pages > 1 ? `Downloaded ${pages} image pages.` : "Image downloaded.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Image export failed. Try PDF for long reports.");
+    }
   };
 
   const exportToPDF = () => {
-    if (!reportRef.current) return;
-    html2canvas(reportRef.current, { scale: 2 }).then((canvas) => {
-      const imgData = canvas.toDataURL("image/jpeg", 1.0);
-      const pdf = new jsPDF("l", "mm", "a4");
-      const imgWidth = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight);
-      pdf.save(`${report.entity.name}_Ledger_With_Invoice.pdf`);
+    if (!report) return toast.warning("No report to export.");
+
+    const doc = new jsPDF("l", "mm", "a4");
+    const entityName = report.entity?.name || "Entity";
+
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text("Entity Ledger With Invoice", 14, 14);
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text(`${entityName}  |  ${fromDate} to ${toDate}`, 14, 21);
+    doc.text(`Opening: ${formatMoney(report.openingBalance)}`, 14, 27);
+
+    autoTable(doc, {
+      startY: 32,
+      head: [
+        [
+          "Date",
+          "Invoice #",
+          "Particulars",
+          "Item",
+          "Qty",
+          "Rate",
+          "Amount",
+          "Debit",
+          "Credit",
+          "Balance",
+        ],
+      ],
+      body: buildLedgerTableBody(report),
+      styles: { fontSize: 8, cellPadding: 2, overflow: "linebreak", valign: "middle" },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: "bold", fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 22 },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 48 },
+        3: { cellWidth: 36 },
+        4: { cellWidth: 18, halign: "right" },
+        5: { cellWidth: 22, halign: "right" },
+        6: { cellWidth: 24, halign: "right" },
+        7: { cellWidth: 24, halign: "right" },
+        8: { cellWidth: 24, halign: "right" },
+        9: { cellWidth: 26, halign: "right" },
+      },
+      didParseCell: (data) => {
+        // Fix typo-safe right align for numeric cols
+        if (data.section === "body" && data.column.index >= 4) {
+          data.cell.styles.halign = "right";
+        }
+      },
+      margin: { left: 10, right: 10, bottom: 14 },
+      theme: "grid",
     });
+
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont(undefined, "normal");
+      doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() - 30, doc.internal.pageSize.getHeight() - 8);
+    }
+
+    doc.save(`${entityName}_Ledger_With_Invoice.pdf`);
+    toast.success(pageCount > 1 ? `PDF saved (${pageCount} pages).` : "PDF saved.");
   };
 
   const selectStyles = {
@@ -354,23 +502,23 @@ const EntityLedgerWithInvoiceReport = () => {
                         <React.Fragment key={t.id}>
                           <tr className="elr-txn-row">
                             <td>{t.transaction_date}</td>
-                            <td>{t.invoice_no || "—"}</td>
+                            <td>{t.invoice_no || "-"}</td>
                             <td>
-                              {t.description || "—"}
+                              {t.description || "-"}
                               {t.invoice?.doc_type ? (
                                 <span className="elr-doc-tag"> {t.invoice.doc_type}</span>
                               ) : null}
                             </td>
                             <td colSpan={3} className="elr-muted">
-                              {lines.length ? `${lines.length} line(s)` : "—"}
+                              {lines.length ? `${lines.length} line(s)` : "-"}
                             </td>
                             <td className="text-right">
                               {t.invoice?.grand_total != null && lines.length
                                 ? formatMoney(t.invoice.grand_total)
-                                : "—"}
+                                : "-"}
                             </td>
-                            <td className="text-right">{t.debit > 0 ? formatMoney(t.debit) : "—"}</td>
-                            <td className="text-right">{t.credit > 0 ? formatMoney(t.credit) : "—"}</td>
+                            <td className="text-right">{t.debit > 0 ? formatMoney(t.debit) : "-"}</td>
+                            <td className="text-right">{t.credit > 0 ? formatMoney(t.credit) : "-"}</td>
                             <td className="text-right font-bold">{formatMoney(t.balance)}</td>
                           </tr>
                           {lines.map((line) => (
