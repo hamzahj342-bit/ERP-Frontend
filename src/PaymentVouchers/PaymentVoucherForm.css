@@ -21,8 +21,23 @@
   grid-template-columns: repeat(4, minmax(140px, 1fr));
 }
 
+.voucher-form-page .info-grid.voucher-info-5 {
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+}
+
+.voucher-form-page .info-grid.voucher-info-6 {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+}
+
 .voucher-form-page .info-grid.voucher-info-3 {
   grid-template-columns: repeat(3, minmax(160px, 1fr));
+}
+
+.voucher-empty-sub {
+  display: inline-block;
+  color: #94a3b8;
+  font-size: 14px;
+  padding: 6px 4px;
 }
 
 .voucher-form-page .rm-main-card input:focus,
@@ -247,6 +262,8 @@
 }
 
 @media (max-width: 1024px) {
+  .voucher-form-page .info-grid.voucher-info-6,
+  .voucher-form-page .info-grid.voucher-info-5,
   .voucher-form-page .info-grid.voucher-info-4,
   .voucher-form-page .info-grid.voucher-info-3 {
     grid-template-columns: repeat(2, minmax(140px, 1fr));
@@ -254,6 +271,8 @@
 }
 
 @media (max-width: 640px) {
+  .voucher-form-page .info-grid.voucher-info-6,
+  .voucher-form-page .info-grid.voucher-info-5,
   .voucher-form-page .info-grid.voucher-info-4,
   .voucher-form-page .info-grid.voucher-info-3 {
     grid-template-columns: 1fr;

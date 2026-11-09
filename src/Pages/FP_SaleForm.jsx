@@ -6,6 +6,7 @@ import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
 import api from "../../api";
 import Select from "react-select";
+import SalesmanTourFields from "../Components/SalesmanTourFields";
 import '../Model.css';
 import '../Transactions.css';
 
@@ -31,6 +32,8 @@ const FP_SaleForm = () => {
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
     const [showCustomerModal, setShowCustomerModal] = useState(false);
+    const [salesmanId, setSalesmanId] = useState("");
+    const [tourId, setTourId] = useState("");
 
     const [subTotal, setSubTotal] = useState(0);
     const [taxableAmount, setTaxableAmount] = useState(0);
@@ -155,6 +158,8 @@ const FP_SaleForm = () => {
 
                     setInvoiceNo(master.invoice_no);
                     setSelectedCustomer(master.entity_customer_id || master.entityid);
+                    setSalesmanId(master.salesman_id || "");
+                    setTourId(master.tour_id || "");
                     if (sourceDocId) {
                         setSelectedSourceDoc(String(sourceDocId));
                         setSourceDocuments(prev => prev.some(doc => String(doc.id) === String(sourceDocId)) ? prev : [{ id: Number(sourceDocId), no: sourceDocNo || `Source ${sourceDocId}` }, ...prev]);
@@ -380,6 +385,8 @@ const FP_SaleForm = () => {
             invoice_no: invoiceNo,
             source_doc_id: selectedSourceDoc ? Number(selectedSourceDoc) : null,
             source_doc_type: selectedSourceDoc ? "DC-FP" : null,
+            salesman_id: salesmanId ? Number(salesmanId) : null,
+            tour_id: tourId ? Number(tourId) : null,
             details: validRows.map(r => ({
                 product_master_id: r.product_master_id,
                 product_name: r.product_name,
@@ -457,6 +464,13 @@ const FP_SaleForm = () => {
                             <label>Sale Date</label>
                             <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} readOnly={!!selectedSourceDoc} />
                         </div>
+                        <SalesmanTourFields
+                            salesmanId={salesmanId}
+                            tourId={tourId}
+                            onSalesmanChange={setSalesmanId}
+                            onTourChange={setTourId}
+                            openOnly
+                        />
                         <div className="info-item">
                             <label>Source DC-FP</label>
                             <div style={{ display: 'flex', gap: '8px' }}>

@@ -7,8 +7,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import api from "../../api";
+import VoucherSalesmanTourCell from "../Components/VoucherSalesmanTourCell";
 import "../Transactions.css";
 import "./PaymentVoucherForm.css";
+
+const EMPTY_VOUCHER_ROW = { account_id: "", entity_id: "", amount: "", description: "" };
 
 const entitySelectProps = {
   classNamePrefix: "react-select",
@@ -58,9 +61,10 @@ const BankVoucherForm = () => {
     const [chequeDate, setChequeDate] = useState("");
     const [depositSlipNumber, setDepositSlipNumber] = useState("");
 
-    const [voucherRows, setVoucherRows] = useState([
-        { account_id: "", entity_id: "", amount: "", description: "" }
-    ]);
+    const [salesmenOptions, setSalesmenOptions] = useState([]);
+    const [headerSalesmanId, setHeaderSalesmanId] = useState("");
+    const [headerTourId, setHeaderTourId] = useState("");
+    const [voucherRows, setVoucherRows] = useState([{ ...EMPTY_VOUCHER_ROW }]);
 
     const fetchInvoiceNo = useCallback(async () => {
         try {
@@ -104,6 +108,16 @@ const BankVoucherForm = () => {
             } catch (err) {
                 console.error("Dynamic asset-controls API failed:", err);
                 setBankAccounts([]);
+            }
+
+            // 4. Salesmen for expense-line tagging
+            try {
+                const smRes = await api.get("/salesmen", { params: { active_only: true } });
+                const list = Array.isArray(smRes.data) ? smRes.data : [];
+                setSalesmenOptions(list.map((s) => ({ value: String(s.id), label: s.name })));
+            } catch (err) {
+                console.error("Error loading salesmen:", err);
+                setSalesmenOptions([]);
             }
 
             if (isEditMode) {
@@ -154,6 +168,10 @@ const BankVoucherForm = () => {
             setChequeDate(voucher.cheque_date ? voucher.cheque_date.split('T')[0] : "");
             setDepositSlipNumber(voucher.deposit_slip_number || voucher.slip_no || "");
 
+            const linked = (voucher.entries || []).find((e) => e.salesman_id);
+            setHeaderSalesmanId(linked?.salesman_id ? String(linked.salesman_id) : "");
+            setHeaderTourId(linked?.tour_id ? String(linked.tour_id) : "");
+
             const isBankPayment = type === "BPV";
             const availableBankList = currentBankAccounts.length > 0 ? currentBankAccounts : bankAccounts;
             const bankAccountIds = new Set(availableBankList.map(b => String(b.id)));
@@ -193,10 +211,10 @@ const BankVoucherForm = () => {
                 account_id: String(entry.account_id),
                 entity_id: entry.entity_id ? String(entry.entity_id) : "",
                 amount: Number(entry.debit || entry.credit || 0),
-                description: entry.remarks || ""
+                description: entry.remarks || "",
             }));
 
-            setVoucherRows(mappedRows.length ? mappedRows : [{ account_id: "", entity_id: "", amount: "", description: "" }]);
+            setVoucherRows(mappedRows.length ? mappedRows : [{ ...EMPTY_VOUCHER_ROW }]);
         } catch (err) {
             console.error("Error loading voucher details:", err);
             toast.error(err.response?.data?.error || "Unable to load voucher to edit.");
@@ -218,7 +236,9 @@ const BankVoucherForm = () => {
     const handleRowChange = (index, field, value) => {
         const updatedRows = [...voucherRows];
         updatedRows[index][field] = value;
-        if (field === "account_id") updatedRows[index]["entity_id"] = "";
+        if (field === "account_id") {
+            updatedRows[index]["entity_id"] = "";
+        }
         setVoucherRows(updatedRows);
     };
 
@@ -227,7 +247,7 @@ const BankVoucherForm = () => {
     };
 
     const addVoucherRow = () => {
-        setVoucherRows([...voucherRows, { account_id: "", entity_id: "", amount: "", description: "" }]);
+        setVoucherRows([...voucherRows, { ...EMPTY_VOUCHER_ROW }]);
     };
 
     const removeVoucherRow = (index) => {
@@ -246,6 +266,8 @@ const BankVoucherForm = () => {
         }
 
         const finalItems = [];
+        const voucherSalesmanId = headerSalesmanId ? Number(headerSalesmanId) : null;
+        const voucherTourId = headerTourId ? Number(headerTourId) : null;
         for (let i = 0; i < voucherRows.length; i++) {
             const row = voucherRows[i];
             if (!row.account_id || !row.amount || parseFloat(row.amount) <= 0) {
@@ -261,7 +283,9 @@ const BankVoucherForm = () => {
                 type: voucherType === "BPV" ? "debit" : "credit",
                 amount: parseFloat(row.amount),
                 entity_id: row.entity_id || null,
-                remarks: row.description || null
+                remarks: row.description || null,
+                salesman_id: voucherSalesmanId,
+                tour_id: voucherTourId,
             });
         }
 
@@ -299,7 +323,9 @@ const BankVoucherForm = () => {
                     setChequeNumber("");
                     setChequeDate("");
                     setDepositSlipNumber("");
-                    setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
+                    setHeaderSalesmanId("");
+                    setHeaderTourId("");
+                    setVoucherRows([{ ...EMPTY_VOUCHER_ROW }]);
                     fetchInvoiceNo();
                 } else {
                     navigate('/bank-vouchers-list');
@@ -344,7 +370,7 @@ const BankVoucherForm = () => {
 
                 <div className="rm-main-card">
                     <form onSubmit={handleSubmit}>
-                        <div className="info-grid voucher-info-4">
+                        <div className="info-grid voucher-info-6">
                             <div className="info-item">
                                 <label>Voucher No</label>
                                 <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
@@ -353,6 +379,15 @@ const BankVoucherForm = () => {
                                 <label>Transaction Date</label>
                                 <input type="date" className="rm-input-field" value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} required />
                             </div>
+                            <VoucherSalesmanTourCell
+                                variant="header"
+                                salesmanId={headerSalesmanId}
+                                tourId={headerTourId}
+                                salesmenOptions={salesmenOptions}
+                                onSalesmanChange={setHeaderSalesmanId}
+                                onTourChange={setHeaderTourId}
+                                selectProps={entitySelectProps}
+                            />
                             <div className="info-item">
                                 <label>Corporate Bank Account</label>
                                 <select className="rm-input-field" value={selectedBankAccount} onChange={(e) => setSelectedBankAccount(e.target.value)} required>
@@ -420,7 +455,9 @@ const BankVoucherForm = () => {
                                                             onChange={(selected) => handleEntitySelect(index, selected)}
                                                             placeholder={`Select ${entityLabel}`}
                                                         />
-                                                    ) : <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />}
+                                                    ) : (
+                                                        <span className="voucher-empty-sub">—</span>
+                                                    )}
                                                 </td>
                                                 <td>
                                                     <input type="number" step="any" className="rm-input-field" value={row.amount} onChange={(e) => handleRowChange(index, "amount", e.target.value)} required placeholder="Amount" />

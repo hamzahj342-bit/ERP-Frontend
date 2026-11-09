@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Footer from "../Components/Footer";
 import { toast } from "react-toastify";
 import api from "../../api";
+import SalesmanTourFields from "../Components/SalesmanTourFields";
 import '../Model.css';
 import '../Transactions.css'; // Shared layout matrices
 
@@ -27,6 +28,8 @@ const FP_SaleReturnForm = () => {
     const [selectedCustomer, setSelectedCustomer] = useState("");
     const [invoiceNo, setInvoiceNo] = useState("");
     const [date, setDate] = useState("");
+    const [salesmanId, setSalesmanId] = useState("");
+    const [tourId, setTourId] = useState("");
 
     const [subTotal, setSubTotal] = useState(0);
     const [taxableAmount, setTaxableAmount] = useState(0);
@@ -116,6 +119,8 @@ const FP_SaleReturnForm = () => {
 
                     setInvoiceNo(master.invoice_no);
                     setSelectedCustomer(master.entity_customer_id || master.entityid);
+                    setSalesmanId(master.salesman_id || "");
+                    setTourId(master.tour_id || "");
                     
                     if (master.date || master.invoiceDate) {
                         setDate(new Date(master.date || master.invoiceDate).toISOString().split('T')[0]);
@@ -253,6 +258,8 @@ const FP_SaleReturnForm = () => {
             date: date,
             createdby: user?.username || "guest",
             invoice_no: invoiceNo,
+            salesman_id: salesmanId ? Number(salesmanId) : null,
+            tour_id: tourId ? Number(tourId) : null,
             details: validRows.map(r => ({
                 product_master_id: r.product_master_id,
                 product_name: r.product_name,
@@ -327,6 +334,13 @@ const FP_SaleReturnForm = () => {
                             <label>Return Date</label>
                             <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} />
                         </div>
+                        <SalesmanTourFields
+                            salesmanId={salesmanId}
+                            tourId={tourId}
+                            onSalesmanChange={setSalesmanId}
+                            onTourChange={setTourId}
+                            openOnly
+                        />
                     </div>
 
                     <form onSubmit={handleSubmit}>

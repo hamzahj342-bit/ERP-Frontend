@@ -7,8 +7,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import api from "../../api";
+import VoucherSalesmanTourCell from "../Components/VoucherSalesmanTourCell";
 import "../Transactions.css";
 import "./PaymentVoucherForm.css";
+
+const emptySide = () => ({ account_id: "", type: "debit", amount: "", entity_id: "" });
+const emptyGroup = () => ({
+    debit: { ...emptySide(), type: "debit" },
+    credit: { ...emptySide(), type: "credit" },
+    description: "",
+});
 
 const entitySelectProps = {
   classNamePrefix: "react-select",
@@ -46,15 +54,12 @@ const GeneralVoucherForm = () => {
     const [isLoadingVoucher, setIsLoadingVoucher] = useState(false);
 
     const [transactionDate, setTransactionDate] = useState("");
+    const [headerSalesmanId, setHeaderSalesmanId] = useState("");
+    const [headerTourId, setHeaderTourId] = useState("");
+    const [salesmenOptions, setSalesmenOptions] = useState([]);
 
     // INITIAL STATE: 3-Row Set Concept
-    const [voucherGroups, setVoucherGroups] = useState([
-        {
-            debit: { account_id: "", type: "debit", amount: "", entity_id: "" },
-            credit: { account_id: "", type: "credit", amount: "", entity_id: "" },
-            description: ""
-        }
-    ]);
+    const [voucherGroups, setVoucherGroups] = useState([emptyGroup()]);
 
     const fetchInvoiceNo = useCallback(async () => {
         try {
@@ -83,12 +88,24 @@ const GeneralVoucherForm = () => {
         } catch (err) { console.error("Error fetching entities:", err); }
     };
 
+    const fetchSalesmen = async () => {
+        try {
+            const smRes = await api.get("/salesmen", { params: { active_only: true } });
+            const list = Array.isArray(smRes.data) ? smRes.data : [];
+            setSalesmenOptions(list.map((s) => ({ value: String(s.id), label: s.name })));
+        } catch (err) {
+            console.error("Error loading salesmen:", err);
+            setSalesmenOptions([]);
+        }
+    };
+
     useEffect(() => {
         if (isEditMode) {
             fetchVoucherDetails(voucherId);
         } else {
             fetchEntities();
             fetchAccounts();
+            fetchSalesmen();
             fetchInvoiceNo();
         }
     }, [fetchInvoiceNo, isEditMode, voucherId]);
@@ -112,6 +129,10 @@ const GeneralVoucherForm = () => {
             setInvoiceNo(voucher.invoice_no);
             setTransactionDate(voucher.transaction_date || "");
 
+            const linked = (voucher.entries || []).find((e) => e.salesman_id);
+            setHeaderSalesmanId(linked?.salesman_id ? String(linked.salesman_id) : "");
+            setHeaderTourId(linked?.tour_id ? String(linked.tour_id) : "");
+
             const groups = [];
             voucher.entries.forEach((entry) => {
                 if (entry.debit > 0) {
@@ -120,13 +141,13 @@ const GeneralVoucherForm = () => {
                             account_id: entry.account_id,
                             type: "debit",
                             amount: entry.debit,
-                            entity_id: entry.entity_id || ""
+                            entity_id: entry.entity_id || "",
                         },
                         credit: {
                             account_id: "",
                             type: "credit",
                             amount: "",
-                            entity_id: ""
+                            entity_id: "",
                         },
                         description: entry.remarks || ""
                     });
@@ -137,7 +158,7 @@ const GeneralVoucherForm = () => {
                             account_id: entry.account_id,
                             type: "credit",
                             amount: entry.credit,
-                            entity_id: entry.entity_id || ""
+                            entity_id: entry.entity_id || "",
                         };
                         latestGroup.description = latestGroup.description || entry.remarks || "";
                     } else {
@@ -146,13 +167,13 @@ const GeneralVoucherForm = () => {
                                 account_id: "",
                                 type: "debit",
                                 amount: "",
-                                entity_id: ""
+                                entity_id: "",
                             },
                             credit: {
                                 account_id: entry.account_id,
                                 type: "credit",
                                 amount: entry.credit,
-                                entity_id: entry.entity_id || ""
+                                entity_id: entry.entity_id || "",
                             },
                             description: entry.remarks || ""
                         });
@@ -160,16 +181,11 @@ const GeneralVoucherForm = () => {
                 }
             });
 
-            setVoucherGroups(groups.length ? groups : [
-                {
-                    debit: { account_id: "", type: "debit", amount: "", entity_id: "" },
-                    credit: { account_id: "", type: "credit", amount: "", entity_id: "" },
-                    description: ""
-                }
-            ]);
+            setVoucherGroups(groups.length ? groups : [emptyGroup()]);
 
             fetchEntities();
             fetchAccounts();
+            fetchSalesmen();
         } catch (err) {
             console.error("Error loading voucher details:", err);
             toast.error(err.response?.data?.error || "Unable to load voucher to edit.");
@@ -216,14 +232,7 @@ const GeneralVoucherForm = () => {
     };
 
     const addVoucherGroup = () => {
-        setVoucherGroups([
-            ...voucherGroups,
-            {
-                debit: { account_id: "", type: "debit", amount: "", entity_id: "" },
-                credit: { account_id: "", type: "credit", amount: "", entity_id: "" },
-                description: ""
-            }
-        ]);
+        setVoucherGroups([...voucherGroups, emptyGroup()]);
     };
 
     const removeVoucherGroup = (groupIndex) => {
@@ -245,6 +254,8 @@ const GeneralVoucherForm = () => {
         if (!transactionDate) return toast.error("Please select a transaction date.");
         
         const finalItems = [];
+        const voucherSalesmanId = headerSalesmanId ? Number(headerSalesmanId) : null;
+        const voucherTourId = headerTourId ? Number(headerTourId) : null;
 
         for (let i = 0; i < voucherGroups.length; i++) {
             const group = voucherGroups[i];
@@ -264,7 +275,9 @@ const GeneralVoucherForm = () => {
                 type: "debit",
                 amount: parseFloat(group.debit.amount),
                 entity_id: group.debit.entity_id || null,
-                remarks: group.description || null
+                remarks: group.description || null,
+                salesman_id: voucherSalesmanId,
+                tour_id: voucherTourId,
             });
 
             finalItems.push({
@@ -272,7 +285,9 @@ const GeneralVoucherForm = () => {
                 type: "credit",
                 amount: parseFloat(group.credit.amount),
                 entity_id: group.credit.entity_id || null,
-                remarks: group.description || null
+                remarks: group.description || null,
+                salesman_id: voucherSalesmanId,
+                tour_id: voucherTourId,
             });
         }
 
@@ -307,13 +322,9 @@ const GeneralVoucherForm = () => {
             }).then(() => {
                 if (!isEditMode) {
                     setTransactionDate("");
-                    setVoucherGroups([
-                        {
-                            debit: { account_id: "", type: "debit", amount: "", entity_id: "" },
-                            credit: { account_id: "", type: "credit", amount: "", entity_id: "" },
-                            description: ""
-                        }
-                    ]);
+                    setHeaderSalesmanId("");
+                    setHeaderTourId("");
+                    setVoucherGroups([emptyGroup()]);
                     fetchInvoiceNo();
                 } else {
                     navigate('/payments-list');
@@ -356,6 +367,15 @@ const GeneralVoucherForm = () => {
                                     required
                                 />
                             </div>
+                            <VoucherSalesmanTourCell
+                                variant="header"
+                                salesmanId={headerSalesmanId}
+                                tourId={headerTourId}
+                                salesmenOptions={salesmenOptions}
+                                onSalesmanChange={setHeaderSalesmanId}
+                                onTourChange={setHeaderTourId}
+                                selectProps={entitySelectProps}
+                            />
                         </div>
 
                         <div className="voucher-table-wrapper">
@@ -408,7 +428,7 @@ const GeneralVoucherForm = () => {
                                                                 placeholder={`Select ${credEntityLabel}`}
                                                             />
                                                         ) : (
-                                                            <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />
+                                                            <span className="voucher-empty-sub">—</span>
                                                         )}
                                                     </td>
                                                     <td>
@@ -472,7 +492,7 @@ const GeneralVoucherForm = () => {
                                                                 placeholder={`Select ${debEntityLabel}`}
                                                             />
                                                         ) : (
-                                                            <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />
+                                                            <span className="voucher-empty-sub">—</span>
                                                         )}
                                                     </td>
                                                     <td>

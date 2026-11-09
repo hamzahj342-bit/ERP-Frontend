@@ -10,7 +10,8 @@ import {
     FaChartBar,
     FaHistory,
     FaMoneyBillWave,
-    FaWarehouse
+    FaWarehouse,
+    FaRoute
 } from 'react-icons/fa';
 import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../RM_CardLayout.css';
@@ -236,6 +237,16 @@ const Reports = () => {
                                 path="/cash-report" 
                                 color="#0f172a" 
                                 perm="reports.cash_report"
+                                navigate={navigate}
+                            />
+
+                            <ReportCard 
+                                title="Salesman / Tour Reports"
+                                description="Salesman performance, tour P&L, and period rollups with sale, COGS, and tour expenses."
+                                icon={<FaRoute />}
+                                path="/reports/salesman" 
+                                color="#0369a1" 
+                                perm="reports.salesman"
                                 navigate={navigate}
                             />
 
