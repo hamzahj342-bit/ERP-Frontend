@@ -458,10 +458,100 @@
 }
 
 .erp-modal-actions .add-cust-sup,
-.erp-modal-actions .delete-btn {
-  flex: 1;
-  min-width: 120px;
+.erp-modal-actions .delete-btn,
+.erp-entity-page .erp-modal-actions .add-cust-sup,
+.erp-entity-page .erp-modal-actions .delete-btn {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
   justify-content: center;
+  height: 38px;
+  min-height: 38px;
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+/* Tour create/edit modal — wider, less tall */
+.erp-tour-modal.erp-modal-content,
+.erp-tour-modal.modal-content {
+  max-width: 720px;
+  width: min(720px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+
+.erp-tour-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+}
+
+.erp-tour-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.erp-tour-field--full {
+  grid-column: 1 / -1;
+}
+
+.erp-tour-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0;
+}
+
+.erp-tour-field .input {
+  width: 100%;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+.erp-tour-field .input:disabled,
+.erp-tour-field .input[readonly] {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.erp-tour-field textarea.input {
+  min-height: 64px;
+  height: auto;
+  resize: vertical;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.erp-tour-form .erp-modal-actions {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  flex-wrap: nowrap;
+}
+
+.erp-tour-form .erp-modal-actions .add-cust-sup,
+.erp-tour-form .erp-modal-actions .delete-btn {
+  flex: 1 1 0;
+  width: auto;
+  max-width: none;
+}
+
+@media (max-width: 640px) {
+  .erp-tour-form {
+    grid-template-columns: 1fr;
+  }
+
+  .erp-tour-modal.erp-modal-content,
+  .erp-tour-modal.modal-content {
+    max-width: calc(100vw - 24px);
+    padding: 18px 16px;
+  }
 }
 
 .erp-modal-actions .delete-btn {

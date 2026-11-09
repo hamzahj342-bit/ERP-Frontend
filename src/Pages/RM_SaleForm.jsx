@@ -6,6 +6,7 @@ import Footer from '../Components/Footer';
 import { toast } from 'react-toastify';
 import api from '../../api';
 import Select from 'react-select';
+import SalesmanTourFields from '../Components/SalesmanTourFields';
 import '../Model.css';
 import '../Transactions.css';
 
@@ -46,6 +47,8 @@ const RM_SaleForm = ({ channel = null }) => {
     const [sourceDocuments, setSourceDocuments] = useState([]);
     const [selectedSourceDoc, setSelectedSourceDoc] = useState("");
     const [originalSourceItems, setOriginalSourceItems] = useState([]);
+    const [salesmanId, setSalesmanId] = useState("");
+    const [tourId, setTourId] = useState("");
 
     const customerOptions = customers.map((customer) => ({ value: customer.id, label: customer.name }));
     const materialOptions = materials.map((material) => ({
@@ -167,6 +170,8 @@ const RM_SaleForm = ({ channel = null }) => {
 
                     setInvoiceNo(master.invoice_no);
                     setSelectedCustomer(master.entityid || master.entity_customer_id);
+                    setSalesmanId(master.salesman_id || "");
+                    setTourId(master.tour_id || "");
                     
                     if (invoiceDate) {
                         setDate(new Date(invoiceDate).toISOString().split('T')[0]);
@@ -482,6 +487,8 @@ const RM_SaleForm = ({ channel = null }) => {
             })),
             source_doc_id: selectedSourceDoc ? Number(selectedSourceDoc) : null,
             source_doc_type: selectedSourceDoc ? "DC" : null,
+            salesman_id: salesmanId ? Number(salesmanId) : null,
+            tour_id: tourId ? Number(tourId) : null,
         };
 
         try {
@@ -561,6 +568,13 @@ const RM_SaleForm = ({ channel = null }) => {
                                 <button type="button" className="quick-add-btn" onClick={() => navigate('/dc-form')}><FaPlus /></button>
                             </div>
                         </div>
+                        <SalesmanTourFields
+                            salesmanId={salesmanId}
+                            tourId={tourId}
+                            onSalesmanChange={setSalesmanId}
+                            onTourChange={setTourId}
+                            openOnly
+                        />
                     </div>
 
                     <form onSubmit={handleSubmit}>

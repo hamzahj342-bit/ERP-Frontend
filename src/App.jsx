@@ -40,6 +40,9 @@ import FP_SaleReturnForm from './Pages/FP_SaleReturnForm';
 import FP_InvoiceDetail from './Components/FP_InvoiceDetail';
 import Employees from './Pages/Emloyees';
 import EmployeesForm from './Components/EmployeesForm';
+import Salesmen from './Pages/Salesmen';
+import SalesmanForm from './Components/SalesmanForm';
+import SalesmanTourReport from './Reports/SalesmanTourReport';
 import CreateAccount from './Pages/CreateAccount';
 import AccountList from './Pages/AccountList';
 import GeneralVoucherForm from './PaymentVouchers/GeneralVoucherForm';
@@ -138,6 +141,8 @@ const App = () => {
         <Route path="/supplier-invoices/:id" element={<PermissionRoute permission="suppliers"> <SupplierInvoices/> </PermissionRoute>} />
         <Route path="/employees" element={<PermissionRoute permission="employees"> <Employees /> </PermissionRoute>} />
         <Route path="/add-employees" element={<PermissionRoute permission="employees"> <EmployeesForm /> </PermissionRoute>} />
+        <Route path="/salesmen" element={<PermissionRoute permission="salesmen.manage"> <Salesmen /> </PermissionRoute>} />
+        <Route path="/add-salesman" element={<PermissionRoute permission="salesmen.manage"> <SalesmanForm /> </PermissionRoute>} />
         <Route path="/shops" element={<ProtectedRoute> <Shops/> </ProtectedRoute>} />
         <Route path="/add-shops" element={<ProtectedRoute> <ShopForm/> </ProtectedRoute>} />
 
@@ -270,6 +275,7 @@ const App = () => {
         <Route path='/purchase-register' element={<PermissionRoute permission="reports.purchase_register"> <PurchaseRegister /> </PermissionRoute>} />
         <Route path='/receivable-register' element={<PermissionRoute permission="reports.receivable_register"> <ReceivableRegister /> </PermissionRoute>} />
         <Route path='/cash-report' element={<PermissionRoute permission="reports.cash_report"> <CashReport /> </PermissionRoute>} />
+        <Route path='/reports/salesman' element={<PermissionRoute permission="reports.salesman"> <SalesmanTourReport /> </PermissionRoute>} />
         <Route path='/stock-ledger' element={<PermissionRoute permission="reports.stock_ledger"> <StockLedgerReport /> </PermissionRoute>} />
         <Route path='/inventory-adjustment-report' element={<PermissionRoute permission="reports.inventory_adjustment"> <InventoryAdjustmentReport /> </PermissionRoute>} />
         <Route path='/payable-receivable-report' element={<PermissionRoute permission="reports.payable_receivable"> <PayableReceivableReport /> </PermissionRoute>} />

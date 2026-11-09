@@ -372,8 +372,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import Swal from "sweetalert2";
 import api from "../../api";
+import VoucherSalesmanTourCell from "../Components/VoucherSalesmanTourCell";
 import "../Transactions.css";
 import "./PaymentVoucherForm.css";
+
+const EMPTY_VOUCHER_ROW = { account_id: "", entity_id: "", amount: "", description: "" };
 
 const entitySelectProps = {
   classNamePrefix: "react-select",
@@ -412,15 +415,16 @@ const CashVoucherForm = () => {
     const [suppliers, setSuppliers] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [employees, setEmployees] = useState([]);
+    const [salesmenOptions, setSalesmenOptions] = useState([]);
     const [isSubmitting, setIsSubmitting] = useState(false); 
     const [isLoadingVoucher, setIsLoadingVoucher] = useState(false);
 
     const [transactionDate, setTransactionDate] = useState("");
     const [selectedCashAccount, setSelectedCashAccount] = useState("");
+    const [headerSalesmanId, setHeaderSalesmanId] = useState("");
+    const [headerTourId, setHeaderTourId] = useState("");
 
-    const [voucherRows, setVoucherRows] = useState([
-        { account_id: "", entity_id: "", amount: "", description: "" }
-    ]);
+    const [voucherRows, setVoucherRows] = useState([{ ...EMPTY_VOUCHER_ROW }]);
 
     const fetchInvoiceNo = useCallback(async () => {
         try {
@@ -466,6 +470,16 @@ const CashVoucherForm = () => {
                 setCashAccounts([]);
             }
 
+            // 4. Salesmen for expense-line tagging
+            try {
+                const smRes = await api.get("/salesmen", { params: { active_only: true } });
+                const list = Array.isArray(smRes.data) ? smRes.data : [];
+                setSalesmenOptions(list.map((s) => ({ value: String(s.id), label: s.name })));
+            } catch (err) {
+                console.error("Error loading salesmen:", err);
+                setSalesmenOptions([]);
+            }
+
             if (isEditMode) {
                 fetchVoucherDetails(editId, cashList);
             } else {
@@ -507,6 +521,10 @@ const CashVoucherForm = () => {
         setVoucherType(type);
         setInvoiceNo(voucher.invoice_no);
         setTransactionDate(voucher.transaction_date ? voucher.transaction_date.split('T')[0] : "");
+
+        const linked = (voucher.entries || []).find((e) => e.salesman_id);
+        setHeaderSalesmanId(linked?.salesman_id ? String(linked.salesman_id) : "");
+        setHeaderTourId(linked?.tour_id ? String(linked.tour_id) : "");
 
         const isCashPayment = type === "CPV"; // CPV = Payment, CRV = Receipt
         const availableCashList = currentCashAccounts.length > 0 ? currentCashAccounts : cashAccounts;
@@ -566,10 +584,10 @@ const CashVoucherForm = () => {
             account_id: String(entry.account_id),
             entity_id: entry.entity_id ? String(entry.entity_id) : "",
             amount: Number(entry.debit || entry.credit || 0),
-            description: entry.remarks || ""
+            description: entry.remarks || "",
         }));
 
-        setVoucherRows(mappedRows.length ? mappedRows : [{ account_id: "", entity_id: "", amount: "", description: "" }]);
+        setVoucherRows(mappedRows.length ? mappedRows : [{ ...EMPTY_VOUCHER_ROW }]);
     } catch (err) {
         console.error("Error loading voucher details:", err);
         toast.error(err.response?.data?.error || "Unable to load cash voucher to edit.");
@@ -591,7 +609,9 @@ const CashVoucherForm = () => {
     const handleRowChange = (index, field, value) => {
         const updatedRows = [...voucherRows];
         updatedRows[index][field] = value;
-        if (field === "account_id") updatedRows[index]["entity_id"] = ""; 
+        if (field === "account_id") {
+            updatedRows[index]["entity_id"] = "";
+        }
         setVoucherRows(updatedRows);
     };
 
@@ -600,7 +620,7 @@ const CashVoucherForm = () => {
     };
 
     const addVoucherRow = () => {
-        setVoucherRows([...voucherRows, { account_id: "", entity_id: "", amount: "", description: "" }]);
+        setVoucherRows([...voucherRows, { ...EMPTY_VOUCHER_ROW }]);
     };
 
     const removeVoucherRow = (index) => {
@@ -619,6 +639,8 @@ const CashVoucherForm = () => {
         }
 
         const finalItems = [];
+        const voucherSalesmanId = headerSalesmanId ? Number(headerSalesmanId) : null;
+        const voucherTourId = headerTourId ? Number(headerTourId) : null;
         for (let i = 0; i < voucherRows.length; i++) {
             const row = voucherRows[i];
             if (!row.account_id || !row.amount || parseFloat(row.amount) <= 0) {
@@ -634,7 +656,9 @@ const CashVoucherForm = () => {
                 type: voucherType === "CPV" ? "debit" : "credit",
                 amount: parseFloat(row.amount),
                 entity_id: row.entity_id || null,
-                remarks: row.description || null
+                remarks: row.description || null,
+                salesman_id: voucherSalesmanId,
+                tour_id: voucherTourId,
             });
         }
 
@@ -665,7 +689,9 @@ const CashVoucherForm = () => {
                 if (!isEditMode) {
                     setTransactionDate(""); 
                     setSelectedCashAccount("");
-                    setVoucherRows([{ account_id: "", entity_id: "", amount: "", description: "" }]);
+                    setHeaderSalesmanId("");
+                    setHeaderTourId("");
+                    setVoucherRows([{ ...EMPTY_VOUCHER_ROW }]);
                     fetchInvoiceNo();
                 } else {
                     navigate('/cash-vouchers-list');
@@ -703,7 +729,7 @@ const CashVoucherForm = () => {
                 </div>
                 <div className="rm-main-card">
                     <form onSubmit={handleSubmit}>
-                        <div className="info-grid voucher-info-3">
+                        <div className="info-grid voucher-info-5">
                             <div className="info-item">
                                 <label>Voucher No</label>
                                 <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
@@ -723,6 +749,15 @@ const CashVoucherForm = () => {
                                     ))}
                                 </select>
                             </div>
+                            <VoucherSalesmanTourCell
+                                variant="header"
+                                salesmanId={headerSalesmanId}
+                                tourId={headerTourId}
+                                salesmenOptions={salesmenOptions}
+                                onSalesmanChange={setHeaderSalesmanId}
+                                onTourChange={setHeaderTourId}
+                                selectProps={entitySelectProps}
+                            />
                         </div>
 
                         <div className="voucher-table-wrapper">
@@ -756,7 +791,9 @@ const CashVoucherForm = () => {
                                                             onChange={(selected) => handleEntitySelect(index, selected)}
                                                             placeholder={`Select ${entityLabel}`}
                                                         />
-                                                    ) : <input type="text" placeholder="N/A" readOnly className="rm-input-field readonly-input" />}
+                                                    ) : (
+                                                        <span className="voucher-empty-sub">—</span>
+                                                    )}
                                                 </td>
                                                 <td>
                                                     <input type="number" step="any" className="rm-input-field" value={row.amount} onChange={(e) => handleRowChange(index, "amount", e.target.value)} required placeholder="Enter amount"/>

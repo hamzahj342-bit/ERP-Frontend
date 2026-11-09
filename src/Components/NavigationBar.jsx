@@ -4,7 +4,7 @@ import {
   FaBars, FaTimes, FaUserCircle, FaSignOutAlt, FaHome, FaTruck, FaUserTie,
   FaFileAlt, FaSeedling, FaCubes, FaMoneyBillAlt, FaTools, FaHistory,
   FaExchangeAlt, FaBoxes, FaLayerGroup, FaSlidersH, FaHandshake, FaChartBar, FaUserPlus, FaFileInvoice, FaBuilding,
-  FaStore, FaWarehouse, FaCashRegister, FaUndo, FaShoppingCart, FaBarcode
+  FaStore, FaWarehouse, FaCashRegister, FaUndo, FaShoppingCart, FaBarcode, FaRoute
 } from "react-icons/fa";
 import { MdScience } from "react-icons/md";
 import { hasPermission, hasAnyPermission, REPORT_PERMISSION_KEYS } from "../permissions";
@@ -126,6 +126,7 @@ const NavigationBar = () => {
     { type: "link", icon: <FaHandshake />, label: "Customers", path: "/customers", perm: "customers" },
     { type: "link", icon: <FaTruck />, label: "Suppliers", path: "/suppliers", perm: "suppliers" },
     { type: "link", icon: <FaUserTie />, label: "Employees", path: "/employees", perm: "employees" },
+    { type: "link", icon: <FaRoute />, label: "Salesmen", path: "/salesmen", perm: "salesmen.manage" },
     { type: "link", icon: <FaSlidersH />, label: "Adjustments", path: "/inventory-adjustment", perm: "adjustments" },
     { type: "link", icon: <FaFileAlt />, label: "Invoice Details", path: "/rm-invoice-detail", perm: "invoice_details" },
     {

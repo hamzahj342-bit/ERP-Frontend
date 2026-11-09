@@ -376,3 +376,142 @@
     width: 100%;
   }
 }
+
+/* —— Salesman / Tour report —— */
+.sm-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 4px 0 18px;
+}
+
+.sm-summary-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.sm-summary-card.is-neg {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.sm-summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+
+.sm-summary-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.sm-summary-card.is-neg .sm-summary-value {
+  color: #b91c1c;
+}
+
+.sm-section-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.sm-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.sm-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 780px;
+}
+
+.sm-report-table thead th {
+  background: #0f172a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 10px 12px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #1e293b;
+}
+
+.sm-report-table thead th.sm-amt {
+  text-align: right;
+}
+
+.sm-report-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.sm-report-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.sm-report-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.sm-report-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sm-report-table .sm-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.sm-report-table td.sm-amt {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.sm-report-table td.sm-amt.is-strong {
+  font-weight: 700;
+}
+
+.sm-report-table td.sm-amt.is-neg {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.sm-report-table .sm-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 28px 12px;
+  white-space: normal;
+}
+
+@media (max-width: 900px) {
+  .sm-summary-grid {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .sm-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
