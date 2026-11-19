@@ -399,7 +399,7 @@ const RM_ReturnForm = ({ channel = null }) => {
         <div className="rm-page-wrapper">
             <NavigationBar />
 
-            <div className="rm-content-container">
+            <div className="rm-content-container rm-content-container--wide">
                 <div className="rm-header-section">
                     <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
@@ -408,12 +408,12 @@ const RM_ReturnForm = ({ channel = null }) => {
                 </div>
 
                 <div className="rm-main-card">
-                    <div className="info-grid">
-                        <div className="info-item">
+                    <div className="info-grid info-grid--sized">
+                        <div className="info-item info-item--sm">
                             <label>Invoice No</label>
                             <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" style={{backgroundColor: '#e2e8f0'}} />
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--lg">
                             <label>Select Supplier</label>
                             <select
                                 className="rm-input-field"
@@ -426,7 +426,7 @@ const RM_ReturnForm = ({ channel = null }) => {
                                 ))}
                             </select>
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--sm">
                             <label>Return Date</label>
                             <input
                                 type="date"

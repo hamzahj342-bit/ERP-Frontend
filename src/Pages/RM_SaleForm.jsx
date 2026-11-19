@@ -522,7 +522,7 @@ const RM_SaleForm = ({ channel = null }) => {
     return (
         <div className="rm-page-wrapper">
             <NavigationBar />
-            <div className="rm-content-container">
+            <div className="rm-content-container rm-content-container--wide">
                 <div className="rm-header-section">
                     <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
@@ -531,12 +531,12 @@ const RM_SaleForm = ({ channel = null }) => {
                 </div>
 
                 <div className="rm-main-card">
-                    <div className="info-grid">
-                        <div className="info-item">
+                    <div className="info-grid info-grid--sized">
+                        <div className="info-item info-item--sm">
                             <label>Invoice No</label>
                             <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" style={{backgroundColor: '#f1f5f9'}} />
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--lg">
                             <label>Customer</label>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <Select
@@ -552,11 +552,11 @@ const RM_SaleForm = ({ channel = null }) => {
                                 <button type="button" className="quick-add-btn" onClick={() => setShowCustomerModal(true)} disabled={!!selectedSourceDoc}><FaPlus /></button>
                             </div>
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--sm">
                             <label>Sale Date</label>
                             <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} readOnly={!!selectedSourceDoc} />
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--md">
                             <label>Source DC</label>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <select className="rm-input-field" value={selectedSourceDoc} onChange={(e) => handleSourceDocumentSelection(e.target.value)}>

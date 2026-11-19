@@ -313,7 +313,7 @@ const GRN_Form = () => {
     return (
         <div className="rm-page-wrapper">
             <NavigationBar />
-            <div className="rm-content-container">
+            <div className="rm-content-container rm-content-container--wide">
                 <div className="rm-header-section">
                     <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(-1)}>
                         <FaArrowLeft />
@@ -324,12 +324,12 @@ const GRN_Form = () => {
                 </div>
 
                 <div className="rm-main-card">
-                    <div className="info-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-                        <div className="info-item">
+                    <div className="info-grid info-grid--sized">
+                        <div className="info-item info-item--sm">
                             <label>GRN No</label>
                             <input type="text" value={grnNo} readOnly className="rm-input-field readonly-input" style={{backgroundColor: '#f1f5f9'}} />
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--lg">
                             <label>Supplier (Master)</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <select className="rm-input-field" value={selectedSupplier} onChange={(e) => setSelectedSupplier(e.target.value)}>
@@ -339,7 +339,7 @@ const GRN_Form = () => {
                                 <button type="button" className="quick-add-btn" onClick={() => setShowSupplierModal(true)}><FaPlus /></button>
                             </div>
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--md">
                             <label>Driver</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <select className="rm-input-field" value={selectedDriver} onChange={(e) => setSelectedDriver(e.target.value)}>
@@ -353,7 +353,7 @@ const GRN_Form = () => {
                             <label>Vehicle No</label>
                             <input type="text" placeholder="e.g. LET-1234" className="rm-input-field" value={vehicleNo || ''} onChange={(e) => setVehicleNo(e.target.value)} />
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--sm">
                             <label>Date</label>
                             <input type="date" className="rm-input-field" value={date || ''} onChange={(e) => setDate(e.target.value)} />
                         </div>

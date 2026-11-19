@@ -87,6 +87,43 @@
   align-items: end;
 }
 
+/* Full-width page container (sale, purchase, return, GRN, DC forms):
+   no side gutters beyond the container's own padding. */
+.rm-content-container.rm-content-container--wide {
+  max-width: none;
+}
+
+/* Sized header row: short fields (document no, date) stay narrow and the
+   free space goes to the fields that carry long text (customer, supplier, tour).
+   Each size is capped so a form with few fields does not stretch one input
+   across the whole card; leftover space stays on the right. */
+.info-grid.info-grid--sized {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+}
+
+.info-grid--sized > .info-item {
+  flex: 1.1 1 0;
+  min-width: 0;
+  max-width: 320px;
+}
+
+.info-grid--sized > .info-item--sm {
+  flex: 0 0 130px;
+  max-width: 130px;
+}
+
+.info-grid--sized > .info-item--md {
+  flex: 1.35 1 0;
+  max-width: 340px;
+}
+
+.info-grid--sized > .info-item--lg {
+  flex: 1.7 1 0;
+  max-width: 460px;
+}
+
 .info-item label {
   display: block;
   font-size: 12px;
@@ -139,6 +176,55 @@
   box-shadow: none !important;
 }
 
+/* Salesman / Tour selects: same reset + compact control anywhere they render
+   (e.g. approved-invoice edit modal, which is outside .rm-page-wrapper .rm-main-card) */
+.rm-input-field.sm-tour-select {
+  padding: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sm-tour-select .react-select__control {
+  min-height: 36px !important;
+  height: 36px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  background: #fff !important;
+  font-size: 12px !important;
+  font-family: inherit;
+}
+
+.sm-tour-select .react-select__control--is-focused {
+  border-color: #1a73e8 !important;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.12) !important;
+}
+
+.sm-tour-select .react-select__control--is-disabled {
+  background: #f1f5f9 !important;
+}
+
+/* Keep react-select's own grid layout here: forcing display:flex lets the
+   hidden search input wrap under a long value and pushes the text up. */
+.sm-tour-select .react-select__value-container {
+  padding: 0 8px !important;
+  height: 34px;
+  align-items: center;
+}
+
+.sm-tour-select .react-select__input-container,
+.sm-tour-select .react-select__input {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.sm-tour-select .react-select__indicators {
+  height: 34px;
+}
+
 .rm-page-wrapper .react-select__control {
   min-height: 36px !important;
   height: 36px !important;
@@ -162,7 +248,6 @@
 .rm-page-wrapper .react-select__value-container {
   padding: 0 8px !important;
   height: 34px;
-  display: flex;
   align-items: center;
 }
 
@@ -474,6 +559,27 @@
 @media (max-width: 1279px) {
   .info-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+/* Sized header row falls back to an even grid when one row no longer fits */
+@media (max-width: 1199px) {
+  .info-grid.info-grid--sized {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .info-grid--sized > .info-item,
+  .info-grid--sized > .info-item--sm,
+  .info-grid--sized > .info-item--md,
+  .info-grid--sized > .info-item--lg {
+    max-width: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .info-grid.info-grid--sized {
+    grid-template-columns: 1fr;
   }
 }
 
