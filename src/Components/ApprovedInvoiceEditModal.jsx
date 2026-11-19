@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { FaTimes, FaSave, FaSpinner, FaCalendarAlt, FaHashtag, FaUser, FaTag } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import api from '../../api';
+import SalesmanTourFields from './SalesmanTourFields';
 
 const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, onSaved }) => {
   const [loading, setLoading] = useState(false);
@@ -9,12 +10,20 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
   const [invoice, setInvoice] = useState(null);
   const [details, setDetails] = useState([]);
   const [invoiceDate, setInvoiceDate] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [deliveryCharges, setDeliveryCharges] = useState(0);
+  const [salesmanId, setSalesmanId] = useState('');
+  const [tourId, setTourId] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (!open || !invoiceId) return;
     setInvoice(null);
     setDetails([]);
+    setDiscount(0);
+    setDeliveryCharges(0);
+    setSalesmanId('');
+    setTourId('');
     setErrorMsg('');
     fetchApprovedInvoicePreview();
   }, [open, invoiceId]);
@@ -25,9 +34,9 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
       const route = invoiceCategory === 'fp' ? '/fp-sale' : '/rm-transactions';
       const res = await api.get(`${route}/edit-approved-preview/${invoiceId}`);
       const payload = res.data?.success ? res.data.data : res.data;
-      
+
       const master = invoiceCategory === 'fp' ? payload : (payload.master || payload);
-      const rows = invoiceCategory === 'fp' ? (payload.details || []) : (payload.details || []);
+      const rows = payload.details || [];
       const dateString = payload.invoiceDate || master?.date;
 
       setInvoice(master);
@@ -39,6 +48,10 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
       })));
 
       setInvoiceDate(dateString ? new Date(dateString).toISOString().split('T')[0] : '');
+      setDiscount(Number(master?.discount || 0));
+      setDeliveryCharges(Number(master?.delivery_charges || 0));
+      setSalesmanId(master?.salesman_id ? String(master.salesman_id) : '');
+      setTourId(master?.tour_id ? String(master.tour_id) : '');
     } catch (err) {
       console.error('Error fetching approved invoice preview:', err);
       setErrorMsg(err.response?.data?.message || 'Unable to load approved invoice details.');
@@ -47,20 +60,14 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
     }
   };
 
-// Dynamic Label & Value Setup (Supplier vs Customer)
-  // Dynamic Label & Value Setup (Supplier vs Customer)
   const entityInfo = useMemo(() => {
     if (!invoice) return { label: 'Party / Entity', value: 'N/A' };
 
     const type = invoice.type || invoice.transaction_type || '';
-    
     const isRmCategory = invoiceCategory === 'rm';
     const isSupplier = isRmCategory && (type === 'Purchase' || type === 'Return');
-
-    // First detail row values
     const firstRow = details[0] || {};
 
-    // Dynamic field extraction based on exact enum logic
     const nameValue = isSupplier
       ? (
           firstRow.supplier_name ||
@@ -91,33 +98,69 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
     };
   }, [invoice, details, invoiceCategory]);
 
+  // Salesman / Tour only apply to sales (RM Sale, RM SaleReturn, all FP invoices) — not Purchase / Purchase Return.
+  const showSalesmanTour = useMemo(() => {
+    if (invoiceCategory === 'fp') return true;
+    const type = invoice?.type || invoice?.transaction_type || '';
+    return type === 'Sale' || type === 'SaleReturn';
+  }, [invoice, invoiceCategory]);
+
   const handleRowChange = (index, field, value) => {
     const updated = [...details];
     if (field === 'quantity' || field === 'unit_price') {
       const numeric = value === '' ? '' : Number(value);
       if (value !== '' && (Number.isNaN(numeric) || numeric < 0)) return;
-      
+
       updated[index][field] = numeric;
       updated[index].total_price = Number((Number(updated[index].quantity || 0) * Number(updated[index].unit_price || 0)).toFixed(2));
     }
     setDetails(updated);
   };
 
-  const grandTotal = useMemo(() => {
+  const linesSubTotal = useMemo(() => {
     return details.reduce((sum, row) => sum + (Number(row.quantity || 0) * Number(row.unit_price || 0)), 0);
   }, [details]);
+
+  const estimatedGrandTotal = useMemo(() => {
+    const disc = Number(discount) || 0;
+    const del = Number(deliveryCharges) || 0;
+    return Math.max(0, linesSubTotal + del - disc);
+  }, [linesSubTotal, discount, deliveryCharges]);
 
   const saveApprovedInvoice = async () => {
     if (!invoice) return;
     const invalidRow = details.find((row) => Number(row.quantity) <= 0 || Number(row.unit_price) < 0);
-    
+
     if (invalidRow) {
       toast.error('All line quantities must be greater than 0 and unit prices cannot be negative.');
       return;
     }
 
+    const disc = Number(discount) || 0;
+    const del = Number(deliveryCharges) || 0;
+    if (disc < 0) {
+      toast.error('Discount cannot be negative.');
+      return;
+    }
+    if (disc > linesSubTotal) {
+      toast.error('Discount cannot exceed lines subtotal.');
+      return;
+    }
+    if (del < 0) {
+      toast.error('Delivery charges cannot be negative.');
+      return;
+    }
+
     const payload = {
       date: invoiceDate,
+      discount: disc,
+      delivery_charges: del,
+      ...(showSalesmanTour
+        ? {
+            salesman_id: salesmanId ? Number(salesmanId) : null,
+            tour_id: tourId ? Number(tourId) : null,
+          }
+        : {}),
       details: details.map((row) => ({
         detail_id: row.detail_id || row.id,
         quantity: Number(row.quantity),
@@ -142,18 +185,17 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
     }
   };
 
-  // Strict structural return condition
   if (!open) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-      <div 
-        className="modal-box p-4" 
-        onClick={(e) => e.stopPropagation()} 
-        style={{ 
-          maxHeight: '90vh', 
+      <div
+        className="modal-box p-4"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxHeight: '90vh',
           width: '85vw',
-          minWidth: '1050px', 
+          minWidth: '1050px',
           overflowY: 'auto',
           borderRadius: '12px',
           boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
@@ -161,7 +203,6 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
           border: '1px solid #e2e8f0'
         }}
       >
-        {/* Header section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -173,7 +214,7 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
               )}
             </div>
             <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '0.85rem' }}>
-              Modifying quantity, unit price, or date will automatically adjust inventory layers and re-post general ledgers.
+              Qty, price, date, {showSalesmanTour ? 'salesman/tour, ' : ''}discount and delivery charges can be updated. Stock and GL will re-sync.
             </p>
           </div>
           <button type="button" className="close-btn" onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}>
@@ -181,7 +222,6 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
           </button>
         </div>
 
-        {/* Dynamic States rendering */}
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: '10px', color: '#94a3b8' }}>
             <FaSpinner className="spin" size={28} style={{ color: '#4f46e5' }} />
@@ -197,8 +237,7 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
           </div>
         ) : (
           <>
-            {/* Top Info Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
               <div>
                 <label className="label" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', color: '#64748b', marginBottom: '6px' }}>
                   <FaHashtag /> Invoice No
@@ -231,13 +270,46 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
               </div>
             </div>
 
-            {/* Line items data mapping */}
+            <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              {showSalesmanTour && (
+                <SalesmanTourFields
+                  salesmanId={salesmanId}
+                  tourId={tourId}
+                  onSalesmanChange={setSalesmanId}
+                  onTourChange={setTourId}
+                  openOnly
+                />
+              )}
+              <div className="info-item">
+                <label>Discount</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="rm-input-field"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value === '' ? '' : Number(e.target.value))}
+                />
+              </div>
+              <div className="info-item">
+                <label>Delivery Charges</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="rm-input-field"
+                  value={deliveryCharges}
+                  onChange={(e) => setDeliveryCharges(e.target.value === '' ? '' : Number(e.target.value))}
+                />
+              </div>
+            </div>
+
             <div style={{ marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#334155', textTransform: 'uppercase' }}>Line Items Ledger</h4>
                 <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: '500' }}>{details.length} Rows</span>
               </div>
-              
+
               <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                 <table className="product-table" style={{ minWidth: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                   <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
@@ -298,25 +370,38 @@ const ApprovedInvoiceEditModal = ({ open, onClose, invoiceId, invoiceCategory, o
               </div>
             </div>
 
-            {/* Computation calculation banner */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '30px', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '12px 24px', borderRadius: '8px' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#4c1d95' }}>Grand Total Summary:</span>
-                <span style={{ fontSize: '1.25rem', fontWeight: '800', color: '#6d28d9' }}>
-                  Rs. {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '12px 24px', borderRadius: '8px', minWidth: 280 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#5b21b6' }}>
+                  <span>Lines Subtotal</span>
+                  <strong>Rs. {linesSubTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#5b21b6' }}>
+                  <span>+ Delivery</span>
+                  <strong>Rs. {(Number(deliveryCharges) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#5b21b6' }}>
+                  <span>− Discount</span>
+                  <strong>Rs. {(Number(discount) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #ddd6fe', paddingTop: 8, marginTop: 4 }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#4c1d95' }}>Est. Grand Total</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: '800', color: '#6d28d9' }}>
+                    Rs. {estimatedGrandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#7c3aed' }}>Tax (if any) is applied by server on save.</div>
               </div>
             </div>
 
-            {/* Footer Control Actions */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
               <button type="button" className="btn btn-outline-secondary" onClick={onClose}>
                 Cancel
               </button>
-              <button 
-                type="button" 
-                className="save-btn" 
-                onClick={saveApprovedInvoice} 
+              <button
+                type="button"
+                className="save-btn"
+                onClick={saveApprovedInvoice}
                 disabled={saving || loading || !invoice}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >

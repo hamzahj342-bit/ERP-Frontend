@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Select from "react-select";
 import api from "../../api";
+import "../Transactions.css";
 
 /**
  * Optional Salesman + Tour selects for sale / return forms.
@@ -81,7 +82,7 @@ const SalesmanTourFields = ({
       <div className="info-item">
         <label>Salesman (optional)</label>
         <Select
-          className="rm-input-field"
+          className="rm-input-field sm-tour-select"
           classNamePrefix="react-select"
           options={salesmanOptions}
           value={salesmanOptions.find((o) => String(o.value) === String(salesmanId)) || null}
@@ -94,10 +95,10 @@ const SalesmanTourFields = ({
           placeholder="Select salesman..."
         />
       </div>
-      <div className="info-item">
+      <div className="info-item info-item--lg">
         <label>Tour (optional)</label>
         <Select
-          className="rm-input-field"
+          className="rm-input-field sm-tour-select"
           classNamePrefix="react-select"
           options={tourOptions}
           value={tourOptions.find((o) => String(o.value) === String(tourId)) || null}

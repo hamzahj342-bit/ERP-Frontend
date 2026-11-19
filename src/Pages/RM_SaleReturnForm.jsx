@@ -375,7 +375,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
         <div className="rm-page-wrapper">
             <NavigationBar />
 
-            <div className="rm-content-container">
+            <div className="rm-content-container rm-content-container--wide">
                 <div className="rm-header-section">
                     <button type="button" className="back-btn erp-back-btn" onClick={() => navigate(listPath)}>
                         <FaArrowLeft />
@@ -385,12 +385,12 @@ const RM_SaleReturnForm = ({ channel = null }) => {
 
                 <div className="rm-main-card">
                     {/* Top Info Grid */}
-                    <div className="info-grid">
-                        <div className="info-item">
+                    <div className="info-grid info-grid--sized">
+                        <div className="info-item info-item--sm">
                             <label>Return Invoice No</label>
                             <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--lg">
                             <label>Customer</label>
                             <select 
                                 className="rm-input-field" 
@@ -404,7 +404,7 @@ const RM_SaleReturnForm = ({ channel = null }) => {
                                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
-                        <div className="info-item">
+                        <div className="info-item info-item--sm">
                             <label>Return Date</label>
                             <input type="date" className="rm-input-field" value={date} onChange={(e) => setDate(e.target.value)} />
                         </div>

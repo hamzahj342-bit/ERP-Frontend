@@ -370,7 +370,8 @@ const BankVoucherForm = () => {
 
                 <div className="rm-main-card">
                     <form onSubmit={handleSubmit}>
-                        <div className="info-grid voucher-info-6">
+                        {/* Row 1 — same five fields as the cash voucher header */}
+                        <div className="info-grid voucher-info-5">
                             <div className="info-item">
                                 <label>Voucher No</label>
                                 <input type="text" value={invoiceNo} readOnly className="rm-input-field readonly-input" />
@@ -379,15 +380,6 @@ const BankVoucherForm = () => {
                                 <label>Transaction Date</label>
                                 <input type="date" className="rm-input-field" value={transactionDate} onChange={(e) => setTransactionDate(e.target.value)} required />
                             </div>
-                            <VoucherSalesmanTourCell
-                                variant="header"
-                                salesmanId={headerSalesmanId}
-                                tourId={headerTourId}
-                                salesmenOptions={salesmenOptions}
-                                onSalesmanChange={setHeaderSalesmanId}
-                                onTourChange={setHeaderTourId}
-                                selectProps={entitySelectProps}
-                            />
                             <div className="info-item">
                                 <label>Corporate Bank Account</label>
                                 <select className="rm-input-field" value={selectedBankAccount} onChange={(e) => setSelectedBankAccount(e.target.value)} required>
@@ -399,6 +391,19 @@ const BankVoucherForm = () => {
                                     ))}
                                 </select>
                             </div>
+                            <VoucherSalesmanTourCell
+                                variant="header"
+                                salesmanId={headerSalesmanId}
+                                tourId={headerTourId}
+                                salesmenOptions={salesmenOptions}
+                                onSalesmanChange={setHeaderSalesmanId}
+                                onTourChange={setHeaderTourId}
+                                selectProps={entitySelectProps}
+                            />
+                        </div>
+
+                        {/* Row 2 — bank instrument details */}
+                        <div className="info-grid voucher-info-4">
                             <div className="info-item">
                                 <label>Payment / Instrument Mode</label>
                                 <select className="rm-input-field" value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
@@ -407,9 +412,6 @@ const BankVoucherForm = () => {
                                     <option value="Demand Draft">Demand Draft</option>
                                 </select>
                             </div>
-                        </div>
-
-                        <div className="info-grid voucher-info-3">
                             <div className="info-item">
                                 <label>Cheque Number</label>
                                 <input type="text" className="rm-input-field" placeholder="e.g. CHQ-882910" value={chequeNumber} onChange={(e) => setChequeNumber(e.target.value)} />
