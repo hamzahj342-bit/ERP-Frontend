@@ -43,6 +43,7 @@ import EmployeesForm from './Components/EmployeesForm';
 import Salesmen from './Pages/Salesmen';
 import SalesmanForm from './Components/SalesmanForm';
 import SalesmanTourReport from './Reports/SalesmanTourReport';
+import SalesmanLedgerReport from './Reports/SalesmanLedgerReport';
 import CreateAccount from './Pages/CreateAccount';
 import AccountList from './Pages/AccountList';
 import GeneralVoucherForm from './PaymentVouchers/GeneralVoucherForm';
@@ -276,6 +277,7 @@ const App = () => {
         <Route path='/receivable-register' element={<PermissionRoute permission="reports.receivable_register"> <ReceivableRegister /> </PermissionRoute>} />
         <Route path='/cash-report' element={<PermissionRoute permission="reports.cash_report"> <CashReport /> </PermissionRoute>} />
         <Route path='/reports/salesman' element={<PermissionRoute permission="reports.salesman"> <SalesmanTourReport /> </PermissionRoute>} />
+        <Route path='/reports/salesman-ledger' element={<PermissionRoute permission="reports.salesman"> <SalesmanLedgerReport /> </PermissionRoute>} />
         <Route path='/stock-ledger' element={<PermissionRoute permission="reports.stock_ledger"> <StockLedgerReport /> </PermissionRoute>} />
         <Route path='/inventory-adjustment-report' element={<PermissionRoute permission="reports.inventory_adjustment"> <InventoryAdjustmentReport /> </PermissionRoute>} />
         <Route path='/payable-receivable-report' element={<PermissionRoute permission="reports.payable_receivable"> <PayableReceivableReport /> </PermissionRoute>} />

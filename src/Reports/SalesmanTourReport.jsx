@@ -14,6 +14,7 @@ import {
   FaChartLine,
   FaRoute,
   FaCalendarAlt,
+  FaUserTie,
 } from "react-icons/fa";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -439,6 +440,25 @@ const SalesmanTourReport = () => {
               {tabBtn("performance", "Performance", <FaChartLine />)}
               {tabBtn("tour", "Tour P&L", <FaRoute />)}
               {tabBtn("period", "Period", <FaCalendarAlt />)}
+              <button
+                type="button"
+                onClick={() => navigate("/reports/salesman-ledger")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: "#f1f5f9",
+                  color: "#475569",
+                }}
+              >
+                <FaUserTie /> Salesman Ledger
+              </button>
             </div>
 
             <div className="filter-group" style={{ marginTop: "15px" }}>
