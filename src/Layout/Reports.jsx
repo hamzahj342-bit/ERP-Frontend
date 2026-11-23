@@ -11,7 +11,8 @@ import {
     FaHistory,
     FaMoneyBillWave,
     FaWarehouse,
-    FaRoute
+    FaRoute,
+    FaUserTie
 } from 'react-icons/fa';
 import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../RM_CardLayout.css';
@@ -246,6 +247,16 @@ const Reports = () => {
                                 icon={<FaRoute />}
                                 path="/reports/salesman" 
                                 color="#0369a1" 
+                                perm="reports.salesman"
+                                navigate={navigate}
+                            />
+
+                            <ReportCard 
+                                title="Salesman Ledger"
+                                description="Salesman invoice ledger with customer name and linked invoice numbers — no item lines."
+                                icon={<FaUserTie />}
+                                path="/reports/salesman-ledger" 
+                                color="#0e7490" 
                                 perm="reports.salesman"
                                 navigate={navigate}
                             />
