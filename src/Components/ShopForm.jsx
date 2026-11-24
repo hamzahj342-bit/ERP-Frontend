@@ -23,38 +23,33 @@ const ShopForm = () => {
     }));
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const payload = {
         ...formData,
-        // 👇 backend handles created_by via token
       };
 
-      // fetch (POST) ki jagah api.post
-      const res = await api.post("/shops", payload);
+      await api.post("/shops", payload);
 
-      // Axios mein success response 2xx range mein hota hai
       toast.success("Shop added successfully!");
       setFormData({ name: "" });
       navigate("/shops");
-
     } catch (err) {
       console.error("Submit Error:", err);
-      
-      // Backend error message handle karein
       const errorMsg = err.response?.data?.message || "Error adding shop.";
       toast.error(errorMsg);
     }
   };
+
   return (
     <>
       <NavigationBar />
       <div className="page-container">
         <button
           className="back-btn"
-          style={{ marginTop: "30px" }}
+          type="button"
           onClick={() => navigate("/shops")}
         >
           <FaArrowLeft />
@@ -62,19 +57,27 @@ const handleSubmit = async (e) => {
 
         <div className="entity-card">
           <h2>Add Shop</h2>
-          <form className="form" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              name="name"
-              placeholder="Shop Name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
+          <form className="form erp-form" onSubmit={handleSubmit}>
+            <div className="erp-form-grid">
+              <div className="erp-form-field erp-form-field--full">
+                <label htmlFor="shop-name">Shop Name</label>
+                <input
+                  id="shop-name"
+                  type="text"
+                  name="name"
+                  placeholder="Shop Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
 
-            <button type="submit" className="primary-btn">
-              Add Shop
-            </button>
+            <div className="erp-form-actions">
+              <button type="submit" className="save-btn">
+                Save Shop
+              </button>
+            </div>
           </form>
         </div>
       </div>

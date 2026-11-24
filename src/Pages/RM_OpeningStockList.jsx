@@ -31,8 +31,8 @@ const RM_OpeningStockList = () => {
       console.log("RM Opening Stock API Response:", data);
 
       if (Array.isArray(data.data)) {
-        // Safe fallbacks to display entries synced under startup ID 999999
-        const targetedData = data.data.filter(p => parseInt(p.entityid) === 999999 || p.invoice_no?.startsWith('OPENING-'));
+        // Opening entries are tagged OPENING-*; entity id is per-company (not global 999999)
+        const targetedData = data.data.filter((p) => String(p.invoice_no || '').startsWith('OPENING-'));
         setOpeningEntries(targetedData.length > 0 ? targetedData : data.data);
         setTotalPages(data.totalPages);
       } else {

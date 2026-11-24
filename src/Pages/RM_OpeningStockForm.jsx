@@ -16,8 +16,7 @@ const RM_OpeningStockForm = () => {
     const editId = queryParams.get('editId'); 
     const isEditMode = !!editId;
 
-    // System Default Startup ID matching ledger database override
-    const HARDCODED_STARTUP_SUPPLIER_ID = 999999;
+    // Opening Startup supplier id is resolved on backend per company_id (not a global fixed id)
 
     const [rows, setRows] = useState([
         { rm_id: "", rm_name: "", quantity: "", unitPrice: "", total: "", uom_id: "", uom_name: "" }
@@ -165,7 +164,7 @@ const RM_OpeningStockForm = () => {
         const user = JSON.parse(localStorage.getItem("user"));
         
         const initializationPayload = {
-            entityid: HARDCODED_STARTUP_SUPPLIER_ID, 
+            // entityid resolved on backend from company Opening Startup supplier
             grand_total: parseFloat(grandTotal),
             sub_total: parseFloat(subTotal),
             discount: disc,
@@ -186,7 +185,6 @@ const RM_OpeningStockForm = () => {
                 total_price: parseFloat(r.total),
                 uom_id: r.uom_id,
                 date,
-                entity_supplier_id: HARDCODED_STARTUP_SUPPLIER_ID,
             }))
         };
 

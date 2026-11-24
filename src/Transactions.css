@@ -556,6 +556,55 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
+.modal-actions,
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.modal-actions .save-btn,
+.modal-footer .save-btn,
+.modal-actions .save-btn-main,
+.modal-footer .save-btn-main {
+  width: auto;
+  min-width: 120px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* Cancel in modals — not the 36px + icon quick-add-btn */
+.modal-actions .quick-add-btn,
+.modal-footer .quick-add-btn,
+.modal-cancel-btn {
+  width: auto;
+  min-width: auto;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 14px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 600;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  color: #1a73e8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-actions .quick-add-btn:hover,
+.modal-footer .quick-add-btn:hover,
+.modal-cancel-btn:hover {
+  background: #dbeafe;
+}
+
 @media (max-width: 1279px) {
   .info-grid {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

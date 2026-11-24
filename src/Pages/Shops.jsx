@@ -1,24 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus, FaEdit, FaTrash, FaSearch } from 'react-icons/fa';
 import '../CustomersAndSuppliers.css';
 import NavigationBar from '../Components/NavigationBar';
 import Footer from '../Components/Footer';
-import Swal from 'sweetalert2';   // 👈 import SweetAlert2
-import api from "../../api"; 
+import Swal from 'sweetalert2';
+import api from "../../api";
 
 const Shops = () => {
   const [shops, setShops] = useState([]);
-  const [onUpdate, setOnUpdate] = useState(null);
+  const [onEdit, setOnEdit] = useState(null);
   const [shopData, setShopData] = useState({ name: "" });
-  
+  const [searchTerm, setSearchTerm] = useState("");
+
   const navigate = useNavigate();
 
-  // ✅ Fetch shops using standardized api.js
   const fetchShops = async () => {
     try {
       const res = await api.get("/shops");
-      setShops(res.data);
+      setShops(res.data || []);
     } catch (err) {
       console.error("Error fetching shops:", err);
     }
@@ -28,15 +28,23 @@ const Shops = () => {
     fetchShops();
   }, []);
 
-  // ✅ Update API using standardized api.js
+  const filteredShops = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return shops;
+    return shops.filter((shop) =>
+      String(shop.name || "").toLowerCase().includes(q) ||
+      String(shop.id || "").includes(q)
+    );
+  }, [shops, searchTerm]);
+
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.put(`/shops/${onUpdate.id}`, { name: shopData.name });
-      
+      const res = await api.put(`/shops/${onEdit.id}`, { name: shopData.name });
+
       if (res.status === 200 || res.status === 204) {
-        setOnUpdate(null);
-        setShopData({ name: "" }); // Reset input
+        setOnEdit(null);
+        setShopData({ name: "" });
         fetchShops();
         Swal.fire("Updated!", "Shop updated successfully.", "success");
       }
@@ -46,20 +54,10 @@ const Shops = () => {
     }
   };
 
-  const handleEditClick = (shop) => {
-    setOnUpdate(shop);
-    setShopData({ name: shop.name });
-  };
-
-  const handleChange = (e) => {
-    setShopData({ name: e.target.value });
-  };
-
-  // ✅ Delete API using standardized api.js
-  const handleDelete = (id) => {
+  const handleDelete = (id, name) => {
     Swal.fire({
       title: "Are you sure?",
-      text: "You won’t be able to revert this!",
+      text: `Do you want to delete shop: ${name}?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -81,71 +79,117 @@ const Shops = () => {
 
   return (
     <>
-    <NavigationBar />
-    <div className="table-container">
-      <button className='back-btn' style={{marginTop:"30px"}}
-              onClick={() => navigate('/dashboard')}>
-        <FaArrowLeft />
-      </button>
-      <div className="table-wrapper">
-        <button className='add-cust-sup' onClick={() => navigate('/add-shops')}>Add Shop</button>
-        <h2>Shops List</h2>
-
-        {/* Edit Form */}
-        {onUpdate && (
-          <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', width: '300px' }}>
-              <h3>Edit Shop</h3>
-              <form onSubmit={handleUpdate} style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                <input className="input"
-                  name="name"
-                  value={shopData.name}
-                  onChange={handleChange}
-                  placeholder="Shop Name"
-                  required
-                />
-                <button type="submit" className="primary-btn">Update</button>
-                <button type="button" className="primary-btn" onClick={() => setOnUpdate(null)}>Cancel</button>
-              </form>
+      <NavigationBar />
+      <div className="erp-entity-page table-container">
+        <div className="erp-page-card table-wrapper">
+          <div className="erp-page-header header-flex">
+            <div className="erp-page-header-left">
+              <button
+                className="back-btn erp-back-btn"
+                type="button"
+                onClick={() => navigate('/dashboard')}
+              >
+                <FaArrowLeft />
+              </button>
+              <h2 className="erp-page-title">Shops List</h2>
             </div>
+            <button
+              className="add-cust-sup erp-btn-primary"
+              type="button"
+              onClick={() => navigate('/add-shops')}
+            >
+              <FaPlus /> Add Shop
+            </button>
           </div>
-        )}
 
-        <table className="entity-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shops.map((shop) => (
-              <tr key={shop.id}>
-                <td>{shop.id}</td>
-                <td>{shop.name}</td>
-                <td>
-                  <button className="edit-btn" onClick={() => handleEditClick(shop)}>Edit</button>
-                  <button className="delete-btn" onClick={() => handleDelete(shop.id)}>Delete</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <div className="erp-search-bar search-container">
+            <FaSearch className="erp-search-icon" />
+            <input
+              type="text"
+              className="input erp-search-input"
+              placeholder="Search shop..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="erp-table-scroll">
+            <table className="entity-table">
+              <thead>
+                <tr>
+                  <th>Id</th>
+                  <th>Name</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredShops.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: 'center', padding: '24px' }}>
+                      No shops found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredShops.map((shop) => (
+                    <tr key={shop.id}>
+                      <td data-label="Id">{shop.id}</td>
+                      <td data-label="Name" style={{ fontWeight: 600 }}>{shop.name}</td>
+                      <td data-label="Actions" className="erp-actions-cell">
+                        <div className="erp-actions-group">
+                          <button
+                            type="button"
+                            className="edit-btn-action"
+                            onClick={() => {
+                              setOnEdit(shop);
+                              setShopData({ name: shop.name });
+                            }}
+                          >
+                            <FaEdit /> Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="delete-btn"
+                            onClick={() => handleDelete(shop.id, shop.name)}
+                          >
+                            <FaTrash /> Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
-    <Footer />
+
+      {onEdit && (
+        <div className="erp-modal-overlay modal-overlay">
+          <div className="erp-modal-content modal-content">
+            <h3>Edit Shop</h3>
+            <form onSubmit={handleUpdate}>
+              <input
+                className="input"
+                type="text"
+                name="name"
+                value={shopData.name}
+                onChange={(e) => setShopData({ name: e.target.value })}
+                placeholder="Shop Name"
+                required
+              />
+              <div className="erp-modal-actions">
+                <button type="submit" className="add-cust-sup">Update</button>
+                <button type="button" className="delete-btn" onClick={() => setOnEdit(null)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <Footer />
     </>
   );
 };
