@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft } from 'react-icons/fa';
+import { FaArrowLeft, FaPlus } from 'react-icons/fa';
 import Select from 'react-select';
 import "../EntityForm.css";
 import { toast } from "react-toastify";
@@ -160,23 +160,32 @@ const handleSubmit = async (e) => {
               />
             </div>
 
-            <div className="erp-form-field erp-form-field--full shop-row row">
-              <select
-                name="shop_id"
-                value={formData.shop_id}
-                onChange={handleChange}
-                className="select-customer"
-              >
-                <option value="">Select Shop (Optional)</option>
-                {shops.map((shop) => (
-                  <option key={shop.id} value={shop.id}>
-                    {shop.name}
-                  </option>
-                ))}
-              </select>
-              <button type="button" className="add-btn" onClick={() => navigate("/add-shops")}>
-                Add Shop
-              </button>
+            <div className="erp-form-field erp-form-field--full">
+              <label htmlFor="supplier-shop">Select Shop (Optional)</label>
+              <div className="shop-row row">
+                <select
+                  id="supplier-shop"
+                  name="shop_id"
+                  value={formData.shop_id}
+                  onChange={handleChange}
+                  className="select-customer"
+                >
+                  <option value="">Select Shop (Optional)</option>
+                  {shops.map((shop) => (
+                    <option key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="erp-inline-add-btn"
+                  onClick={() => navigate("/add-shops")}
+                  title="Add Shop"
+                >
+                  <FaPlus />
+                </button>
+              </div>
             </div>
 
             <div className="linkage-card erp-form-field--full">

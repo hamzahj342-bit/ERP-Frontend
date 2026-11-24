@@ -692,8 +692,8 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                         <div className="form-group"><label>Address</label><textarea id="new_sup_address" className="rm-input-field"></textarea></div>
                         <div className="form-group"><label>Contact</label><input type="text" id="new_sup_contact" className="rm-input-field" /></div>
                         <div className="modal-actions">
-                            <button className="save-btn" onClick={handleQuickSupplierAdd}>Save Supplier</button>
-                            <button className="quick-add-btn" onClick={() => setShowSupplierModal(false)}>Cancel</button>
+                            <button type="button" className="modal-cancel-btn" onClick={() => setShowSupplierModal(false)}>Cancel</button>
+                            <button type="button" className="save-btn" onClick={handleQuickSupplierAdd}>Save Supplier</button>
                         </div>
                     </div>
                 </div>
@@ -729,12 +729,18 @@ const [newMaterialUom, setNewMaterialUom] = useState("");
                 </select>
             </div>
             <div className="modal-actions">
+                <button
+                    type="button"
+                    className="modal-cancel-btn"
+                    onClick={() => {
+                        setShowMaterialModal(false);
+                        setNewMaterialName("");
+                        setNewMaterialUom("");
+                    }}
+                >
+                    Cancel
+                </button>
                 <button type="button" className="save-btn" onClick={handleQuickMaterialAdd}>Save Material</button>
-                <button type="button" className="quick-add-btn" onClick={() => {
-                    setShowMaterialModal(false);
-                    setNewMaterialName("");
-                    setNewMaterialUom("");
-                }}>Cancel</button>
             </div>
         </div>
     </div>
