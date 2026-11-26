@@ -12,7 +12,8 @@ import {
     FaMoneyBillWave,
     FaWarehouse,
     FaRoute,
-    FaUserTie
+    FaUserTie,
+    FaUsers
 } from 'react-icons/fa';
 import { MdPrecisionManufacturing, MdInventory } from 'react-icons/md';
 import '../RM_CardLayout.css';
@@ -257,6 +258,16 @@ const Reports = () => {
                                 icon={<FaUserTie />}
                                 path="/reports/salesman-ledger" 
                                 color="#0e7490" 
+                                perm="reports.salesman"
+                                navigate={navigate}
+                            />
+
+                            <ReportCard 
+                                title="Salesman Customers Balance"
+                                description="Outstanding balances of customers linked through a salesman's sale invoices — Balance Summary style."
+                                icon={<FaUsers />}
+                                path="/reports/salesman-customers-balance" 
+                                color="#0f766e" 
                                 perm="reports.salesman"
                                 navigate={navigate}
                             />
